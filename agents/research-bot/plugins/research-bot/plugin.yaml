@@ -1,17 +1,19 @@
 # Native plugin manifest. Official fields:
 # https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 # name, version, description, provides_tools, provides_hooks,
-# config_schema (v2: keys under plugins.entries.<id>.settings)
+# config_schema (keys under plugins.entries.<id>.settings)
 
-name: army-runtime
-version: 0.1.0
+name: research-bot
+version: 0.2.0
 manifest_version: 2
 api_version: 1
-description: "Shared army process layer — source ledger, citation, and optional research write policy (toolset army)."
+description: "Registers Context7 facade tools and source-ledger tools for the research-bot profile (toolset research-bot)."
 author: James Fincher
 license: Apache-2.0
-tags: [army, ledger, citations]
+tags: [research, context7, ledger, citations]
 provides_tools:
+  - resolve_library
+  - docs_query
   - source_ledger_add
   - source_ledger_list
   - source_ledger_cite
@@ -26,9 +28,4 @@ config_schema:
     type: str
     default: apa
     description: "Citation format for source_ledger_cite: apa, ieee, or chicago."
-    required: false
-  write_policy:
-    type: str
-    default: "off"
-    description: "research blocks product-code writes; off leaves writes alone. Set per profile so the policy does not leak."
     required: false

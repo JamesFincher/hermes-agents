@@ -1,36 +1,32 @@
 ---
-description: Hermes Agents factory — Context7 first, one agent per PR, no invented knobs
+description: Hermes profiles — playbook is SoT, Context7 first, one independent agent per PR
 alwaysApply: true
 ---
 
-# Hermes Agents factory
+# Hermes independent profiles
 
-You are working in James Fincher's profile-distribution factory. Read `AGENTS.md` and `docs/WORKFLOW.md` before editing.
+**Source of truth:** `docs/PROFILE-PLAYBOOK.md`
+
+Read that playbook before editing. `AGENTS.md` and `docs/WORKFLOW.md` point at it.
+
+The playbook is how to generate one independent specialized Hermes profile. `hermes-agents` is a folder of those profiles. It is not a shared runtime.
 
 ## Docs order (mandatory)
 
-1. Context7 first for every Hermes / Honcho / library question.
-   - Resolve + query. Official library IDs:
-     - Hermes Agent: `/nousresearch/hermes-agent`
-     - Honcho: `/plastic-labs/honcho`
-   - Also useful: `/llmstxt/hermes-agent_nousresearch_llms_txt`, `/websites/honcho_dev_v3`
-   - James's paid Context7 is Context7-API. Use it. Never print, log, or commit `CONTEXT7_API_KEY`.
-2. Then official Hermes LLM entry points: https://hermes-agent.nousresearch.com/llms.txt and https://hermes-agent.nousresearch.com/llms-full.txt plus the pages they index.
-3. Do not clone NousResearch/hermes-agent or any of James's other repos. Read official docs / Context7 / GitHub raw/API only.
+1. Context7 first for every Hermes / Honcho / library question. Library: `/nousresearch/hermes-agent`.
+2. Then https://hermes-agent.nousresearch.com/llms.txt and the URLs the playbook cites.
+3. Do not clone NousResearch/hermes-agent or James's other repos.
+4. Never print, log, or commit `CONTEXT7_API_KEY`.
 
-## Join layer (do not invert)
+## Four surfaces (never collapse)
 
-- Skills are recipes in the normal index: `agents/<name>/skills/` and `skills-tap/skills/`. Do **not** `ctx.register_skill` / `plugin:skill` the primary library.
-- Shared process code is `army-runtime` (toolset `army`). Every agent: `plugins.enabled: [army-runtime]`. Copy factory `plugins/army-runtime/` into the agent. Claim `plugins` in `distribution_owned`.
-- Honcho is `memory.provider: honcho`. Never in `plugins.enabled`.
-- New skill that needs a host capability → add the tool to army-runtime, declare `requires_tools` / `requires_toolsets: [army]`. Per-agent plugin only when the capability must not leak.
-- Never ask "plugin or skills first."
+Skill, Tool, Plugin, and MCP are four different official objects. See the playbook definition table. Say "the `<name>` plugin registers the `<tool>` tool."
 
 ## Non-negotiables
 
-- One agent (or one recipe / army-runtime tool / leak-scoped plugin) per PR. Tight. Recreatable. No drive-by refactors.
-- Never invent Hermes or Honcho config knobs. Cite the Context7 hit or official URL.
-- Never two writers on one profile. Honcho is shared memory (`workspace: hermes`, unique `aiPeer` per profile).
-- Never commit secrets. Installer strip is not gitignore. Target stock Hermes `~/.hermes`, not Gengar.
-- Cron / blueprints are suggestions, not auto-scheduled.
-- Do not vendor JamesFincher/gengar or rewrite JamesFincher/hermes-ouroboros.
+- One agent per PR. Isolated `HERMES_HOME`. That profile owns its plugin, toolset, skills, and MCP.
+- Next agent writes its own plugin + skills from scratch if it needs them. Zero imports from `research-bot`.
+- There is no factory-root `plugins/` package.
+- Honcho is `memory.provider: honcho` (settled). Not `plugins.enabled`.
+- Never invent knobs. Cite Context7 or an official URL.
+- Never commit secrets. Target stock Hermes `~/.hermes`, not Gengar.

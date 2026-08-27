@@ -7,7 +7,8 @@
       "workspace": "hermes",
       "recallMode": "hybrid",
       "writeFrequency": "async",
-      "sessionStrategy": "per-directory"
+      "sessionStrategy": "per-directory",
+      "pinUserPeer": true
     }
   }
 }

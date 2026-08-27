@@ -1,13 +1,14 @@
 ---
 name: claim-check
-description: Test a factual claim against the army source ledger. Use before asserting a fact, delivering a brief, or when a citation looks unsourced.
+description: Test a factual claim against the source ledger. Use before asserting a fact, delivering a brief, or when a citation looks unsourced.
 version: 1.0.0
 metadata:
   hermes:
     tags: [research, citations, integrity]
     category: research
-    requires_toolsets: [army]
-    requires_tools: [source_ledger_check, source_ledger_cite]
+    related_skills: [literature-review, source-triage]
+    requires_toolsets: [research-bot]
+    requires_tools: [resolve_library, docs_query, source_ledger_check, source_ledger_cite]
 ---
 
 # Claim check
@@ -16,20 +17,28 @@ metadata:
 
 Before a research brief, literature summary, or any answer that names a paper, docs page, version, or "as documented" fact.
 
+## Quick Reference
+
+| Step | Tool |
+| --- | --- |
+| Test a claim | `source_ledger_check` |
+| Cite supporting IDs | `source_ledger_cite` |
+| Fill a docs gap | `resolve_library` then `docs_query` |
+
+Never call raw `mcp_*` tools. After every claim you keep, call `source_ledger_cite`.
+
 ## Procedure
 
 1. List claims a skeptical reader would ask "says who?"
 2. For each claim, call **`source_ledger_check`** with the claim text.
-3. If the tool returns no supporting overlap, do not state the claim as fact. Retrieve a primary page (`source_ledger_add`) or drop/relabel the claim.
+3. If the tool returns no supporting overlap, do not state the claim as fact. Retrieve a primary page (`resolve_library` / `docs_query` or `source_ledger_add`) or drop/relabel the claim.
 4. When the claim is supported, call **`source_ledger_cite`** for those ledger IDs and use only that formatted text.
-5. Never generate a plausible-looking citation. No fake authors, titles, years, DOIs, or quote marks around remembered text.
-6. When quoting, use words from the retrieved page. If you only have a paraphrase, say it is a paraphrase.
+5. Never generate a plausible-looking citation.
 
 ## Pitfalls
 
 - Training data is not a citation.
 - Lexical overlap from `source_ledger_check` is not proof — open the URL.
-- Version numbers guessed from "current knowledge" are invented citations.
 - `source_ledger_cite` with an empty ledger means you have nothing to cite. Say so.
 
 ## Verification

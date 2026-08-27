@@ -1,8 +1,12 @@
 # hermes-agents
 
-Factory for James Fincher's Hermes Agent **profile distributions**. One directory per agent. Honcho is the shared memory layer. Cursor (and Herbert) add agents one PR at a time.
+A folder of **independent Hermes Agent profile distributions**. One directory per specialized profile. Each profile is its own `HERMES_HOME`, with its own `SOUL.md`, config, skills, MCP, and — if it needs custom tools — its own plugin. Honcho is each profile’s memory provider (`memory.provider: honcho`). Cursor (and Herbert) add agents one PR at a time.
 
-This is **not** a single GitHub-installable army. Official `hermes profile install github.com/owner/repo` only reads a **repo-root** `distribution.yaml`. Official docs **do** allow `hermes profile install ./path` when the manifest sits at that path. We use the second form.
+The repo name is just the folder. It does not imply a shared runtime.
+
+Official `hermes profile install github.com/owner/repo` only reads a **repo-root** `distribution.yaml`. Official docs **do** allow `hermes profile install ./path` when the manifest sits at that path. We use the second form. There is no repo-root `distribution.yaml`.
+
+**How to generate the next profile:** [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md)
 
 ## Context7 rule
 
@@ -20,7 +24,7 @@ Every Hermes / Honcho / library question starts at Context7, then official LLM e
 
 Cursor agents: read `AGENTS.md` and `docs/WORKFLOW.md`.
 
-## Install the first agent
+## Install a profile
 
 From a clone of this repo, on a machine with stock Hermes (`~/.hermes`, not Gengar):
 
@@ -36,23 +40,23 @@ Update:
 hermes profile update research-bot
 ```
 
-## Army
+## Profiles
 
-| Agent | Path | Role |
+| Profile | Path | Role |
 | --- | --- | --- |
-| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Enables shared `army-runtime` (`write_policy: research`). |
+| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships **its own** `research-bot` plugin and toolset. |
 
-## Add the next agent
+## Add the next profile
 
-One agent per PR. Checklist is in `AGENTS.md`. Short version:
+One agent per PR. The playbook is the checklist. Short version:
 
 1. Context7 + official docs for every knob.
-2. New directory `agents/<name>/` with `distribution.yaml` at its root.
-3. Fill the whole distribution: `SOUL.md`, `profile.yaml`, `config.yaml` (`memory.provider: honcho`; `plugins.enabled: [army-runtime]`), copy `plugins/army-runtime/` into the agent, skill recipes in the normal index (`requires_toolsets: [army]`), MCP only if headers can be `${env:VAR}`.
+2. New directory `agents/<name>/` with `distribution.yaml` at its root. Empty of `research-bot`’s plugin, tools, and skills.
+3. Follow [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md): `SOUL.md`, `config.yaml` (`memory.provider: honcho`), **this** profile’s plugin only if it needs tools (`plugins.enabled: [<name>]`), skill recipes in **this** profile’s `skills/` (`requires_toolsets` of **this** profile’s toolset), MCP only if **this** plugin will `call_mcp` and headers can be `${env:VAR}`.
 4. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
 5. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`
 
-New host capability → add a tool to `army-runtime`, declare `requires_tools` on the skill. Per-agent plugin only when the capability must not leak. See `plugins/README.md`. Do not vendor Gengar or fork Ouroboros.
+Do not vendor Gengar or fork Ouroboros.
 
 ## License
 

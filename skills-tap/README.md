@@ -1,14 +1,14 @@
-# Shared skill tap
+# Optional skill recipes
 
-Skills are **recipes** in the normal skill index. Process code lives in `army-runtime`. A distribution carries both. Do not put these recipes in a plugin (`plugin:skill`).
+Skills are **recipes** in the normal Hermes skill index. They contain no Python. Do not put these recipes in a plugin (`plugin:skill`).
 
-Official tap layout is `skills/<slug>/SKILL.md` at the tap root (default path `skills/`). This factory keeps **shared** recipes here so they are not copied into every agent profile.
+This directory is a Cursor/helper index for recipes that a later profile **may** copy into that profile’s own `skills/`. A profile does not inherit recipes by sitting in this repo. `research-bot` skills stay under `agents/research-bot/skills/`.
+
+Official tap layout is `skills/<slug>/SKILL.md` at the tap root (default path `skills/`).
 
 ```text
 skills-tap/skills/<slug>/SKILL.md
 ```
-
-Agent-local skills stay in `agents/<name>/skills/`.
 
 ## Add this repo as a tap
 
@@ -28,4 +28,4 @@ The CLI default path is `skills/`. This tap is **not** at that default. After ad
 
 Private repos need a configured `GITHUB_TOKEN`.
 
-No shared skills ship in the first PR. Add them one per later PR.
+No tap skills ship in the first PR. Add them one per later PR, then copy into the profile that needs them.

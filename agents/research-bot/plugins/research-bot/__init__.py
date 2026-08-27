@@ -1,11 +1,10 @@
-"""army-runtime — shared process layer for this factory's agents.
+"""research-bot — profile-local general plugin.
 
-Official native plugin contract (Context7 /nousresearch/hermes-agent):
-register(ctx) plus plugin.yaml. Tools return JSON strings and never raise.
-Hooks accept **kwargs. Plugin state lives in plugin-data/, never this tree.
+Official: plugin.yaml + register(ctx).
+https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 
-Skills stay in the normal skill index (agents/<name>/skills/, skills-tap/).
-Do not bundle the primary library as plugin skills — those loads are hidden/opt-in.
+This plugin registers tools and hooks. It is not a tool.
+Do not copy to other agents.
 """
 
 from __future__ import annotations
@@ -13,12 +12,23 @@ from __future__ import annotations
 from typing import Any
 
 from . import hooks, runtime, schemas, tools
-from .middleware import tool_request_defaults
 
 
 def register(ctx: Any) -> None:
     runtime.set_ctx(ctx)
 
+    ctx.register_tool(
+        name="resolve_library",
+        toolset=runtime.TOOLSET,
+        schema=schemas.RESOLVE_LIBRARY,
+        handler=tools.resolve_library,
+    )
+    ctx.register_tool(
+        name="docs_query",
+        toolset=runtime.TOOLSET,
+        schema=schemas.DOCS_QUERY,
+        handler=tools.docs_query,
+    )
     ctx.register_tool(
         name="source_ledger_add",
         toolset=runtime.TOOLSET,
@@ -48,5 +58,3 @@ def register(ctx: Any) -> None:
     ctx.register_hook("pre_llm_call", hooks.pre_llm_call)
     ctx.register_hook("pre_tool_call", hooks.pre_tool_call)
     ctx.register_hook("post_tool_call", hooks.post_tool_call)
-
-    ctx.register_middleware("tool_request", tool_request_defaults)

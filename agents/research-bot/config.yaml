@@ -1,27 +1,13 @@
-# Cited knobs only. Do not add keys you cannot point at in official docs.
+# Cited knobs only. Playbook: docs/PROFILE-PLAYBOOK.md
 #
 # memory.provider:
 #   https://hermes-agent.nousresearch.com/docs/user-guide/features/memory-providers
-# memory.memory_enabled / user_profile_enabled:
-#   https://hermes-agent.nousresearch.com/docs/user-guide/configuration
-# terminal.backend / terminal.cwd:
-#   https://hermes-agent.nousresearch.com/docs/user-guide/configuration
-#   cwd is Gateway/cron working directory. CLI always uses the launch directory.
-#   This profile is not a sandbox (backend: local).
 # custom_toolsets + toolsets:
 #   https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference
-#   Core names verified: web, terminal, file, skills, memory, session_search
-#   army is the shared army-runtime plugin toolset (register_tool toolset=)
-# mcp_servers + ${env:VAR} header interpolation:
-#   https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference
-# plugins.enabled / plugins.disabled / plugins.entries.<id>.settings:
+# plugins.enabled / disabled / entries / mcp_allowlist:
 #   https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins
-#   https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
-# General plugins are opt-in: nothing loads unless listed in enabled.
-# plugins.disabled is a deny-list and always wins.
-# Honcho is already a plugin (exclusive memory provider): memory.provider: honcho.
-# Never put honcho in plugins.enabled.
-# No messaging gateway tokens. No model/provider pin (installer already has one).
+# mcp_servers + ${env:VAR}:
+#   https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference
 
 memory:
   provider: honcho
@@ -40,19 +26,20 @@ custom_toolsets:
     - skills
     - memory
     - session_search
-    - army
+    - research-bot
 
 toolsets:
   - research
 
 plugins:
   enabled:
-    - army-runtime
+    - research-bot
   entries:
-    army-runtime:
+    research-bot:
+      mcp_allowlist:
+        - context7
       settings:
         citation_style: apa
-        write_policy: research
 
 mcp_servers:
   context7:

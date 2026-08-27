@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structure checks for this factory. No live Hermes. No API keys."""
+"""Structure checks for independent Hermes profiles. No live Hermes. No API keys."""
 
 from __future__ import annotations
 
@@ -24,8 +24,30 @@ OUROBOROS_PLUGIN_NAMES = {
     "autopilot",
     "forge",
 }
-ARMY_PLUGIN = "army-runtime"
-ARMY_TOOLSET = "army"
+# Cross-profile ids this repo must never ship as a plugin or toolset.
+_FORBIDDEN_CROSS_PROFILE_IDS = frozenset({"army", "army-runtime"})
+_SKILL_SECTIONS = (
+    "When to Use",
+    "Quick Reference",
+    "Procedure",
+    "Pitfalls",
+    "Verification",
+)
+_BANNED_DOC_PATHS = (
+    ROOT / "docs" / "PROFILE-PLAYBOOK.md",
+    ROOT / "AGENTS.md",
+    ROOT / "docs" / "WORKFLOW.md",
+    ROOT / "docs" / "INTEGRATION.md",
+    ROOT / "README.md",
+    ROOT / "skills-tap" / "README.md",
+    ROOT / ".cursor" / "rules" / "hermes-factory.mdc",
+)
+_BANNED_DOC_PATTERNS = (
+    re.compile(r"\barmy-runtime\b", re.IGNORECASE),
+    re.compile(r"\btoolset\s+army\b", re.IGNORECASE),
+    re.compile(r"\bthe army\b", re.IGNORECASE),
+    re.compile(r"\barmy\b", re.IGNORECASE),
+)
 SECRET_NAMES = {
     ".env",
     "auth.json",
@@ -47,6 +69,57 @@ errors: list[str] = []
 def load_yaml(path: Path) -> object:
     text = path.read_text(encoding="utf-8")
     return yaml.safe_load(text)
+
+
+def check_playbook() -> None:
+    playbook = ROOT / "docs" / "PROFILE-PLAYBOOK.md"
+    if not playbook.is_file():
+        fail("missing docs/PROFILE-PLAYBOOK.md (source of truth)")
+        return
+    text = playbook.read_text(encoding="utf-8")
+    if "independent" not in text.lower():
+        fail("PROFILE-PLAYBOOK.md must describe generating one independent profile")
+    if "HERMES_HOME" not in text:
+        fail("PROFILE-PLAYBOOK.md must define isolated HERMES_HOME")
+
+
+def check_docs_voice() -> None:
+    paths = list(_BANNED_DOC_PATHS)
+    agents_root = ROOT / "agents"
+    if agents_root.is_dir():
+        paths.extend(agents_root.glob("*/SOUL.md"))
+        paths.extend(agents_root.glob("*/README.md"))
+        paths.extend(agents_root.glob("*/INTEGRATION.md"))
+    for path in paths:
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for pattern in _BANNED_DOC_PATTERNS:
+            if pattern.search(text):
+                fail(
+                    f"{path.relative_to(ROOT)} names a cross-profile layer "
+                    f"({pattern.pattern}); each profile is independent"
+                )
+                break
+
+
+def check_no_repo_root_plugin_package() -> None:
+    root_plugins = ROOT / "plugins"
+    if not root_plugins.exists():
+        return
+    if not root_plugins.is_dir():
+        fail("repo-root plugins must not exist; each profile ships its own plugin")
+        return
+    leftovers = [
+        path
+        for path in root_plugins.iterdir()
+        if path.name != "__pycache__" and not path.name.endswith(".pyc")
+    ]
+    if leftovers or list(root_plugins.glob("*/plugin.yaml")):
+        fail(
+            "repo-root plugins/ is not a shared package; each profile ships "
+            "its own plugin under agents/<name>/plugins/<name>/"
+        )
 
 
 def check_no_secret_files() -> None:
@@ -114,68 +187,27 @@ def check_skill(skill_md: Path) -> dict | None:
     text = skill_md.read_text(encoding="utf-8")
     if not text.startswith("---"):
         fail(f"{skill_md.relative_to(ROOT)} missing YAML frontmatter")
-        return
+        return None
     end = text.find("\n---", 3)
     if end < 0:
         fail(f"{skill_md.relative_to(ROOT)} unclosed frontmatter")
-        return
+        return None
     front = text[4:end]
     data = yaml.safe_load(front)
     if not isinstance(data, dict):
         fail(f"{skill_md.relative_to(ROOT)} frontmatter is not a mapping")
-        return
+        return None
     if not data.get("name") or not data.get("description"):
         fail(f"{skill_md.relative_to(ROOT)} frontmatter needs name and description")
     hermes = (data.get("metadata") or {}).get("hermes")
     if not isinstance(hermes, dict):
         fail(f"{skill_md.relative_to(ROOT)} missing metadata.hermes")
-        return
+        return None
+    body = text[end + 4 :]
+    for section in _SKILL_SECTIONS:
+        if f"## {section}" not in body:
+            fail(f"{skill_md.relative_to(ROOT)} missing required section ## {section}")
     return data
-
-
-def check_agent(agent_dir: Path) -> None:
-    check_distribution(agent_dir)
-    for required in ("SOUL.md", "config.yaml", "README.md", ".gitignore"):
-        if not (agent_dir / required).is_file():
-            fail(f"{agent_dir.name} missing {required}")
-    mcp = agent_dir / "mcp.json"
-    if mcp.is_file():
-        payload = json.loads(mcp.read_text(encoding="utf-8"))
-        if "mcp_servers" not in payload:
-            fail(f"{mcp.relative_to(ROOT)} missing mcp_servers")
-        dumped = json.dumps(payload)
-        if "sk-" in dumped or "hch-" in dumped:
-            fail(f"{mcp.relative_to(ROOT)} looks like it contains a literal key")
-    example = agent_dir / "honcho.json.example"
-    if example.is_file():
-        payload = json.loads(example.read_text(encoding="utf-8"))
-        api_key = payload.get("apiKey")
-        if isinstance(api_key, str) and api_key and not api_key.startswith("your-"):
-            fail(f"{example.relative_to(ROOT)} must not contain a real apiKey")
-        hosts = payload.get("hosts")
-        if not isinstance(hosts, dict) or not hosts:
-            fail(f"{example.relative_to(ROOT)} missing hosts")
-    check_agent_plugin(agent_dir)
-    skills = agent_dir / "skills"
-    if skills.is_dir():
-        skill_files = list(skills.glob("*/SKILL.md"))
-        if not skill_files:
-            fail(f"{agent_dir.name}/skills has no SKILL.md files")
-        for skill_md in skill_files:
-            front = check_skill(skill_md)
-            if isinstance(front, dict):
-                hermes = (front.get("metadata") or {}).get("hermes") or {}
-                required = hermes.get("requires_toolsets") or []
-                if ARMY_TOOLSET not in required:
-                    fail(
-                        f"{skill_md.relative_to(ROOT)} must set "
-                        f"metadata.hermes.requires_toolsets including {ARMY_TOOLSET!r}"
-                    )
-                if not hermes.get("requires_tools"):
-                    fail(
-                        f"{skill_md.relative_to(ROOT)} must set "
-                        "metadata.hermes.requires_tools for army tools"
-                    )
 
 
 def _shipped_plugin_yamls(agent_dir: Path) -> list[Path]:
@@ -183,18 +215,6 @@ def _shipped_plugin_yamls(agent_dir: Path) -> list[Path]:
     if not plugins_root.is_dir():
         return []
     return sorted(plugins_root.glob("*/plugin.yaml"))
-
-
-def _file_fingerprint(root: Path) -> dict[str, str]:
-    skip = {"__pycache__", ".pyc"}
-    found: dict[str, str] = {}
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        if any(part in skip or part.endswith(".pyc") for part in path.parts):
-            continue
-        found[str(path.relative_to(root))] = path.read_text(encoding="utf-8")
-    return found
 
 
 def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
@@ -210,6 +230,8 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
         )
     if plugin_name in OUROBOROS_PLUGIN_NAMES:
         fail(f"forbidden plugin name: {plugin_name!r}")
+    if plugin_name in _FORBIDDEN_CROSS_PROFILE_IDS:
+        fail(f"{plugin_yaml.relative_to(ROOT)} plugin id {plugin_name!r} is not profile-local")
     if not manifest.get("provides_tools") and not manifest.get("provides_hooks"):
         fail(
             f"{plugin_yaml.relative_to(ROOT)} is a dummy plugin — "
@@ -230,25 +252,28 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
     if list(plugin_dir.glob("skills/*/SKILL.md")):
         fail(
             f"{plugin_dir.relative_to(ROOT)} ships plugin-bundled skills; "
-            "keep recipes in agents/*/skills/ or skills-tap/"
+            "keep recipes in agents/<name>/skills/"
         )
+    for path in plugin_dir.rglob("*"):
+        if not path.is_file() or path.suffix in {".pyc"}:
+            continue
+        if "__pycache__" in path.parts:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for pattern in _BANNED_DOC_PATTERNS:
+            if pattern.search(text):
+                fail(
+                    f"{path.relative_to(ROOT)} names a cross-profile layer "
+                    f"({pattern.pattern})"
+                )
+                break
 
 
-def check_army_runtime_source() -> None:
-    source = ROOT / "plugins" / ARMY_PLUGIN
-    plugin_yaml = source / "plugin.yaml"
-    if not plugin_yaml.is_file():
-        fail(f"missing factory source {plugin_yaml.relative_to(ROOT)}")
-        return
-    check_one_plugin_manifest(plugin_yaml, ARMY_PLUGIN)
-    manifest = load_yaml(plugin_yaml)
-    if isinstance(manifest, dict):
-        tools = manifest.get("provides_tools") or []
-        if "source_ledger_cite" not in tools:
-            fail("army-runtime must provide source_ledger_cite (structured citation)")
-
-
-def check_agent_plugin(agent_dir: Path) -> None:
+def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
+    """Return enabled plugin ids. A profile with no plugin is valid."""
     config_path = agent_dir / "config.yaml"
     config = load_yaml(config_path) if config_path.is_file() else {}
     if not isinstance(config, dict):
@@ -263,11 +288,11 @@ def check_agent_plugin(agent_dir: Path) -> None:
     enabled_names = [str(name) for name in enabled]
     if "honcho" in enabled_names:
         fail(f"{agent_dir.name}: Honcho is memory.provider, not plugins.enabled")
-    if ARMY_PLUGIN not in enabled_names:
-        fail(f"{agent_dir.name} plugins.enabled must include {ARMY_PLUGIN!r}")
     for name in enabled_names:
         if name in OUROBOROS_PLUGIN_NAMES:
             fail(f"{agent_dir.name} plugins.enabled collides with ouroboros name {name!r}")
+        if name in _FORBIDDEN_CROSS_PROFILE_IDS:
+            fail(f"{agent_dir.name} plugins.enabled {name!r} is not profile-local")
         plugin_yaml = agent_dir / "plugins" / name / "plugin.yaml"
         if not plugin_yaml.is_file():
             fail(
@@ -279,6 +304,11 @@ def check_agent_plugin(agent_dir: Path) -> None:
     for plugin_yaml in shipped:
         dirname = plugin_yaml.parent.name
         check_one_plugin_manifest(plugin_yaml, dirname)
+        if dirname in all_agent_names and dirname != agent_dir.name:
+            fail(
+                f"{agent_dir.name} ships plugins/{dirname}/ — that plugin "
+                f"belongs to profile {dirname!r}. Next profile starts empty."
+            )
         if dirname not in enabled_names:
             fail(
                 f"{agent_dir.name} ships {plugin_yaml.parent.relative_to(ROOT)} "
@@ -301,21 +331,81 @@ def check_agent_plugin(agent_dir: Path) -> None:
         for names in custom.values():
             if isinstance(names, list):
                 bundled.extend(str(item) for item in names)
-    if ARMY_TOOLSET not in bundled:
-        fail(f"{agent_dir.name} custom_toolsets must include toolset {ARMY_TOOLSET!r}")
-
-    factory = ROOT / "plugins" / ARMY_PLUGIN
-    consumer = agent_dir / "plugins" / ARMY_PLUGIN
-    if factory.is_dir() and consumer.is_dir():
-        factory_files = _file_fingerprint(factory)
-        consumer_files = _file_fingerprint(consumer)
-        if factory_files != consumer_files:
+    for forbidden in _FORBIDDEN_CROSS_PROFILE_IDS:
+        if forbidden in bundled:
+            fail(f"{agent_dir.name} custom_toolsets must not include {forbidden!r}")
+    for name in enabled_names:
+        if name not in bundled:
             fail(
-                f"{agent_dir.name}/plugins/{ARMY_PLUGIN} must match "
-                f"factory plugins/{ARMY_PLUGIN} — edit the factory source and recopy"
+                f"{agent_dir.name} custom_toolsets must include this profile's "
+                f"toolset {name!r}"
             )
-    elif factory.is_dir():
-        fail(f"{agent_dir.name} missing copy of plugins/{ARMY_PLUGIN}")
+
+    return enabled_names
+
+
+def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
+    check_distribution(agent_dir)
+    for required in ("SOUL.md", "config.yaml", "README.md", "INTEGRATION.md", ".gitignore"):
+        if not (agent_dir / required).is_file():
+            fail(f"{agent_dir.name} missing {required}")
+    mcp = agent_dir / "mcp.json"
+    if mcp.is_file():
+        payload = json.loads(mcp.read_text(encoding="utf-8"))
+        if "mcp_servers" not in payload:
+            fail(f"{mcp.relative_to(ROOT)} missing mcp_servers")
+        dumped = json.dumps(payload)
+        if "sk-" in dumped or "hch-" in dumped:
+            fail(f"{mcp.relative_to(ROOT)} looks like it contains a literal key")
+    example = agent_dir / "honcho.json.example"
+    if example.is_file():
+        payload = json.loads(example.read_text(encoding="utf-8"))
+        api_key = payload.get("apiKey")
+        if isinstance(api_key, str) and api_key and not api_key.startswith("your-"):
+            fail(f"{example.relative_to(ROOT)} must not contain a real apiKey")
+        hosts = payload.get("hosts")
+        if not isinstance(hosts, dict) or not hosts:
+            fail(f"{example.relative_to(ROOT)} missing hosts")
+        for host in hosts.values():
+            if isinstance(host, dict) and host.get("pinUserPeer") is not True:
+                fail(f"{example.relative_to(ROOT)} pinUserPeer must be true (gateway-only)")
+    enabled_names = check_agent_plugin(agent_dir, all_agent_names)
+    other_profiles = all_agent_names - {agent_dir.name}
+    skills = agent_dir / "skills"
+    if skills.is_dir():
+        skill_files = list(skills.glob("*/SKILL.md"))
+        if not skill_files:
+            fail(f"{agent_dir.name}/skills has no SKILL.md files")
+        for skill_md in skill_files:
+            front = check_skill(skill_md)
+            if not isinstance(front, dict):
+                continue
+            hermes = (front.get("metadata") or {}).get("hermes") or {}
+            required = [str(item) for item in (hermes.get("requires_toolsets") or [])]
+            tools = hermes.get("requires_tools") or []
+            for foreign in other_profiles:
+                if foreign in required:
+                    fail(
+                        f"{skill_md.relative_to(ROOT)} requires toolset {foreign!r} "
+                        "from another profile"
+                    )
+            for name in enabled_names:
+                if name not in required:
+                    fail(
+                        f"{skill_md.relative_to(ROOT)} must set "
+                        f"metadata.hermes.requires_toolsets including {name!r}"
+                    )
+            if enabled_names and not tools:
+                fail(
+                    f"{skill_md.relative_to(ROOT)} must set "
+                    "metadata.hermes.requires_tools for tools this plugin registers"
+                )
+            for forbidden in _FORBIDDEN_CROSS_PROFILE_IDS:
+                if forbidden in required:
+                    fail(
+                        f"{skill_md.relative_to(ROOT)} requires_toolsets "
+                        f"must not include {forbidden!r}"
+                    )
 
 
 def main() -> int:
@@ -323,18 +413,23 @@ def main() -> int:
     if not agents_root.is_dir():
         fail("missing agents/")
         return 1
+    check_playbook()
+    check_docs_voice()
+    check_no_repo_root_plugin_package()
     check_no_secret_files()
     check_no_literal_keys()
-    check_army_runtime_source()
-    agent_dirs = sorted(p for p in agents_root.iterdir() if p.is_dir() and not p.name.startswith("."))
+    agent_dirs = sorted(
+        path for path in agents_root.iterdir() if path.is_dir() and not path.name.startswith(".")
+    )
     if not agent_dirs:
         fail("no agent directories under agents/")
+    all_agent_names = {path.name for path in agent_dirs}
     for agent_dir in agent_dirs:
-        check_agent(agent_dir)
+        check_agent(agent_dir, all_agent_names)
     if errors:
         print(f"{len(errors)} error(s)", file=sys.stderr)
         return 1
-    print(f"ok: {len(agent_dirs)} agent(s)")
+    print(f"ok: {len(agent_dirs)} independent profile(s)")
     return 0
 
 

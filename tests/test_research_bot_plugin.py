@@ -1,4 +1,4 @@
-"""Unit tests for army-runtime. No live Hermes."""
+"""Unit tests for the research-bot profile plugin. No live Hermes."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from types import ModuleType
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_DIR = ROOT / "plugins" / "army-runtime"
-PKG_NAME = "army_runtime_plugin"
+PLUGIN_DIR = ROOT / "agents" / "research-bot" / "plugins" / "research-bot"
+PKG_NAME = "research_bot_plugin"
 
 
 def _load_plugin_package() -> ModuleType:
@@ -32,7 +32,7 @@ def _load_plugin_package() -> ModuleType:
         submodule_search_locations=[str(PLUGIN_DIR)],
     )
     if spec is None or spec.loader is None:
-        raise RuntimeError("unable to load army-runtime plugin package")
+        raise RuntimeError("unable to load research-bot plugin package")
     pkg = importlib.util.module_from_spec(spec)
     pkg.__path__ = [str(PLUGIN_DIR)]
     sys.modules[PKG_NAME] = pkg
@@ -57,10 +57,17 @@ class FakeCtx:
         self.state = FakeState()
         self.tools: list[tuple[str, str]] = []
         self.hooks: list[str] = []
-        self.middleware: list[str] = []
+        self.mcp_calls: list[tuple[str, str, dict[str, Any]]] = []
+        self.mcp_responses: dict[str, Any] = {}
 
     def get_config(self, key: str, default: Any = None) -> Any:
         return self.settings.get(key, default)
+
+    def plugin_data_dir(self, plugin_id: str) -> Path:
+        home = Path(os.environ["HERMES_HOME"])
+        path = home / "plugin-data" / plugin_id
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
     def register_tool(self, **kwargs: Any) -> None:
         self.tools.append((str(kwargs.get("name")), str(kwargs.get("toolset"))))
@@ -68,8 +75,13 @@ class FakeCtx:
     def register_hook(self, name: str, _handler: Any) -> None:
         self.hooks.append(name)
 
-    def register_middleware(self, name: str, _handler: Any) -> None:
-        self.middleware.append(name)
+    def call_mcp(self, server: str, tool: str, arguments: dict[str, Any] | None = None) -> Any:
+        payload = arguments or {}
+        self.mcp_calls.append((server, tool, payload))
+        canned = self.mcp_responses.get(tool)
+        if canned is not None:
+            return canned
+        return {"ok": True, "result": f"{server}:{tool}:{payload.get('query', '')}"}
 
 
 class PluginTests(unittest.TestCase):
@@ -86,8 +98,7 @@ class PluginTests(unittest.TestCase):
         self.policy = sys.modules[f"{PKG_NAME}.policy"]
         self.tools = sys.modules[f"{PKG_NAME}.tools"]
         self.hooks = sys.modules[f"{PKG_NAME}.hooks"]
-        self.middleware = sys.modules[f"{PKG_NAME}.middleware"]
-        self.ctx = FakeCtx({"citation_style": "apa", "write_policy": "research"})
+        self.ctx = FakeCtx({"citation_style": "apa"})
         self.runtime.set_ctx(self.ctx)
 
     def _restore_hermes(self) -> None:
@@ -96,9 +107,30 @@ class PluginTests(unittest.TestCase):
         else:
             os.environ["HERMES_HOME"] = self._prev_hermes
 
+    def test_register_uses_this_profile_toolset(self) -> None:
+        self.pkg.register(self.ctx)
+        names = {name for name, _toolset in self.ctx.tools}
+        toolsets = {toolset for _name, toolset in self.ctx.tools}
+        self.assertEqual(
+            names,
+            {
+                "resolve_library",
+                "docs_query",
+                "source_ledger_add",
+                "source_ledger_list",
+                "source_ledger_cite",
+                "source_ledger_check",
+            },
+        )
+        self.assertEqual(toolsets, {"research-bot"})
+        self.assertEqual(
+            set(self.ctx.hooks),
+            {"on_session_start", "pre_llm_call", "pre_tool_call", "post_tool_call"},
+        )
+
     def test_plugin_data_is_under_hermes_home_not_install_tree(self) -> None:
         root = self.runtime.plugin_data_root()
-        self.assertEqual(root, self.home / "plugin-data" / "army-runtime")
+        self.assertEqual(root, self.home / "plugin-data" / "research-bot")
         self.assertFalse(str(root).startswith(str(PLUGIN_DIR)))
 
     def test_ledger_add_list_cite_dedupe(self) -> None:
@@ -128,55 +160,70 @@ class PluginTests(unittest.TestCase):
         self.assertTrue(result.get("ok"))
         self.assertFalse(result.get("supported"))
 
-    def test_harvest_from_web_search(self) -> None:
+    def test_resolve_library_calls_mcp_then_ledgers(self) -> None:
         self.ledger.init_ledger()
-        payload = json.dumps(
-            {
-                "results": [
-                    {
-                        "url": "https://hermes-agent.nousresearch.com/docs",
-                        "title": "Hermes docs",
-                        "snippet": "Profile distributions carry plugins.",
-                    }
-                ]
-            }
+        self.ctx.mcp_responses["resolve-library-id"] = {
+            "ok": True,
+            "result": "/nousresearch/hermes-agent",
+        }
+        payload = json.loads(self.tools.resolve_library({"query": "hermes-agent"}))
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(
+            self.ctx.mcp_calls,
+            [("context7", "resolve-library-id", {"query": "hermes-agent"})],
         )
-        harvested = self.ledger.harvest_from_tool("web_search", {}, payload)
-        self.assertGreaterEqual(harvested["harvested"], 1)
-        listed = self.ledger.list_sources("hermes")
+        listed = self.ledger.list_sources()
         self.assertEqual(listed["count"], 1)
+        self.assertIn("context7://resolve-library-id", listed["sources"][0]["url"])
 
-    def test_write_policy_gated_by_setting(self) -> None:
+    def test_docs_query_calls_unsanitized_mcp_name(self) -> None:
+        self.ledger.init_ledger()
+        self.ctx.mcp_responses["query-docs"] = {"ok": True, "result": "Profiles are homes."}
+        payload = json.loads(
+            self.tools.docs_query(
+                {"library_id": "/nousresearch/hermes-agent", "query": "profiles"}
+            )
+        )
+        self.assertTrue(payload.get("ok"))
+        self.assertEqual(self.ctx.mcp_calls[0][0], "context7")
+        self.assertEqual(self.ctx.mcp_calls[0][1], "query-docs")
+        self.assertEqual(
+            self.ctx.mcp_calls[0][2]["libraryId"], "/nousresearch/hermes-agent"
+        )
+
+    def test_write_policy_blocks_product_code_allows_notes(self) -> None:
         blocked = self.policy.write_policy(
             "write_file", {"path": "src/app.py", "content": "print(1)"}
         )
         self.assertEqual((blocked or {}).get("action"), "block")
-        self.runtime.set_ctx(FakeCtx({"write_policy": "off"}))
-        allowed = self.policy.write_policy(
-            "write_file", {"path": "src/app.py", "content": "print(1)"}
-        )
-        self.assertIsNone(allowed)
-        self.runtime.set_ctx(self.ctx)
         allowed_artifact = self.policy.write_policy(
             "write_file", {"path": "notes/findings.md", "content": "ok"}
         )
         self.assertIsNone(allowed_artifact)
+        scaffold = self.policy.write_policy(
+            "terminal", {"command": "npm init -y"}
+        )
+        self.assertEqual((scaffold or {}).get("action"), "block")
 
-    def test_hooks_contract_does_not_dump_skills(self) -> None:
+    def test_hooks_contract_does_not_dump_skills_or_harvest_mcp_names(self) -> None:
         self.hooks.on_session_start("s1", "model", "cli")
         self.assertTrue(
-            (self.home / "plugin-data" / "army-runtime" / "source-ledger.json").is_file()
+            (self.home / "plugin-data" / "research-bot" / "source-ledger.json").is_file()
         )
         injected = self.hooks.pre_llm_call("s1", "What does the spec say?")
         self.assertIsInstance(injected, dict)
         assert injected is not None
         self.assertIn("source_ledger_cite", injected["context"])
+        self.assertIn("resolve_library", injected["context"])
         self.assertNotIn("SKILL.md", injected["context"])
         self.assertNotIn("available_skills", injected["context"])
         blocked = self.hooks.pre_tool_call(
             "write_file", {"path": "pkg/main.ts"}, "task"
         )
         self.assertEqual((blocked or {}).get("action"), "block")
+        before = self.ledger.list_sources()["count"]
+        self.hooks.post_tool_call("mcp_context7_query_docs", {"query": "x"}, "hit", "t")
+        self.assertEqual(self.ledger.list_sources()["count"], before)
 
     def test_tools_return_json_and_never_raise(self) -> None:
         self.ledger.init_ledger()
@@ -190,37 +237,8 @@ class PluginTests(unittest.TestCase):
         self.assertIn("error", missing)
         cited = json.loads(self.tools.source_ledger_cite({}))
         self.assertTrue(cited.get("ok"))
-
-    def test_middleware_defaults_style(self) -> None:
-        filled = self.middleware.tool_request_defaults(
-            tool_name="source_ledger_cite", args={"ids": [1]}
-        )
-        self.assertIsNotNone(filled)
-        assert filled is not None
-        self.assertEqual(filled["args"]["style"], "apa")
-        self.assertEqual(filled["source"], "army-runtime")
-
-    def test_register_uses_army_toolset(self) -> None:
-        ctx = FakeCtx()
-        self.pkg.register(ctx)
-        names = [name for name, _toolset in ctx.tools]
-        toolsets = {toolset for _name, toolset in ctx.tools}
-        self.assertEqual(
-            names,
-            [
-                "source_ledger_add",
-                "source_ledger_list",
-                "source_ledger_cite",
-                "source_ledger_check",
-            ],
-        )
-        self.assertEqual(toolsets, {"army"})
-        self.assertEqual(
-            ctx.hooks,
-            ["on_session_start", "pre_llm_call", "pre_tool_call", "post_tool_call"],
-        )
-        self.assertEqual(ctx.middleware, ["tool_request"])
-        self.assertNotIn("register_skill", dir(ctx))
+        empty_resolve = json.loads(self.tools.resolve_library({}))
+        self.assertIn("error", empty_resolve)
 
 
 if __name__ == "__main__":
