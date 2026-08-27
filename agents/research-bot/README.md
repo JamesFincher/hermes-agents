@@ -2,6 +2,8 @@
 
 Research partner profile. Reads source, official docs, and papers. Writes cited findings. Does not implement product code.
 
+Execution layer: the **research-bot plugin** (`plugins/research-bot/`). Honcho is `memory.provider: honcho`, not a `plugins.enabled` entry.
+
 Kanban description (also in `profile.yaml`):
 
 > Reads source + external docs + papers, writes cited findings, does not implement product code.
@@ -13,6 +15,8 @@ This factory has no repo-root `distribution.yaml`. GitHub-URL install of `JamesF
 ```bash
 hermes profile install ./agents/research-bot --alias
 ```
+
+That copies this directory (including `plugins/research-bot/`) into `~/.hermes/profiles/research-bot/`. Each profile is its own `HERMES_HOME`, so the plugin is discovered as `plugins/research-bot/` under that home. Official layout: https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 
 Override the local name if `research-bot` already exists:
 
@@ -33,7 +37,12 @@ Reserved names (rejected by the installer): `hermes`, `test`, `tmp`, `root`, `su
    ```
 
    Expected: Honcho active. Setup wizard if needed: `hermes memory setup`.
-4. Optional kanban text (already shipped in `profile.yaml`):
+4. Confirm the plugin is enabled (`plugins.enabled: [research-bot]` in this profile's `config.yaml`). Optional doctor (local Hermes, not CI):
+
+   ```bash
+   hermes plugins doctor ~/.hermes/profiles/research-bot/plugins/research-bot --ci
+   ```
+5. Optional kanban text (already shipped in `profile.yaml`):
 
    ```bash
    hermes profile describe research-bot --text "Reads source + external docs + papers, writes cited findings, does not implement product code."
@@ -45,7 +54,7 @@ Reserved names (rejected by the installer): `hermes`, `test`, `tmp`, `root`, `su
 hermes profile update research-bot
 ```
 
-Distribution-owned paths are replaced (`SOUL.md`, `mcp.json`, `skills/`, `distribution.yaml`). `config.yaml` is preserved unless you pass `--force-config`. Memories, sessions, `.env`, and `auth.json` are never touched.
+`distribution_owned` includes `plugins/` so the execution layer is replaced on update. `config.yaml` is preserved unless you pass `--force-config`. Memories, sessions, `.env`, `auth.json`, and `plugin-data/` are never the install tree.
 
 ## env_requires
 
@@ -56,6 +65,28 @@ Distribution-owned paths are replaced (`SOUL.md`, `mcp.json`, `skills/`, `distri
 | Model provider key | no (this manifest) | This profile does not pin a model. Use the provider key your Hermes install already needs. |
 
 `HONCHO_API_KEY` is `required: false` because self-hosted Honcho does not use it. If you use Honcho Cloud, set the key anyway — the installer will not block you if it is missing.
+
+## Plugin
+
+`plugins.enabled: [research-bot]` only. Do not enable this plugin on other agents.
+
+Toolset `research-bot` is part of `custom_toolsets.research`:
+
+| Tool | When |
+| --- | --- |
+| `source_ledger_add` | After retrieving a page |
+| `source_ledger_list` | Before writing findings |
+| `source_ledger_cite` | Before citing — use only this formatted text |
+| `source_ledger_check` | Before asserting a factual claim |
+
+Hooks inject a short research contract onto the **user message** (not the system prompt), block product-code writes, harvest URLs into the ledger, and init the ledger on session start.
+
+Settings (`plugins.entries.research-bot.settings`, read via `ctx.get_config`):
+
+- `citation_style`: `apa` | `ieee` | `chicago`
+- `strictness`: `strict` (block product-code writes) | `relaxed`
+
+Ledger state lives in `<HERMES_HOME>/plugin-data/research-bot/` via official `plugin_data_dir`. Never next to `plugin.yaml`.
 
 ## Context7 MCP
 
@@ -78,15 +109,17 @@ Never two writers on this `aiPeer`.
 
 ## Toolsets
 
-`custom_toolsets.research` = `web`, `terminal`, `file`, `skills`, `memory`, `session_search`. `toolsets: [research]` selects that bundle. Names from the official toolsets reference.
+`custom_toolsets.research` = `web`, `terminal`, `file`, `skills`, `memory`, `session_search`, `research-bot`. `toolsets: [research]` selects that bundle. Built-in names from the official toolsets reference; `research-bot` is this profile's plugin toolset.
 
 `terminal.cwd` is `"."` (Gateway/cron). CLI uses the launch directory. Backend is `local` — this profile is not a sandbox.
 
 ## Skills
 
-1. `primary-source-research` — Context7, then official docs, then papers.
-2. `citation-discipline` — refuse invented citations.
-3. `research-brief` — write findings, do not implement.
+Primary skills stay in `skills/` (normal skill index), **not** `plugin:skill`. Each declares `metadata.hermes.requires_toolsets: [research-bot]` so they hide if the plugin is off.
+
+1. `literature-review` — survey primaries; call `source_ledger_add` / `list` / `cite`.
+2. `source-triage` — rank links; call `source_ledger_list` then `source_ledger_add`.
+3. `claim-check` — test claims; call `source_ledger_check` then `source_ledger_cite`.
 
 Shared-later skills go in `../../skills-tap/skills/`, not here.
 
@@ -99,7 +132,7 @@ None. Official docs: distribution cron is not auto-scheduled. A weekly digest wi
 ```bash
 hermes profile install ./agents/research-bot --name research-bot-test --alias
 research-bot-test chat
-# "Name two primary-source rules from your SOUL. Do not invent a paper."
+# "Name the research-bot ledger tools and one write-policy rule. Do not invent a paper."
 hermes profile delete research-bot-test --yes
 ```
 

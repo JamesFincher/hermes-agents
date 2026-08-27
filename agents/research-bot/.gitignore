@@ -55,3 +55,6 @@ errors.log
 
 # Operator-local Honcho config (example stays tracked)
 honcho.json
+
+# Plugin runtime state — never the install tree
+plugin-data/

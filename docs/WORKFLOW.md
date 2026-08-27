@@ -4,7 +4,7 @@ Herbert points Cursor here. One loop, one PR.
 
 ## Intake
 
-1. Read the request. Identify **one** unit of work: one new agent, **or** one shared skill, **or** one plugin hook.
+1. Read the request. Identify **one** unit of work: one new agent (plugin + skills), **or** one shared skill recipe, **or** one host capability on **that** agent's plugin.
 2. Read `AGENTS.md`. Do not start from memory of Hermes knobs.
 3. If the request spans two agents, split it. Do not write both.
 
@@ -23,9 +23,9 @@ Never invent a `config.yaml` / `honcho.json` / `distribution.yaml` / `SKILL.md` 
 
 ## Implement
 
-- New agent: `agents/<name>/` with `distribution.yaml` at that directory's root.
-- Shared skill: `skills-tap/skills/<slug>/SKILL.md` only. Do not copy it into every agent.
-- Plugin: document the hook in `plugins/README.md`. Ship code only if this PR enables it in `plugins.enabled`.
+- New agent: `agents/<name>/` with `distribution.yaml` at that directory's root, plus `plugins/<name>/` enabled only on that profile. Skills stay in `agents/<name>/skills/` and `requires_toolsets: [<name>]`.
+- Shared skill recipe: `skills-tap/skills/<slug>/SKILL.md` only. Do not copy it into every agent. Do not make the primary library `plugin:skill`.
+- New host capability for one agent: add it to **that** agent's plugin. Do not start a shared army-runtime.
 - Cron / blueprint: suggestion only. Official docs: distribution cron is **not** auto-scheduled.
 
 Target `~/.hermes`. Do not vendor Gengar or fork Ouroboros.

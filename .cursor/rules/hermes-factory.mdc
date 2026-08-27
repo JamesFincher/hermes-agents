@@ -24,5 +24,6 @@ You are working in James Fincher's profile-distribution factory. Read `AGENTS.md
 - Never invent Hermes or Honcho config knobs. Cite the Context7 hit or official URL.
 - Never two writers on one profile. Honcho is shared memory (`workspace: hermes`, unique `aiPeer` per profile).
 - Never commit secrets. Installer strip is not gitignore. Target stock Hermes `~/.hermes`, not Gengar.
-- Plugins are opt-in (`plugins.enabled`). Cron / blueprints are suggestions, not auto-scheduled.
+- New agent = new plugin at `agents/<name>/plugins/<name>/`. `plugins.enabled: [<name>]` on that profile only. Skills `requires_toolsets: [<name>]`. No shared army-runtime. Honcho is never in `plugins.enabled`.
+- Cron / blueprints are suggestions, not auto-scheduled.
 - Do not vendor JamesFincher/gengar or rewrite JamesFincher/hermes-ouroboros. Depend or leave a hook.

@@ -13,6 +13,22 @@ hermes_requires: ">=0.12.0"
 author: "James Fincher"
 license: "Apache-2.0"
 
+# Claim plugins/ so updates replace the execution layer. Setting this list
+# replaces DEFAULT_DIST_OWNED — include the default set plus plugins and
+# the other files this distribution ships.
+# https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions
+distribution_owned:
+  - SOUL.md
+  - config.yaml
+  - mcp.json
+  - skills
+  - plugins
+  - distribution.yaml
+  - profile.yaml
+  - honcho.json.example
+  - README.md
+  - .gitignore
+
 env_requires:
   - name: HONCHO_API_KEY
     description: "Honcho Cloud API key (app.honcho.dev). Needed for Honcho Cloud. Self-hosted Honcho uses honcho.json baseUrl instead and can leave this unset."

@@ -40,7 +40,7 @@ hermes profile update research-bot
 
 | Agent | Path | Role |
 | --- | --- | --- |
-| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. |
+| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships `plugins/research-bot/` (enabled only on this profile). |
 
 ## Add the next agent
 
@@ -48,11 +48,11 @@ One agent per PR. Checklist is in `AGENTS.md`. Short version:
 
 1. Context7 + official docs for every knob.
 2. New directory `agents/<name>/` with `distribution.yaml` at its root.
-3. Fill `SOUL.md`, `profile.yaml`, `config.yaml`, `honcho.json.example`, skills (1–3), MCP only if headers can be `${env:VAR}`.
-4. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`.
+3. Fill `SOUL.md`, `profile.yaml`, `config.yaml`, `honcho.json.example`, **that agent's plugin** (`plugins/<name>/`), skills that `requires_toolsets: [<name>]`, MCP only if headers can be `${env:VAR}`.
+4. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
 5. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`
 
-Shared skills later: `skills-tap/skills/` (tap path override documented there). Plugins: opt-in; see `plugins/README.md`. Do not vendor Gengar or fork Ouroboros.
+Shared skills later: `skills-tap/skills/` (tap path override documented there). New host capability for one agent goes on **that** agent's plugin — no shared army-runtime. See `plugins/README.md`. Do not vendor Gengar or fork Ouroboros.
 
 ## License
 

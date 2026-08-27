@@ -17,3 +17,6 @@ jobs:
       - name: Validate distributions
         run: python scripts/validate_factory.py
         # Does not call Hermes or Context7. Do not reference CONTEXT7_API_KEY here.
+      - name: Plugin unit tests
+        run: python -m unittest discover -s tests -v
+        # Isolated HERMES_HOME fixtures. No live Hermes.

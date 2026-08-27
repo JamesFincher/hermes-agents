@@ -51,6 +51,9 @@ __pycache__/
 .venv/
 venv/
 
+# Plugin runtime state (official: <HERMES_HOME>/plugin-data/<name>/)
+plugin-data/
+
 # User customization namespace
 local/
 
