@@ -1,7 +1,8 @@
 # research-bot plugin
 
-Execution layer for the **research-bot** profile only. Not a shared army runtime.
-Do not enable this plugin on other agents.
+Process code for the **research-bot** distribution (tools, hooks, middleware).
+Skills in `agents/research-bot/skills/` are the recipes that call these tools.
+This is a per-agent plugin — enable it only on research-bot. Not a shared army-runtime.
 
 Official contract: native Hermes plugin (`plugin.yaml` + `register(ctx)`).
 Guide: https://hermes-agent.nousresearch.com/docs/developer-guide/plugins

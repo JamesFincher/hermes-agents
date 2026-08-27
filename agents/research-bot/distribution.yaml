@@ -13,9 +13,10 @@ hermes_requires: ">=0.12.0"
 author: "James Fincher"
 license: "Apache-2.0"
 
-# Claim plugins/ so updates replace the execution layer. Setting this list
-# replaces DEFAULT_DIST_OWNED — include the default set plus plugins and
-# the other files this distribution ships.
+# Official DEFAULT_DIST_OWNED is SOUL.md, config.yaml, mcp.json, skills/,
+# cron/, distribution.yaml. plugins/ is NOT in that default. Claim it so
+# updates replace process code. Setting this list replaces the default —
+# include the defaults we still want plus plugins and the other files we ship.
 # https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions
 distribution_owned:
   - SOUL.md

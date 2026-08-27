@@ -188,6 +188,40 @@ def agent_plugin_toolset(agent_dir: Path) -> str | None:
     return agent_dir.name
 
 
+def _shipped_plugin_yamls(agent_dir: Path) -> list[Path]:
+    plugins_root = agent_dir / "plugins"
+    if not plugins_root.is_dir():
+        return []
+    return sorted(plugins_root.glob("*/plugin.yaml"))
+
+
+def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
+    manifest = load_yaml(plugin_yaml)
+    if not isinstance(manifest, dict):
+        fail(f"{plugin_yaml.relative_to(ROOT)} is not a mapping")
+        return
+    plugin_name = manifest.get("name")
+    if plugin_name != expected_dirname:
+        fail(
+            f"{plugin_yaml.relative_to(ROOT)} name {plugin_name!r} "
+            f"!= directory {expected_dirname!r}"
+        )
+    if plugin_name in OUROBOROS_PLUGIN_NAMES or plugin_name in ARMY_RUNTIME_NAMES:
+        fail(f"forbidden plugin name: {plugin_name!r}")
+    if not manifest.get("provides_tools") and not manifest.get("provides_hooks"):
+        fail(
+            f"{plugin_yaml.relative_to(ROOT)} is a dummy plugin — "
+            "ship tools and/or hooks, or do not ship the directory"
+        )
+    plugin_dir = plugin_yaml.parent
+    if not (plugin_dir / "__init__.py").is_file():
+        fail(f"{plugin_dir.relative_to(ROOT)} missing __init__.py")
+        return
+    init_text = (plugin_dir / "__init__.py").read_text(encoding="utf-8")
+    if "def register(" not in init_text:
+        fail(f"{plugin_dir.relative_to(ROOT)}/__init__.py missing register(ctx)")
+
+
 def check_agent_plugin(agent_dir: Path) -> None:
     config_path = agent_dir / "config.yaml"
     config = load_yaml(config_path) if config_path.is_file() else {}
@@ -200,70 +234,58 @@ def check_agent_plugin(agent_dir: Path) -> None:
     if not isinstance(enabled, list):
         fail(f"{agent_dir.name} plugins.enabled must be a list")
         enabled = []
-    if "honcho" in enabled:
-        fail(f"{agent_dir.name}: Honcho must stay memory.provider, not plugins.enabled")
-    for name in enabled:
+    enabled_names = [str(name) for name in enabled]
+    if "honcho" in enabled_names:
+        fail(f"{agent_dir.name}: Honcho is memory.provider, not plugins.enabled")
+    for name in enabled_names:
         if name in OUROBOROS_PLUGIN_NAMES:
             fail(f"{agent_dir.name} plugins.enabled collides with ouroboros name {name!r}")
         if name in ARMY_RUNTIME_NAMES:
             fail(f"{agent_dir.name}: do not enable a shared army-runtime")
+        plugin_yaml = agent_dir / "plugins" / name / "plugin.yaml"
+        if not plugin_yaml.is_file():
+            fail(
+                f"{agent_dir.name} enables {name!r} but missing "
+                f"{plugin_yaml.relative_to(ROOT)} "
+                "(per-agent or copied shared plugin must live in this distribution)"
+            )
 
-    plugin_dir = agent_dir / "plugins" / agent_dir.name
-    plugin_yaml = plugin_dir / "plugin.yaml"
-    if enabled and not plugin_yaml.is_file():
-        fail(
-            f"{agent_dir.name} enables {enabled} but missing "
-            f"{plugin_yaml.relative_to(ROOT)}"
-        )
-        return
-    if not plugin_yaml.is_file():
-        return
+    shipped = _shipped_plugin_yamls(agent_dir)
+    for plugin_yaml in shipped:
+        dirname = plugin_yaml.parent.name
+        check_one_plugin_manifest(plugin_yaml, dirname)
+        if dirname not in enabled_names:
+            fail(
+                f"{agent_dir.name} ships {plugin_yaml.parent.relative_to(ROOT)} "
+                "but does not list it in plugins.enabled (dead garnish)"
+            )
 
-    manifest = load_yaml(plugin_yaml)
-    if not isinstance(manifest, dict):
-        fail(f"{plugin_yaml.relative_to(ROOT)} is not a mapping")
-        return
-    plugin_name = manifest.get("name")
-    if plugin_name != agent_dir.name:
-        fail(f"{plugin_yaml.relative_to(ROOT)} name {plugin_name!r} != {agent_dir.name!r}")
-    if plugin_name in OUROBOROS_PLUGIN_NAMES or plugin_name in ARMY_RUNTIME_NAMES:
-        fail(f"forbidden plugin name: {plugin_name!r}")
-    if enabled != [agent_dir.name]:
-        fail(
-            f"{agent_dir.name} plugins.enabled must be [{agent_dir.name!r}] only "
-            f"(got {enabled!r})"
-        )
-    for field in ("provides_tools", "provides_hooks", "config_schema"):
-        if not manifest.get(field):
-            fail(f"{plugin_yaml.relative_to(ROOT)} missing {field}")
-    if not (plugin_dir / "__init__.py").is_file():
-        fail(f"{plugin_dir.relative_to(ROOT)} missing __init__.py")
-    else:
-        init_text = (plugin_dir / "__init__.py").read_text(encoding="utf-8")
-        if "def register(" not in init_text:
-            fail(f"{plugin_dir.relative_to(ROOT)}/__init__.py missing register(ctx)")
+    if shipped:
+        dist = load_yaml(agent_dir / "distribution.yaml")
+        if isinstance(dist, dict):
+            owned = dist.get("distribution_owned") or []
+            if "plugins" not in owned:
+                fail(
+                    f"{agent_dir.name} ships plugins/ but distribution_owned "
+                    "does not claim plugins (not in the official default owned set)"
+                )
 
-    dist = load_yaml(agent_dir / "distribution.yaml")
-    if isinstance(dist, dict):
-        owned = dist.get("distribution_owned") or []
-        if "plugins" not in owned:
-            fail(f"{agent_dir.name} distribution_owned must claim plugins")
-
-    custom = (config.get("custom_toolsets") or {}) if isinstance(config, dict) else {}
-    bundled: list[str] = []
-    if isinstance(custom, dict):
-        for names in custom.values():
-            if isinstance(names, list):
-                bundled.extend(str(item) for item in names)
-    if agent_dir.name not in bundled:
-        fail(
-            f"{agent_dir.name} custom_toolsets must include plugin toolset "
-            f"{agent_dir.name!r}"
-        )
+    if agent_dir.name in enabled_names:
+        custom = config.get("custom_toolsets") or {}
+        bundled: list[str] = []
+        if isinstance(custom, dict):
+            for names in custom.values():
+                if isinstance(names, list):
+                    bundled.extend(str(item) for item in names)
+        if agent_dir.name not in bundled:
+            fail(
+                f"{agent_dir.name} custom_toolsets must include plugin toolset "
+                f"{agent_dir.name!r}"
+            )
 
     army = ROOT / "plugins" / "army-runtime"
     if army.exists():
-        fail("do not ship a shared army-runtime; each agent owns its plugin")
+        fail("do not ship a shared army-runtime; extract a named primitive after two agents copy it")
 
 
 def main() -> int:

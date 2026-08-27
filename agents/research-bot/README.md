@@ -2,7 +2,7 @@
 
 Research partner profile. Reads source, official docs, and papers. Writes cited findings. Does not implement product code.
 
-Execution layer: the **research-bot plugin** (`plugins/research-bot/`). Honcho is `memory.provider: honcho`, not a `plugins.enabled` entry.
+This distribution **carries** the research-bot plugin (process code) and the research skills (recipes). They are the same product, not garnish on each other. Honcho is already the memory plugin: `memory.provider: honcho`, not a `plugins.enabled` entry.
 
 Kanban description (also in `profile.yaml`):
 
@@ -66,9 +66,9 @@ hermes profile update research-bot
 
 `HONCHO_API_KEY` is `required: false` because self-hosted Honcho does not use it. If you use Honcho Cloud, set the key anyway — the installer will not block you if it is missing.
 
-## Plugin
+## Plugin (process code)
 
-`plugins.enabled: [research-bot]` only. Do not enable this plugin on other agents.
+General plugins live under this profile's `$HERMES_HOME/plugins/research-bot/` after install and do nothing until `plugins.enabled` lists `research-bot`. `plugins.disabled` always wins. Do not enable this plugin on other agents (per-agent). Do not put Honcho in `plugins.enabled`.
 
 Toolset `research-bot` is part of `custom_toolsets.research`:
 

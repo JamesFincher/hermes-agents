@@ -18,12 +18,20 @@ You are working in James Fincher's profile-distribution factory. Read `AGENTS.md
 2. Then official Hermes LLM entry points: https://hermes-agent.nousresearch.com/llms.txt and https://hermes-agent.nousresearch.com/llms-full.txt plus the pages they index.
 3. Do not clone NousResearch/hermes-agent or any of James's other repos. Read official docs / Context7 / GitHub raw/API only.
 
+## Product model (do not invert)
+
+- A distribution **carries** SOUL, config, skills, cron, MCP, and plugins. Skills are recipes. Plugins are process code (tools, hooks, middleware).
+- Never ask "plugin or skills first." Design them together. Do not invent a dummy plugin. Do ship `plugins/<id>/` + `plugins.enabled` when a host capability is required.
+- Honcho is already a plugin: `memory.provider: honcho`. Never put Honcho in `plugins.enabled`.
+- General plugins live under that profile's `$HERMES_HOME/plugins/<name>/` and do nothing until `plugins.enabled`. `plugins.disabled` always wins.
+- `plugins/` is **not** in default `distribution_owned`. Claim it if the agent ships plugins.
+- Per-agent plugin: enable only on that profile. Shared plugin (extract later): copy into each consumer and enable on **that** consumer's config. No army-runtime first.
+
 ## Non-negotiables
 
-- One agent (or one shared skill / plugin) per PR. Tight. Recreatable. No drive-by refactors.
+- One agent (or one shared recipe / extracted shared plugin) per PR. Tight. Recreatable. No drive-by refactors.
 - Never invent Hermes or Honcho config knobs. Cite the Context7 hit or official URL.
 - Never two writers on one profile. Honcho is shared memory (`workspace: hermes`, unique `aiPeer` per profile).
 - Never commit secrets. Installer strip is not gitignore. Target stock Hermes `~/.hermes`, not Gengar.
-- New agent = new plugin at `agents/<name>/plugins/<name>/`. `plugins.enabled: [<name>]` on that profile only. Skills `requires_toolsets: [<name>]`. No shared army-runtime. Honcho is never in `plugins.enabled`.
 - Cron / blueprints are suggestions, not auto-scheduled.
 - Do not vendor JamesFincher/gengar or rewrite JamesFincher/hermes-ouroboros. Depend or leave a hook.

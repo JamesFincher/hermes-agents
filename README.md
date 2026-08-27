@@ -48,11 +48,11 @@ One agent per PR. Checklist is in `AGENTS.md`. Short version:
 
 1. Context7 + official docs for every knob.
 2. New directory `agents/<name>/` with `distribution.yaml` at its root.
-3. Fill `SOUL.md`, `profile.yaml`, `config.yaml`, `honcho.json.example`, **that agent's plugin** (`plugins/<name>/`), skills that `requires_toolsets: [<name>]`, MCP only if headers can be `${env:VAR}`.
+3. Fill the whole distribution together (never "plugin or skills first"): `SOUL.md`, `profile.yaml`, `config.yaml` (`memory.provider: honcho`; `plugins.enabled` for general plugins), process code in `plugins/<id>/` when a host capability is required, skill recipes, MCP only if headers can be `${env:VAR}`.
 4. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
 5. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`
 
-Shared skills later: `skills-tap/skills/` (tap path override documented there). New host capability for one agent goes on **that** agent's plugin — no shared army-runtime. See `plugins/README.md`. Do not vendor Gengar or fork Ouroboros.
+Skills are recipes (`agents/<name>/skills/`, later `skills-tap/skills/`). Plugins are process code. Honcho is the memory plugin — not an `enabled` entry. Per-agent vs shared enablement: `plugins/README.md`. Do not vendor Gengar or fork Ouroboros.
 
 ## License
 

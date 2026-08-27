@@ -20,6 +20,42 @@ Read `docs/WORKFLOW.md` before you write files.
 
 If Context7 is down, use the llms.txt pages and say so in the PR.
 
+## Product model (do not invert this)
+
+A profile distribution **carries** SOUL, config, skills, cron, MCP, and plugins. Official: https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions
+
+| Layer | What it is | What it is not |
+| --- | --- | --- |
+| **Skills** | Recipes. `SKILL.md` tells the model when and how. | Not host process code. |
+| **General plugins** | Process code: tools, hooks, middleware. `plugin.yaml` + `register(ctx)`. | Not optional garnish on top of skills. |
+| **Honcho** | Already a plugin: exclusive **memory provider**. Select with `memory.provider: honcho`. | Not a `plugins.enabled` entry. |
+
+Never ask "plugin or skills first." Design the recipe and the process code as one agent. If the recipe needs a host capability built-ins cannot guarantee (custom tool, hook, middleware), that capability **is** the plugin and ships in the same distribution. If built-ins + Honcho are enough, do **not** invent a dummy plugin.
+
+## How plugins actually load
+
+Official: https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins
+
+- Each profile is its own `$HERMES_HOME` (`~/.hermes/profiles/<name>/`).
+- General/standalone plugins live at `$HERMES_HOME/plugins/<name>/` (that profile home). After `hermes profile install ./agents/<name>`, that is `agents/<name>/plugins/<name>/` copied into the profile.
+- They **do nothing** until that profile's `config.yaml` lists them in `plugins.enabled`.
+- `plugins.disabled` is a deny-list. A name in `disabled` never loads, even if it is also in `enabled`.
+- Default `distribution_owned` is `SOUL.md`, `config.yaml`, `mcp.json`, `skills/`, `cron/`, `distribution.yaml`. **`plugins/` is not in the default set.** If the agent ships plugins, claim `plugins` in `distribution_owned` or updates will not replace them. Setting `distribution_owned` replaces the default list — include the defaults you still want plus `plugins` plus anything else you ship.
+- Plugin state belongs in profile-scoped `plugin-data/` (`plugin_data_dir`), never the install tree.
+
+## Shared vs per-agent plugins (next agent)
+
+Each profile is an isolated home. "Shared" does **not** mean one global runtime all profiles load automatically.
+
+| Kind | Where the code lives in this factory | How the next agent enables it |
+| --- | --- | --- |
+| **Per-agent** | `agents/<name>/plugins/<name>/` | That profile only: `plugins.enabled` includes `<name>`. Do not enable it on other agents. |
+| **Shared** (extract later) | Factory source `plugins/<shared>/`, **copied/owned** by each consumer as `agents/<consumer>/plugins/<shared>/` | Each consumer lists `<shared>` in **its own** `plugins.enabled`. Agents that do not need it omit it. Claim `plugins` on every consumer that ships the directory. |
+
+Do not build a shared army-runtime first. If two later agents copy the same host primitive, extract then into `plugins/<shared>/` and enable it per profile as above.
+
+Do not collide with ouroboros names: `echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`.
+
 ## Layout (why it is this way)
 
 Official docs do **not** prescribe a monorepo. They **do** allow:
@@ -38,9 +74,10 @@ only sees **repo-root** `distribution.yaml`. This factory therefore uses **per-a
 
 | Path | Role |
 | --- | --- |
-| `agents/<name>/` | One distribution. Install this path. |
-| `skills-tap/skills/` | Shared tap later (`hermes skills tap add`). Default tap path is `skills/`; this factory uses `skills-tap/skills/` so agent-local skills stay out of the tap. After `tap add`, set `"path": "skills-tap/skills/"` in `~/.hermes/skills/.hub/taps.json`. |
-| `plugins/` | Factory note only. **No shared army-runtime.** Each agent ships `agents/<name>/plugins/<name>/`. |
+| `agents/<name>/` | One distribution. Install this path. Carries SOUL, config, skills, plugins, MCP. |
+| `agents/<name>/plugins/<id>/` | Process code owned by that distribution (`$HERMES_HOME/plugins/<id>/` after install). |
+| `plugins/` | Factory source for **extracted shared** plugins later. Not an army-runtime. See `plugins/README.md`. |
+| `skills-tap/skills/` | Shared **recipes** later (`hermes skills tap add`). Default tap path is `skills/`; this factory uses `skills-tap/skills/` so agent-local skills stay out of the tap. After `tap add`, set `"path": "skills-tap/skills/"` in `~/.hermes/skills/.hub/taps.json`. |
 | `AGENTS.md` + `.cursor/rules/` | Cursor workflow. Not Hermes `SOUL.md`. |
 
 ## One agent per PR
@@ -51,7 +88,7 @@ Never two writers on one profile. Honcho is **shared memory**: one workspace, un
 
 ## Never invent knobs
 
-Every `config.yaml`, `distribution.yaml`, `honcho.json*`, `mcp.json`, and `SKILL.md` key must be citeable from Context7 or official docs. If you cannot cite it, leave it out.
+Every `config.yaml`, `distribution.yaml`, `honcho.json*`, `mcp.json`, `plugin.yaml`, and `SKILL.md` key must be citeable from Context7 or official docs. If you cannot cite it, leave it out.
 
 ## Secrets
 
@@ -61,15 +98,8 @@ The installer **strips** those paths at install time. That is **not** a substitu
 
 Ship `honcho.json.example` only. After install, the operator copies it to the profile's `honcho.json` or `~/.honcho/config.json` and fills `apiKey` locally (or uses `HONCHO_API_KEY` / `hermes memory setup`).
 
-## Plugins, cron, other repos
+## Cron and other repos
 
-- **New agent = new plugin.** Ship `agents/<name>/plugins/<name>/` (`plugin.yaml` + `register(ctx)`). Set `plugins.enabled: [<name>]` on **that profile only**.
-- Claim `plugins` in `distribution_owned` (setting that list replaces the default owned set — include `SOUL.md`, `config.yaml`, `mcp.json`, `skills`, `plugins`, `distribution.yaml`, plus anything else you ship).
-- Plugin state in profile-scoped `plugin-data/` (`plugin_data_dir`), never the install tree.
-- Custom skills stay in `agents/<name>/skills/` (normal skill index). Do **not** make the primary library `plugin:skill`. Every skill declares `metadata.hermes.requires_toolsets: [<plugin-toolset>]` (and `requires_tools` for specific tools) so they hide if the plugin is off.
-- Honcho stays `memory.provider: honcho`. Never put Honcho in `plugins.enabled`.
-- Do not build a shared army-runtime. If two later agents copy the same host primitive, extract then.
-- Do not collide with ouroboros plugin names: `echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`.
 - Cron jobs in a distribution are **not auto-scheduled** (official profile-distributions security note). Blueprints become `/suggestions`. Do not add `cron/` unless a suggested blueprint is justified in the PR.
 - Do **not** vendor JamesFincher/gengar (engine, `~/.gengar`) or rewrite JamesFincher/hermes-ouroboros (plugin pack, Apache-2.0, `~/.hermes/plugins`). Depend or leave a hook in `plugins/README.md`.
 - Target stock Hermes `~/.hermes`, not Gengar.
@@ -78,15 +108,15 @@ Ship `honcho.json.example` only. After install, the operator copies it to the pr
 
 1. Context7 + official docs for any knob you will set.
 2. Copy `agents/research-bot/` to `agents/<name>/` **or** follow the checklist below on a fresh directory.
-3. Fill, in this order:
-   - `distribution.yaml` — `name`, `version`, `description`, `author`, `env_requires` (honest `required` flags), `hermes_requires` only if you can justify a floor.
+3. Fill the **whole distribution** (not skills first, not plugin first):
+   - `distribution.yaml` — `name`, `version`, `description`, `author`, `env_requires` (honest `required` flags), `hermes_requires` only if you can justify a floor. If you ship plugins, claim `plugins` in `distribution_owned` (and keep the other owned paths you still want).
    - `SOUL.md` — identity / tone only. Slot #1. No project paths.
    - `profile.yaml` — kanban routing description (`description`, `description_auto: false`).
-   - `config.yaml` — only cited knobs. Honcho: `memory.provider: honcho`. `plugins.enabled: [<name>]` only.
-   - `plugins/<name>/` — real `plugin.yaml` + `register(ctx)` tools/hooks this agent's skills need. Add that toolset to `custom_toolsets`.
+   - `config.yaml` — only cited knobs. Honcho: `memory.provider: honcho` (the memory plugin). General plugins: `plugins.enabled` lists every standalone plugin this profile should load. Do not put Honcho there.
+   - **Process code, when required:** `plugins/<id>/` with a real `plugin.yaml` + `register(ctx)`. Enable each shipped `<id>` on this profile. Add plugin toolsets to `custom_toolsets` so the tools are actually on. Per-agent default: `plugins/<name>/` enabled only here. Shared: copy `plugins/<shared>/` into this agent and add `<shared>` to this profile's `plugins.enabled`.
    - `honcho.json.example` — shared `workspace`, unique `aiPeer`, host `hermes.<name>`. No real `apiKey`.
    - `mcp.json` / `config.yaml` `mcp_servers` — only if headers can use `${env:VAR}` / `${VAR}`.
-   - `skills/` — 1–3 high-leverage skills with valid `SKILL.md` frontmatter (`name`, `description`, `metadata.hermes`). Each skill `requires_toolsets: [<name>]` and tells the model **when** to call the plugin tools. Shared-later recipes go in `skills-tap/skills/`.
+   - **Recipes:** `skills/` — 1–3 high-leverage skills with valid `SKILL.md` frontmatter (`name`, `description`, `metadata.hermes`). Stay in the normal skill index (not `plugin:skill`). If they depend on a plugin toolset, set `requires_toolsets` / `requires_tools` so they hide when that plugin is off. Shared-later recipes go in `skills-tap/skills/`.
 4. Reserved names (rejected at install): `hermes`, `test`, `tmp`, `root`, `sudo`.
 5. Update the root README agent table.
 6. Smoke (local Hermes, not CI):
@@ -94,8 +124,7 @@ Ship `honcho.json.example` only. After install, the operator copies it to the pr
 ```bash
 hermes profile install ./agents/<name> --name <name>-test --alias
 <name>-test chat
-# quoted smoke prompt, e.g.:
-# "Name two primary-source rules from your SOUL. Do not invent a paper."
+# quoted smoke prompt that exercises SOUL + the process/recipe pair
 hermes profile delete <name>-test --yes
 ```
 
