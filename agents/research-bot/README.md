@@ -1,6 +1,6 @@
 # research-bot
 
-Independent research-partner profile. Reads source, official docs, and papers. Writes cited findings. Does not implement product code.
+Independent research-partner profile. Reads source, official docs, and papers. Writes cited findings. Does not implement product code. Full walkthrough: [`docs/research-bot-deep-dive.md`](../../docs/research-bot-deep-dive.md).
 
 This profile ships **its own** plugin at `plugins/research-bot/` (toolset `research-bot`) and research skills in the normal index. The next profile does not inherit this plugin, these tools, or these skills.
 
