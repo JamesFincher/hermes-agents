@@ -37,6 +37,12 @@ Local doctor (not CI). Official: [Plugins](https://hermes-agent.nousresearch.com
 hermes plugins doctor ~/.hermes/profiles/<name>/plugins/<name> --ci
 ```
 
+Skill smoke (local, not CI). Official: [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills):
+
+```bash
+hermes chat --toolsets skills -q "Use the literature-review skill to survey Hermes profiles"
+```
+
 ## PR
 
 - Title names the single unit.

@@ -10,6 +10,10 @@ This file is the join map for **this profile only**. Extracted from the official
 | Prompt Assembly | https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly |
 | Adding Tools | https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools |
 | Plugins (native) | https://hermes-agent.nousresearch.com/docs/developer-guide/plugins |
+| Creating Skills (priority) | https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills |
+| Plugin LLM Access | https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access |
+| Subagent Lifecycle API | https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api |
+| Memory Provider Plugin | https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin |
 
 | Layer | This profile |
 | --- | --- |
@@ -18,7 +22,7 @@ This file is the join map for **this profile only**. Extracted from the official
 | Toolset | `research-bot` |
 | MCP | `context7` + `mcp_allowlist: [context7]` |
 | Skills | `literature-review`, `source-triage`, `claim-check` |
-| Skill gate | `requires_toolsets: [research-bot]` + facade / ledger tool names |
+| Skill gate | `requires_toolsets: [research-bot]` + `requires_tools: [resolve_library, docs_query, cite_source]` |
 | Honcho | `memory.provider: honcho` (not `plugins.enabled`) |
 
 Do not copy this plugin, these tools, or these skills to the next profile.
@@ -112,10 +116,93 @@ https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 ## Locked consequences (native plugin path)
 
 1. research-bot is a **native general** plugin (`plugin.yaml` + `register(ctx)`). Never a core `tools/` patch. Never a memory-provider plugin.
-2. Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema descriptions must say **when to call** `resolve_library` / `docs_query` / `source_ledger_cite` (cite).
+2. Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema descriptions must say **when to call** `resolve_library` / `docs_query` / `cite_source`.
 3. Handlers: JSON string, `**kwargs`, never raise, `task_id` from kwargs, thread-safe ledger via `plugin_data_dir` or `ctx.state`.
 4. `plugins.enabled: [research-bot]`. Honcho stays `memory.provider`.
 5. `distribution_owned` includes `plugins/` so profile install copies into the profile `HERMES_HOME` plugins tree (flat name `research-bot`).
 6. Do not `register_skill` the primary library. Optional companions only.
 7. `pre_llm_call` under 10k. Ledger survives compression lineage.
 8. Cite the official URLs in this file. Do not invent knobs from training data.
+
+---
+
+## Source E — Creating Skills (priority)
+
+https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills
+
+- Skill vs tool: skill = instructions + shell + existing tools (arXiv, git, Docker, PDF, CLI/API via `terminal` / `web_extract`). Tool = auth/API keys, must-execute-precisely processing, binary, streaming.
+- This profile’s research skills live in profile `skills/` (indexed). **Not** `ctx.register_skill` (hidden from `<available_skills>`). **Not** Hermes core `optional-skills/`.
+- `SKILL.md` required sections: When to Use, Quick Reference, Procedure, Pitfalls, Verification. Progressive disclosure. No external deps if terminal/web/plugin tools suffice. Helper scripts in `scripts/` only if parsing cannot be the plugin.
+- Tokens: `${HERMES_SKILL_DIR}` and `${HERMES_SESSION_ID}` substituted on load. Activation message includes `[Skill directory: abs path]`.
+- `inline_shell` (`!`cmd``) is **off** by default; do not enable. `[[as_document]]` for high-res media.
+- `metadata.hermes.requires_toolsets` / `requires_tools`: hide if **ANY** listed is missing. `fallback_for_*`: hide if **ANY** listed is present. All conditions must be met.
+- Research skills lock: `requires_toolsets: [research-bot]` and `requires_tools: [resolve_library, docs_query, cite_source]` (exact registered names).
+- `required_environment_variables`: missing does **not** hide the skill. Prompted on `skill_view` in local CLI. Secret never shown to the model. Auto passthrough into `terminal` / `execute_code` sandboxes. Do **not** put `CONTEXT7_API_KEY` here; the plugin `ctx.call_mcp` owns that.
+- `metadata.hermes.config`: non-secrets under `skills.config`, injected into the skill message on load. Citation style stays on the plugin `config_schema`, not duplicated here.
+- `required_credential_files`: paths relative to `~/.hermes/`; OAuth files only.
+- `platforms`: hide on incompatible OS. linux is fine; omit to load on all.
+- `related_skills`: cross-link `literature-review` / `source-triage` / `claim-check`.
+- Blueprint: installing a blueprint only **suggests** a cron job; never auto-schedules. Do not add blueprints unless a scheduled research job is requested.
+- Test (local, not CI): `hermes chat --toolsets skills -q "Use the X skill to do Y"`
+- Description frontmatter is what the skills index shows. Make when-to-use unmistakable.
+
+---
+
+## Source F — Plugin LLM Access
+
+https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access
+
+- `ctx.llm` is **out of band**. No tool loop, no conversation state. Use for extract/score/rewrite jobs the agent should not be in. `complete` / `complete_structured` / async twins.
+- Default: user's active provider/model. `provider=` / `model=` / `agent_id=` / `profile=` raise `PluginLlmTrustError` unless `plugins.entries.research-bot.llm` `allow_*` grants. This profile does **not** need those grants for v1.
+- `complete_structured` + `json_schema` can turn a Context7 blob into typed citations. If `parsed` is `None`, use `result.text`.
+- `purpose=` audit string required for frequent calls. Cost is the user's paid provider; do not loop `ctx.llm` on every hook.
+- `register_auxiliary_task` for a plugin-owned aux slot if a cheap classifier is needed later.
+- This does **not** replace `register_tool`. Agent-facing work stays tools + skills.
+
+---
+
+## Source G — Subagent Lifecycle API
+
+https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api
+
+- `ctx.subagent_lifecycle.launch` only during an active agent turn. Outside a turn: fail-closed `No active Hermes parent session`.
+- Child uses the same path as `delegate_task`. Subagents skip SOUL (prompt-assembly). Research contract must live in plugin + skills, not SOUL alone.
+- `allowed_toolsets` narrows the child; unknown or parent-broadening toolsets are rejected. Do not give a research child write/product toolsets.
+- Handles are opaque; persist `handle.to_dict()`; after process restart reconnect is `RECONNECT_UNAVAILABLE`.
+- In-process results kept one hour. Terminal results 32k, no transcripts/hidden reasoning.
+
+---
+
+## Source H — Memory Provider Plugin
+
+https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin
+
+- Single-select. Honcho is this profile’s `memory.provider`. Do **not** write a second memory provider.
+- Memory provider skills are namespaced `provider:skill` and only load when that provider is active. Not our primary skill library.
+- Discovery precedence for memory providers is the **reverse** of general plugins (earlier source wins). Irrelevant if we never ship a memory plugin.
+- `on_pre_compress` / `sync_turn` / `prefetch` are Honcho’s job. This general plugin must not inject a second memory system.
+
+---
+
+## Locked skill shape (this profile)
+
+Each research skill `SKILL.md`:
+
+- `description`: when to load, one line (index text)
+- `metadata.hermes.requires_toolsets: [research-bot]`
+- `metadata.hermes.requires_tools: [resolve_library, docs_query, cite_source]`
+- `metadata.hermes.related_skills`: the other research skills
+- Body Procedure **must** name those plugin tools, forbid raw `mcp_*`, and say `cite_source` after every claim
+- `scripts/` only if parsing cannot be the plugin
+- No `CONTEXT7_API_KEY` in skill env. No blueprint unless asked.
+
+---
+
+## Locked consequences (E–H)
+
+1. Primary research skills stay in profile `skills/`. Do not `register_skill` them.
+2. `cite_source` is the registered citation tool name. Skills `requires_tools` must use that exact name.
+3. `ctx.llm` is available for a later extract/score job. v1 does not call it from hooks. No `allow_*` LLM grants.
+4. Do not call `ctx.subagent_lifecycle.launch` unless this profile is actually delegating during an active turn. If it ever does, narrow `allowed_toolsets` and paste the contract into `goal`/`context`.
+5. Do not write a memory-provider plugin. Honcho stays `memory.provider`. This general plugin must not inject a second memory system.
+6. `inline_shell` stays off. No skill `required_environment_variables` for Context7.

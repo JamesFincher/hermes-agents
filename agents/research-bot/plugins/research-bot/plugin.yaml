@@ -15,7 +15,7 @@ provides_tools:
   - docs_query
   - source_ledger_add
   - source_ledger_list
-  - source_ledger_cite
+  - cite_source
   - source_ledger_check
 provides_hooks:
   - on_session_start
@@ -26,5 +26,5 @@ config_schema:
   citation_style:
     type: str
     default: apa
-    description: "Citation format for source_ledger_cite: apa, ieee, or chicago."
+    description: "Citation format for cite_source: apa, ieee, or chicago."
     required: false

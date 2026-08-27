@@ -115,7 +115,7 @@ def source_ledger_list(args: dict[str, Any], **kwargs: Any) -> str:
         return _dumps({"error": str(exc)})
 
 
-def source_ledger_cite(args: dict[str, Any], **kwargs: Any) -> str:
+def cite_source(args: dict[str, Any], **kwargs: Any) -> str:
     kwargs.get("task_id")  # official per-call id; ledger is profile-scoped
     try:
         ids_raw = args.get("ids")

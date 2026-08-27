@@ -81,6 +81,14 @@ def check_playbook() -> None:
         fail("PROFILE-PLAYBOOK.md must describe generating one independent profile")
     if "HERMES_HOME" not in text:
         fail("PROFILE-PLAYBOOK.md must define isolated HERMES_HOME")
+    for url in (
+        "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
+        "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
+        "https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api",
+        "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
+    ):
+        if url not in text:
+            fail(f"PROFILE-PLAYBOOK.md must cite {url}")
 
 
 def check_docs_voice() -> None:
@@ -274,7 +282,7 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
                 f"{schemas_path.relative_to(ROOT)} must use the flat schema "
                 "{name, description, parameters}"
             )
-        for needle in ("When to call", "resolve_library", "docs_query", "source_ledger_cite"):
+        for needle in ("When to call", "resolve_library", "docs_query", "cite_source"):
             if needle not in schemas_text:
                 fail(f"{schemas_path.relative_to(ROOT)} must describe when to call {needle}")
     for path in plugin_dir.rglob("*"):
@@ -377,6 +385,17 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
     for required in ("SOUL.md", "config.yaml", "README.md", "INTEGRATION.md", ".gitignore"):
         if not (agent_dir / required).is_file():
             fail(f"{agent_dir.name} missing {required}")
+    factory_integration = ROOT / "docs" / "INTEGRATION.md"
+    if factory_integration.is_file() and agent_dir.name == "research-bot":
+        factory_text = factory_integration.read_text(encoding="utf-8")
+        for url in (
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
+        ):
+            if url not in factory_text:
+                fail(f"{factory_integration.relative_to(ROOT)} must cite {url}")
     integration = agent_dir / "INTEGRATION.md"
     if integration.is_file() and agent_dir.name == "research-bot":
         integration_text = integration.read_text(encoding="utf-8")
@@ -385,6 +404,10 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
             "https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly",
             "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools",
             "https://hermes-agent.nousresearch.com/docs/developer-guide/plugins",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
         ):
             if url not in integration_text:
                 fail(f"{integration.relative_to(ROOT)} must cite {url}")
@@ -447,6 +470,45 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                         f"{skill_md.relative_to(ROOT)} requires_toolsets "
                         f"must not include {forbidden!r}"
                     )
+            dumped_front = yaml.safe_dump(front)
+            if "CONTEXT7_API_KEY" in dumped_front:
+                fail(
+                    f"{skill_md.relative_to(ROOT)} must not declare CONTEXT7_API_KEY; "
+                    "ctx.call_mcp owns that"
+                )
+            hermes_blueprint = hermes.get("blueprint")
+            if hermes_blueprint:
+                fail(
+                    f"{skill_md.relative_to(ROOT)} must not ship a blueprint "
+                    "unless a scheduled job was requested"
+                )
+            if agent_dir.name == "research-bot":
+                tool_names = [str(item) for item in tools]
+                for needed in ("resolve_library", "docs_query", "cite_source"):
+                    if needed not in tool_names:
+                        fail(
+                            f"{skill_md.relative_to(ROOT)} requires_tools must "
+                            f"include {needed!r}"
+                        )
+                related = [str(item) for item in (hermes.get("related_skills") or [])]
+                skill_name = str(front.get("name") or skill_md.parent.name)
+                expected_related = {
+                    "literature-review",
+                    "source-triage",
+                    "claim-check",
+                } - {skill_name}
+                for other in sorted(expected_related):
+                    if other not in related:
+                        fail(
+                            f"{skill_md.relative_to(ROOT)} related_skills must "
+                            f"include {other!r}"
+                        )
+                body = skill_md.read_text(encoding="utf-8")
+                for named in ("resolve_library", "docs_query", "cite_source", "mcp_*"):
+                    if named not in body:
+                        fail(
+                            f"{skill_md.relative_to(ROOT)} Procedure must name {named}"
+                        )
 
 
 def main() -> int:

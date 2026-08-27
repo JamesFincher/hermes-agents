@@ -118,7 +118,7 @@ class PluginTests(unittest.TestCase):
                 "docs_query",
                 "source_ledger_add",
                 "source_ledger_list",
-                "source_ledger_cite",
+                "cite_source",
                 "source_ledger_check",
             },
         )
@@ -213,7 +213,7 @@ class PluginTests(unittest.TestCase):
         injected = self.hooks.pre_llm_call("s1", "What does the spec say?")
         self.assertIsInstance(injected, dict)
         assert injected is not None
-        self.assertIn("source_ledger_cite", injected["context"])
+        self.assertIn("cite_source", injected["context"])
         self.assertIn("resolve_library", injected["context"])
         self.assertNotIn("SKILL.md", injected["context"])
         self.assertNotIn("available_skills", injected["context"])
@@ -253,14 +253,15 @@ class PluginTests(unittest.TestCase):
         for schema in (
             schemas.RESOLVE_LIBRARY,
             schemas.DOCS_QUERY,
-            schemas.SOURCE_LEDGER_CITE,
+            schemas.CITE_SOURCE,
         ):
             self.assertNotIn("function", schema)
             self.assertIn("name", schema)
             self.assertIn("parameters", schema)
             self.assertEqual(schema["parameters"]["type"], "object")
             self.assertIn("When to call", schema["description"])
-        self.assertIn("cite_source", schemas.SOURCE_LEDGER_CITE["description"])
+        self.assertEqual(schemas.CITE_SOURCE["name"], "cite_source")
+        self.assertIn("cite_source", schemas.CITE_SOURCE["description"])
 
     def test_handlers_return_json_string_not_dict(self) -> None:
         self.ledger.init_ledger()
@@ -284,7 +285,7 @@ class PluginTests(unittest.TestCase):
         self.assertTrue(added.get("ok"))
         missing = json.loads(self.tools.source_ledger_add({}))
         self.assertIn("error", missing)
-        cited = json.loads(self.tools.source_ledger_cite({}))
+        cited = json.loads(self.tools.cite_source({}))
         self.assertTrue(cited.get("ok"))
         empty_resolve = json.loads(self.tools.resolve_library({}))
         self.assertIn("error", empty_resolve)

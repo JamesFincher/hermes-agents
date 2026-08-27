@@ -54,27 +54,38 @@ Official: [User Guide — Skills](https://hermes-agent.org/docs/user-guide/featu
 Say: "the `<profile>` plugin **registers** the `resolve_library` tool."
 Do not say: "the plugin tool" as if the plugin *is* the tool.
 
-### Skill vs `ctx.register_skill`
+### Creating Skills (official lock — priority)
 
-Official [Developer Guide — Plugins](https://hermes-agent.org/docs/developer-guide/plugins/): `ctx.register_skill` creates a `plugin:skill` that is **read-only** and **hidden from the skills index**. The model cannot discover it through the normal skill list. Put the primary library in `skills/` on disk. Use `register_skill` only for supporting docs that tools already know about.
+Official: [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills). Also [Developer Guide — Skills](https://hermes-agent.org/docs/developer-guide/skills/) and [User Guide — Skills](https://hermes-agent.org/docs/user-guide/features/skills/).
 
-### Required `SKILL.md` sections
+**Skill vs tool (same page):** a skill is instructions + shell + existing tools (arXiv, git, Docker, PDF, CLI/API via `terminal` / `web_extract`). A tool is auth/API keys, must-execute-precisely processing, binary, or streaming. Do not write a plugin tool when a `SKILL.md` plus builtins is enough.
 
-Official [Developer Guide — Skills](https://hermes-agent.org/docs/developer-guide/skills/) and [User Guide — Skills](https://hermes-agent.org/docs/user-guide/features/skills/):
+**Where skills live:** profile `skills/<name>/SKILL.md` (indexed). Not `ctx.register_skill` (hidden `plugin:skill`). Not Hermes core `optional-skills/`.
 
-1. When to Use
-2. Quick Reference
-3. Procedure
-4. Pitfalls
-5. Verification
+Official [Plugins](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins): `ctx.register_skill` is read-only and **hidden from `<available_skills>`**. The model cannot discover it through the normal index. Use it only for supporting docs a tool already knows about.
 
-Procedure must name the **tools** (and, if needed, the MCP server the **plugin** will call). A skill that never names a tool is a prompt, not a join.
+**Required `SKILL.md` sections:** When to Use, Quick Reference, Procedure, Pitfalls, Verification. Progressive disclosure. Description frontmatter is the skills-index text — make when-to-use unmistakable. Procedure must name the **tools** the model should call. A skill that never names a tool is a prompt, not a join.
 
-### `requires_*` hide rule
+**Hide rules** (all conditions must be met):
 
-Official: if **ANY** toolset in `requires_toolsets` or **ANY** tool in `requires_tools` is missing, the skill is **hidden from the index**. That is a hide rule, not a load-time check of skill body text.
+| Field | Official hide |
+| --- | --- |
+| `requires_toolsets` / `requires_tools` | Hidden if **ANY** listed capability is missing |
+| `fallback_for_toolsets` / `fallback_for_tools` | Hidden if **ANY** listed capability is present |
+| `platforms` | Hidden on incompatible OS. linux is fine. Omit to load on all |
+| `required_environment_variables` | Missing does **not** hide the skill. Prompted on `skill_view` in local CLI. Secret never shown to the model. Auto-passthrough into `terminal` / `execute_code` |
 
-For a specialized profile, gate every workflow skill on **that profile's** toolset plus the facade/ledger tool names the skill's Procedure actually calls.
+Do **not** put `CONTEXT7_API_KEY` on a skill. `ctx.call_mcp` owns that. `required_credential_files` are OAuth files relative to `~/.hermes/` only.
+
+`metadata.hermes.config` stores non-secrets under `skills.config` and injects them on load. Do not duplicate plugin `config_schema` settings (citation style) there.
+
+`${HERMES_SKILL_DIR}` and `${HERMES_SESSION_ID}` are substituted on load. Activation includes `[Skill directory: abs path]`. `inline_shell` (`!`cmd``) is **off** by default — do not enable. `[[as_document]]` for high-res media. Helper `scripts/` only when parsing cannot live in the plugin.
+
+**Blueprints:** installing a blueprint only **suggests** a cron job; never auto-schedules. Do not add `metadata.hermes.blueprint` unless a scheduled job was requested.
+
+Local test (not CI): `hermes chat --toolsets skills -q "Use the X skill to do Y"`
+
+For a specialized profile, gate every workflow skill on **that profile's** toolset plus the exact registered tool names the Procedure calls.
 
 ---
 
@@ -100,7 +111,7 @@ Official: [User Guide — Personality](https://hermes-agent.org/docs/user-guide/
 
 ### Step 2 — Decide the footprint (official ladder)
 
-Official: [Adding Tools](https://hermes-agent.org/docs/developer-guide/adding-tools/), [Creating Skills](https://hermes-agent.org/docs/developer-guide/creating-skills/), [Built-in Plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/).
+Official: [Adding Tools](https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools), [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills), [Built-in Plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/).
 
 1. **Skill only** — instructions + existing Hermes tools (`web_search`, `write_file`, …). No plugin. Official [Adding Tools](https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools): skill when the job is instructions + shell + existing tools (arXiv, git, Docker, PDF).
 2. **Register a tool** on **this profile's native plugin** when you need a schema the model can call (API keys, custom processing, binary, streaming).
@@ -186,11 +197,14 @@ Each workflow skill:
 requires_toolsets:
   - <this-profile-toolset>
 requires_tools:
-  - skill_view
-  - <facade and ledger tools the Procedure calls>
+  - <exact registered names the Procedure calls>
+related_skills:
+  - <this profile's other workflow skills>
 ```
 
 If you write `requires_toolsets: [research-bot]` on a different profile's skill, that skill will be **hidden** on the new profile. That is correct: the new profile does not have research-bot's tools.
+
+Do not put `CONTEXT7_API_KEY` in skill env. Do not add a blueprint unless a scheduled job was requested. `research-bot` skills require `resolve_library`, `docs_query`, and `cite_source` by those exact registered names.
 
 ### Step 7 — Honcho (one paragraph, then stop)
 
@@ -222,10 +236,16 @@ Official pages James locked (read these, not training data):
 
 - [Agent Loop Internals](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop)
 - [Prompt Assembly](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly)
+- [Adding Tools](https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools)
+- [Plugins](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins)
+- [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills) (priority)
+- [Plugin LLM Access](https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access)
+- [Subagent Lifecycle API](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api)
+- [Memory Provider Plugin](https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin)
 
 Also: [Tools Runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/), [Hooks](https://hermes-agent.org/docs/developer-guide/hooks/), [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/).
 
-A profile that ships a plugin must encode the join in `agents/<name>/INTEGRATION.md` and cite those two URLs. `research-bot` already does.
+A profile that ships a plugin must encode the join in `agents/<name>/INTEGRATION.md` and cite those URLs. `research-bot` already does.
 
 ### Cached system prompt
 
@@ -269,11 +289,25 @@ Order: flush memory to disk **first**, summarize middle turns, keep `protect_las
 
 After each turn: session SQLite persist; `MEMORY.md` / `USER.md` flush. Honcho is `memory.provider` — do not also write a parallel `MEMORY.md` personality from a profile plugin.
 
-### Delegation
+### Plugin LLM (`ctx.llm` — out of band)
 
-Official: [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/), [Delegation Patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/), [Subagent Lifecycle API](https://hermes-agent.org/docs/developer-guide/subagent-lifecycle-api/), plus prompt-assembly `skip_context_files`.
+Official: [Plugin LLM Access](https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access).
 
-Children skip SOUL. The plugin + skills must carry the contract.
+`ctx.llm` is **not** a tool. No tool loop, no conversation state. Use `complete` / `complete_structured` (and async twins) for extract/score/rewrite jobs the agent should not sit in. Default model is the user's active provider. `provider=` / `model=` / `agent_id=` / `profile=` raise `PluginLlmTrustError` unless `plugins.entries.<id>.llm` `allow_*` grants — do not request those grants unless needed. `purpose=` is required for frequent calls. Cost is the user's paid provider; do not loop `ctx.llm` on every hook. If `complete_structured` returns `parsed is None`, use `result.text`. This does **not** replace `register_tool`. Agent-facing work stays tools + skills.
+
+### Delegation and `ctx.subagent_lifecycle`
+
+Official: [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation), [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns), [Subagent Lifecycle API](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api), plus prompt-assembly `skip_context_files`.
+
+Keep three paths distinct:
+
+1. `delegate_task` — model-facing **tool** (toolset `delegation`). Children inherit parent toolsets. No model-facing toolsets param.
+2. `ctx.subagent_lifecycle.launch` — **plugin** host API. Same child path as `delegate_task`. Only during an active agent turn. Outside a turn: fail-closed `No active Hermes parent session`.
+3. SOUL is skipped on children. The specialized contract must live in plugin + skills (and be pasted into `goal`/`context`).
+
+`allowed_toolsets` **narrows** the child. Unknown or parent-broadening toolsets are rejected. Do not give a research child write or product toolsets. Handles are opaque; persist `handle.to_dict()`; after process restart reconnect is `RECONNECT_UNAVAILABLE`. In-process results ~1 hour. Terminal results 32k, no transcripts/hidden reasoning.
+
+Do not invent a child-pool shared across profiles.
 
 ### Security
 
@@ -318,10 +352,10 @@ Need a new Hermes core tool?
 | Toolset | `research-bot` | Its own id |
 | MCP | server `context7`; `mcp_allowlist: [context7]` | Only if *it* calls a server |
 | Skills | `literature-review`, `source-triage`, `claim-check` | Its own recipes |
-| Skill gate | `requires_toolsets: [research-bot]` | `requires_toolsets: [<its-toolset>]` |
+| Skill gate | `requires_toolsets: [research-bot]` + `requires_tools: [resolve_library, docs_query, cite_source]` | `requires_toolsets: [<its-toolset>]` + that profile's registered names |
 | Bundle | `custom_toolsets.research` includes `research-bot` | Its own bundle |
 | Facade tools | `resolve_library`, `docs_query` | Whatever *it* registers |
-| Ledger tools | `source_ledger_add`, `source_ledger_list`, `source_ledger_cite`, `source_ledger_check` | Only if *it* needs a ledger |
+| Ledger tools | `source_ledger_add`, `source_ledger_list`, `cite_source`, `source_ledger_check` | Only if *it* needs a ledger |
 
 research-bot hooks (this profile only): `on_session_start` inits the ledger; `pre_llm_call` injects the contract + digest on the **user** message; `pre_tool_call` blocks product-code writes and scaffolding terminal (does not police `todo`/`memory`/`session_search`/`delegate_task`); `post_tool_call` backup-harvests facade tools, not `mcp_*`. Ledger path is profile `plugin-data/`, not a session id.
 
@@ -345,6 +379,6 @@ CI validates structure. It does not run Hermes.
 
 ## 8. Official pages this playbook used
 
-[Profiles](https://hermes-agent.org/docs/user-guide/profiles/) · [Profile distributions (user)](https://hermes-agent.org/docs/user-guide/features/profile-distributions/) · [Profile distributions (dev)](https://hermes-agent.org/docs/developer-guide/profile-distributions/) · [Which file does what](https://hermes-agent.org/docs/user-guide/which-file-does-what/) · [Configuration](https://hermes-agent.org/docs/user-guide/configuration/) · [Plugins (user)](https://hermes-agent.org/docs/user-guide/features/plugins/) · [Skills (user)](https://hermes-agent.org/docs/user-guide/features/skills/) · [Tools (user)](https://hermes-agent.org/docs/user-guide/features/tools/) · [MCP (user)](https://hermes-agent.org/docs/user-guide/features/mcp/) · [Hooks (user)](https://hermes-agent.org/docs/user-guide/features/hooks/) · [Memory (user)](https://hermes-agent.org/docs/user-guide/features/memory/) · [Personality](https://hermes-agent.org/docs/user-guide/features/personality/) · [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/) · [Built-in plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/) · [Tools reference](https://hermes-agent.org/docs/reference/tools-reference/) · [Toolsets reference](https://hermes-agent.org/docs/reference/toolsets-reference/) · [MCP config reference](https://hermes-agent.org/docs/reference/mcp-config-reference/) · [Profile commands](https://hermes-agent.org/docs/reference/cli/profile/) · [Use MCP](https://hermes-agent.org/docs/user-guide/guides/use-mcp-with-hermes/) · [Work with skills](https://hermes-agent.org/docs/user-guide/guides/work-with-skills/) · [Use SOUL](https://hermes-agent.org/docs/user-guide/guides/use-soul-with-hermes/) · [Delegation patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/) · [Agent loop (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop) · [Prompt assembly (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly) · [Adding tools (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools) · [Plugins native (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins) · [Skills (dev)](https://hermes-agent.org/docs/developer-guide/skills/) · [Creating skills](https://hermes-agent.org/docs/developer-guide/creating-skills/) · [MCP (dev)](https://hermes-agent.org/docs/developer-guide/mcp/) · [Hooks (dev)](https://hermes-agent.org/docs/developer-guide/hooks/) · [Plugin LLM access](https://hermes-agent.org/docs/developer-guide/plugin-llm-access/) · [Tools (dev)](https://hermes-agent.org/docs/developer-guide/tools/) · [Tools runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/) · [Context compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) · [Memory (dev)](https://hermes-agent.org/docs/developer-guide/memory/) · [Memory providers](https://hermes-agent.org/docs/developer-guide/memory-providers/) · [Subagent lifecycle](https://hermes-agent.org/docs/developer-guide/subagent-lifecycle-api/) · [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/) · [Security](https://hermes-agent.org/docs/user-guide/security/) · [Multi-profile gateways](https://hermes-agent.org/docs/user-guide/features/multi-profile-gateways/) · [Honcho × Hermes](https://docs.honcho.dev/v3/guides/agent-frameworks/hermes-agent)
+[Profiles](https://hermes-agent.org/docs/user-guide/profiles/) · [Profile distributions (user)](https://hermes-agent.org/docs/user-guide/features/profile-distributions/) · [Profile distributions (dev)](https://hermes-agent.org/docs/developer-guide/profile-distributions/) · [Which file does what](https://hermes-agent.org/docs/user-guide/which-file-does-what/) · [Configuration](https://hermes-agent.org/docs/user-guide/configuration/) · [Plugins (user)](https://hermes-agent.org/docs/user-guide/features/plugins/) · [Skills (user)](https://hermes-agent.org/docs/user-guide/features/skills/) · [Tools (user)](https://hermes-agent.org/docs/user-guide/features/tools/) · [MCP (user)](https://hermes-agent.org/docs/user-guide/features/mcp/) · [Hooks (user)](https://hermes-agent.org/docs/user-guide/features/hooks/) · [Memory (user)](https://hermes-agent.org/docs/user-guide/features/memory/) · [Personality](https://hermes-agent.org/docs/user-guide/features/personality/) · [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/) · [Built-in plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/) · [Tools reference](https://hermes-agent.org/docs/reference/tools-reference/) · [Toolsets reference](https://hermes-agent.org/docs/reference/toolsets-reference/) · [MCP config reference](https://hermes-agent.org/docs/reference/mcp-config-reference/) · [Profile commands](https://hermes-agent.org/docs/reference/cli/profile/) · [Use MCP](https://hermes-agent.org/docs/user-guide/guides/use-mcp-with-hermes/) · [Work with skills](https://hermes-agent.org/docs/user-guide/guides/work-with-skills/) · [Use SOUL](https://hermes-agent.org/docs/user-guide/guides/use-soul-with-hermes/) · [Delegation patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/) · [Agent loop (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop) · [Prompt assembly (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly) · [Adding tools (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools) · [Plugins native (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins) · [Creating skills (locked, priority)](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills) · [Plugin LLM access (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access) · [Subagent lifecycle (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api) · [Memory provider plugin (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin) · [Skills (dev)](https://hermes-agent.org/docs/developer-guide/skills/) · [MCP (dev)](https://hermes-agent.org/docs/developer-guide/mcp/) · [Hooks (dev)](https://hermes-agent.org/docs/developer-guide/hooks/) · [Tools (dev)](https://hermes-agent.org/docs/developer-guide/tools/) · [Tools runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/) · [Context compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) · [Memory (dev)](https://hermes-agent.org/docs/developer-guide/memory/) · [Memory providers](https://hermes-agent.org/docs/developer-guide/memory-providers/) · [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/) · [Security](https://hermes-agent.org/docs/user-guide/security/) · [Multi-profile gateways](https://hermes-agent.org/docs/user-guide/features/multi-profile-gateways/) · [Honcho × Hermes](https://docs.honcho.dev/v3/guides/agent-frameworks/hermes-agent)
 
 Context7 library: `/nousresearch/hermes-agent`. Honcho: `/plastic-labs/honcho` only for the short memory paragraph.

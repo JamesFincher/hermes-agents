@@ -82,7 +82,7 @@ Toolset `research-bot` is part of `custom_toolsets.research`. The plugin **regis
 | `docs_query` | Query that library’s docs (`ctx.call_mcp` → `query-docs`) |
 | `source_ledger_add` | After retrieving a non-Context7 page |
 | `source_ledger_list` | Before writing findings |
-| `source_ledger_cite` | Before citing — use only this formatted text |
+| `cite_source` | After every claim — use only this formatted text |
 | `source_ledger_check` | Before asserting a factual claim |
 
 Hooks inject a short contract onto the **user message** (not the system prompt; does not dump skill bodies), block product-code writes, backup-harvest facade tools (not `mcp_*`), and init the ledger on session start.
@@ -125,11 +125,18 @@ Never two writers on this `aiPeer`.
 
 ## Skills
 
-Primary skills stay in `skills/` (normal skill index), **not** `plugin:skill`. Each declares `metadata.hermes.requires_toolsets: [research-bot]` so they hide if this profile’s plugin is off.
+Primary skills stay in `skills/` (normal skill index), **not** `plugin:skill`. Official: [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills). Each skill:
 
-1. `literature-review` — survey primaries; call `resolve_library` / `docs_query` / `source_ledger_add` / `list` / `cite`.
+- `description`: one-line when-to-load (index text)
+- `requires_toolsets: [research-bot]`
+- `requires_tools: [resolve_library, docs_query, cite_source]` (exact registered names)
+- `related_skills`: the other two research skills
+- Procedure names those tools, forbids raw `mcp_*`, and says `cite_source` after every claim
+- No `CONTEXT7_API_KEY` in skill env. No blueprint.
+
+1. `literature-review` — survey primaries; call `resolve_library` / `docs_query` / `source_ledger_add` / `source_ledger_list` / `cite_source`.
 2. `source-triage` — rank links; call `source_ledger_list` then `source_ledger_add`.
-3. `claim-check` — test claims; call `source_ledger_check` then `source_ledger_cite`.
+3. `claim-check` — test claims; call `source_ledger_check` then `cite_source`.
 
 Optional later recipes may live under `../../skills-tap/skills/`. A profile only uses a tap skill after it copies that skill into **its own** `skills/`.
 
@@ -143,6 +150,7 @@ None. Official docs: distribution cron is not auto-scheduled. A weekly digest wi
 hermes profile install ./agents/research-bot --name research-bot-test --alias
 research-bot-test chat
 # "Name the ledger tools and one write-policy rule. Do not invent a paper."
+hermes chat --toolsets skills -q "Use the literature-review skill to survey Hermes profiles"
 hermes profile delete research-bot-test --yes
 ```
 

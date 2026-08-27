@@ -20,8 +20,8 @@ CONTRACT = (
     "RESEARCH CONTRACT (user-message injection; cached SOUL/system_message "
     "must not carry turn-varying text):\n"
     "- Use resolve_library and docs_query for Context7. Do not call raw mcp_* tools.\n"
-    "- After a non-Context7 retrieve, call source_ledger_add. Before citing, "
-    "source_ledger_cite. Before a fact, source_ledger_check.\n"
+    "- After a non-Context7 retrieve, call source_ledger_add. After every claim, "
+    "cite_source. Before a fact, source_ledger_check.\n"
     "- Honcho is memory.provider. Do not write a parallel MEMORY.md personality.\n"
     "- Do not invent knobs. Do not write product application code."
 )

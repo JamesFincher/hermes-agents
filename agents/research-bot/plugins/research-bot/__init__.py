@@ -42,10 +42,10 @@ def register(ctx: Any) -> None:
         handler=tools.source_ledger_list,
     )
     ctx.register_tool(
-        name="source_ledger_cite",
+        name="cite_source",
         toolset=runtime.TOOLSET,
-        schema=schemas.SOURCE_LEDGER_CITE,
-        handler=tools.source_ledger_cite,
+        schema=schemas.CITE_SOURCE,
+        handler=tools.cite_source,
     )
     ctx.register_tool(
         name="source_ledger_check",
