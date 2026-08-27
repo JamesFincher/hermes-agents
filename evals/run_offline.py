@@ -73,7 +73,10 @@ def _materialize_run(
             continue
         (corpus_out / dest_name).write_text(text, encoding="utf-8")
         if quote:
-            brief_lines.append(f"{quote} [{sid}].")
+            cited = quote.rstrip()
+            if cited.endswith((".", "!", "?")):
+                cited = cited[:-1].rstrip()
+            brief_lines.append(f"{cited} [{sid}].")
         ledger_sources.append(
             {
                 "id": sid,
