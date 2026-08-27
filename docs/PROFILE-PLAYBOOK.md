@@ -52,13 +52,13 @@ Official: [User Guide — Skills](https://hermes-agent.org/docs/user-guide/featu
 | **MCP** | Connected server in `mcp.json` / `mcp_servers` | Not a Hermes tool. Not a skill. Not a plugin | This profile's `mcp.json` + config | Default: MCP-named tools. This factory forbids the model from using those names; the plugin calls MCP |
 
 Say: "the `<profile>` plugin **registers** the `resolve_library` tool."
-Do not say: "the plugin tool" as if the plugin *is* the tool.
+Never collapse PLUGIN and TOOL into one noun.
 
 ### Creating Skills (official lock — priority)
 
 Official: [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills). Also [Developer Guide — Skills](https://hermes-agent.org/docs/developer-guide/skills/) and [User Guide — Skills](https://hermes-agent.org/docs/user-guide/features/skills/).
 
-**Skill vs tool (same page):** a skill is instructions + shell + existing tools (arXiv, git, Docker, PDF, CLI/API via `terminal` / `web_extract`). A tool is auth/API keys, must-execute-precisely processing, binary, or streaming. Do not write a plugin tool when a `SKILL.md` plus builtins is enough.
+**Skill vs tool (same page):** a skill is instructions + shell + existing tools (arXiv, git, Docker, PDF, CLI/API via `terminal` / `web_extract`). A tool is auth/API keys, must-execute-precisely processing, binary, or streaming. Do not have this profile's plugin register a tool when a `SKILL.md` plus builtins is enough.
 
 **Where skills live:** profile `skills/<name>/SKILL.md` (indexed). Not `ctx.register_skill` (hidden `plugin:skill`). Not Hermes core `optional-skills/`.
 
@@ -275,7 +275,7 @@ Registry tools: resolve `tools/registry.py` → `pre_tool_call` → `approval.py
 
 `IterationBudget` default 500 (`agent.max_turns`). Subagents get independent budgets capped at `delegation.max_iterations` (default 50).
 
-`pre_tool_call` return: `{action: "block"|"approve"|"modify", message: ...}` or `None`. Official docs cover builtin + plugin tools. MCP-through-hooks is **UNVERIFIED**. Do not harvest or block raw `mcp_*` until verified. Backup-harvest **facade** tools only.
+`pre_tool_call` return: `{action: "block"|"approve"|"modify", message: ...}` or `None`. Official docs cover builtin tools and tools a plugin registered. MCP-through-hooks is **UNVERIFIED**. Do not harvest or block raw `mcp_*` until verified. Backup-harvest only tools this plugin registered (`resolve_library`, `docs_query`).
 
 Interrupt abandons the API thread; no partial response enters history.
 
@@ -357,7 +357,7 @@ Need a new Hermes core tool?
 | Facade tools | `resolve_library`, `docs_query` | Whatever *it* registers |
 | Ledger tools | `source_ledger_add`, `source_ledger_list`, `cite_source`, `source_ledger_check` | Only if *it* needs a ledger |
 
-research-bot hooks (this profile only): `on_session_start` inits the ledger; `pre_llm_call` injects the contract + digest on the **user** message; `pre_tool_call` blocks product-code writes and scaffolding terminal (does not police `todo`/`memory`/`session_search`/`delegate_task`); `post_tool_call` backup-harvests facade tools, not `mcp_*`. Ledger path is profile `plugin-data/`, not a session id.
+The research-bot plugin also registers hooks (this profile only): `on_session_start` inits the ledger; `pre_llm_call` injects the contract + digest on the **user** message; `pre_tool_call` blocks product-code writes and scaffolding terminal (does not police `todo`/`memory`/`session_search`/`delegate_task`); `post_tool_call` backup-harvests `resolve_library` / `docs_query`, not `mcp_*`. Ledger path is profile `plugin-data/`, not a session id.
 
 SOUL does not tell the model to query Context7 MCP directly.
 

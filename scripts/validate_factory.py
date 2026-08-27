@@ -48,6 +48,11 @@ _BANNED_DOC_PATTERNS = (
     re.compile(r"\bthe army\b", re.IGNORECASE),
     re.compile(r"\barmy\b", re.IGNORECASE),
 )
+_COLLAPSED_SURFACE_PATTERNS = (
+    re.compile(r"\bplugin tools\b", re.IGNORECASE),
+    re.compile(r"\bplugin tool\b", re.IGNORECASE),
+    re.compile(r"plugin is the tools", re.IGNORECASE),
+)
 SECRET_NAMES = {
     ".env",
     "auth.json",
@@ -98,6 +103,7 @@ def check_docs_voice() -> None:
         paths.extend(agents_root.glob("*/SOUL.md"))
         paths.extend(agents_root.glob("*/README.md"))
         paths.extend(agents_root.glob("*/INTEGRATION.md"))
+        paths.extend(agents_root.glob("*/skills/*/SKILL.md"))
     for path in paths:
         if not path.is_file():
             continue
@@ -107,6 +113,13 @@ def check_docs_voice() -> None:
                 fail(
                     f"{path.relative_to(ROOT)} names a cross-profile layer "
                     f"({pattern.pattern}); each profile is independent"
+                )
+                break
+        for pattern in _COLLAPSED_SURFACE_PATTERNS:
+            if pattern.search(text):
+                fail(
+                    f"{path.relative_to(ROOT)} collapses PLUGIN and TOOL "
+                    f"({pattern.pattern}); say the plugin registers the tool"
                 )
                 break
 
@@ -301,6 +314,13 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
                     f"({pattern.pattern})"
                 )
                 break
+        for pattern in _COLLAPSED_SURFACE_PATTERNS:
+            if pattern.search(text):
+                fail(
+                    f"{path.relative_to(ROOT)} collapses PLUGIN and TOOL "
+                    f"({pattern.pattern})"
+                )
+                break
 
 
 def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
@@ -413,6 +433,11 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                 fail(f"{integration.relative_to(ROOT)} must cite {url}")
         if "system_message" in integration_text and "pre_llm_call" not in integration_text:
             fail(f"{integration.relative_to(ROOT)} must lock pre_llm_call for turn-varying text")
+        if "Three surfaces" not in integration_text:
+            fail(
+                f"{integration.relative_to(ROOT)} must keep SKILL, TOOL, and "
+                "PLUGIN as three official surfaces"
+            )
         for heading in (
             "Settled: memory",
             "Profile identity + skills index",

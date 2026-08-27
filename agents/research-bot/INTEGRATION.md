@@ -4,6 +4,16 @@
 
 This file is the **execution join** for this profile only. Official pages James shared — not training data. Do not copy this plugin, these tools, or these skills to the next profile.
 
+## Three surfaces — never collapse
+
+| Surface | Official object | This profile |
+| --- | --- | --- |
+| **SKILL** | Indexed `SKILL.md` recipe. Loaded via `skill_view`. No Python. Procedure names **tools**. | `skills/literature-review`, `source-triage`, `claim-check` |
+| **TOOL** | Registry schema + handler the model invokes. Also builtins and `mcp_*`. Do not patch `tools/` or `toolsets.py`. | The research-bot plugin **registers** `resolve_library`, `docs_query`, `source_ledger_add`, `source_ledger_list`, `cite_source`, `source_ledger_check` |
+| **PLUGIN** | `plugin.yaml` + `register(ctx)` host package. May register tools **and** hooks **and** middleware **and** config/state. **Not itself a tool.** | `plugins/research-bot/` |
+
+Say: "the research-bot plugin registers the `resolve_library` tool." Never collapse PLUGIN and TOOL into one noun.
+
 | Official page | URL |
 | --- | --- |
 | Agent Loop Internals | https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop |
@@ -52,9 +62,9 @@ https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools
 https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access
 
-The adding-tools page is **built-in core only** (`tools/` + `toolsets.py`). Custom tools **must** use the plugin route. Never patch Hermes core.
+The adding-tools page is **built-in core only** (`tools/` + `toolsets.py`). A custom tool **must** be registered by this profile's plugin (`ctx.register_tool`). Never patch Hermes core.
 
-Native path: `plugin.yaml` + `__init__.py` `register(ctx)`. Not Portable Agent Plugins v1 (`plugin.json`). This plugin **registers** tools, hooks, and settings. It is not itself a tool.
+Native path: `plugin.yaml` + `__init__.py` `register(ctx)`. Not Portable Agent Plugins v1 (`plugin.json`). This plugin is the host package. It **registers** tools, hooks, and settings. It is not itself a tool.
 
 Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema descriptions say **when to call** `resolve_library` / `docs_query` / `cite_source`. Handlers return a `json.dumps` string, never raise, take `**kwargs`, read `task_id` from kwargs. Ledger writes are thread-safe (`plugin-data/`, concurrent tool pool).
 
@@ -66,11 +76,11 @@ Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema d
 
 ## 3. MCP as a backend the plugin calls
 
-The model’s primary tools are the ones this plugin registered. Context7 is a connected MCP server the **plugin** calls.
+The model invokes tools. Context7 is a connected MCP server the **plugin** calls; it is not a skill and not a Hermes tool.
 
 - Server name: `context7`. Do not set `tools.include: []` or `enabled: false`.
 - `ctx.call_mcp("context7", "resolve-library-id", …)` and `ctx.call_mcp("context7", "query-docs", …)` — unsanitized MCP names.
-- Facade tools the model calls: `resolve_library`, `docs_query`.
+- The research-bot plugin registers `resolve_library` and `docs_query`; those are the tools the model calls for Context7.
 - `plugins.entries.research-bot.mcp_allowlist: [context7]`. No wildcards.
 - Skills and the user-message contract forbid raw `mcp_*`. Do not put `CONTEXT7_API_KEY` on a skill.
 
@@ -114,7 +124,7 @@ No `register_middleware` in v1. No `ctx.llm` on these hooks.
 
 ---
 
-## 5. Skills that require the plugin toolset
+## 5. Skills that require toolset `research-bot`
 
 https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills
 
@@ -138,7 +148,7 @@ https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access
 
 Out of band. Default: user’s active provider/model. No `allow_*` grants in v1. `purpose=` required if we call it frequently. Cost is the user’s paid provider.
 
-**v1: do not call `ctx.llm`.** Agent-facing work stays the registered tools + skills.
+**v1: do not call `ctx.llm`.** Agent-facing work stays tools (`ctx.register_tool`) plus indexed skills (`skill_view`). `ctx.llm` is neither.
 
 Later (not now): `complete_structured` + `json_schema` to type a Context7 blob for the ledger. If `parsed` is `None`, use `result.text`. `register_auxiliary_task` only if a cheap classifier is needed.
 

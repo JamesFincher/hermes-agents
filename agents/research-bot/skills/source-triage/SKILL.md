@@ -26,7 +26,7 @@ The user dumped URLs, search results, or a draft bibliography and needs them ran
 | Library docs (not raw MCP) | `resolve_library` then `docs_query` |
 | After every claim | `cite_source` |
 
-Never call raw `mcp_*` tools. Do not put `CONTEXT7_API_KEY` in this skill.
+Never call raw `mcp_*` tools. The research-bot plugin registers the `resolve_library`, `docs_query`, and `cite_source` tools. Do not put `CONTEXT7_API_KEY` in this skill.
 
 ## Procedure
 

@@ -6,7 +6,7 @@ name: research-bot
 version: 0.2.0
 manifest_version: 2
 api_version: 1
-description: "Registers Context7 facade tools and source-ledger tools for the research-bot profile (toolset research-bot)."
+description: "Host package that registers resolve_library, docs_query, and source-ledger tools (toolset research-bot)."
 author: James Fincher
 license: Apache-2.0
 tags: [research, context7, ledger, citations]

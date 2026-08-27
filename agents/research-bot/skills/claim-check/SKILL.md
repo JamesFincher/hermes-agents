@@ -25,7 +25,7 @@ Before a research brief, literature summary, or any answer that names a paper, d
 | After every claim you keep | `cite_source` |
 | Fill a docs gap | `resolve_library` then `docs_query` |
 
-Never call raw `mcp_*` tools. After every claim you keep, call `cite_source`. Do not put `CONTEXT7_API_KEY` in this skill.
+Never call raw `mcp_*` tools. The research-bot plugin registers the `resolve_library`, `docs_query`, and `cite_source` tools. After every claim you keep, call `cite_source`. Do not put `CONTEXT7_API_KEY` in this skill.
 
 ## Procedure
 

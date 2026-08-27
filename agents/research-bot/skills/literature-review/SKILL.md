@@ -27,7 +27,7 @@ The user wants a survey of what primary docs and papers actually say — not a p
 | See what is already recorded | `source_ledger_list` |
 | After every claim | `cite_source` |
 
-Never call raw `mcp_*` / `mcp_context7_*` tools. The research-bot plugin registered the facade tools. Do not put `CONTEXT7_API_KEY` in this skill.
+Never call raw `mcp_*` / `mcp_context7_*` tools. The research-bot plugin registers the `resolve_library`, `docs_query`, and `cite_source` tools. Do not put `CONTEXT7_API_KEY` in this skill.
 
 ## Procedure
 

@@ -3,7 +3,8 @@
 Official: plugin.yaml + register(ctx).
 https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 
-This plugin registers tools and hooks. It is not a tool.
+This PLUGIN registers TOOLS and hooks. It is not a tool.
+Skills live in profile skills/ and are not this package.
 Do not copy to other agents.
 """
 

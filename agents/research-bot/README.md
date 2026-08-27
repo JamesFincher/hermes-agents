@@ -85,7 +85,7 @@ Toolset `research-bot` is part of `custom_toolsets.research`. The plugin **regis
 | `cite_source` | After every claim — use only this formatted text |
 | `source_ledger_check` | Before asserting a factual claim |
 
-Hooks inject a short contract onto the **user message** (not the system prompt; does not dump skill bodies), block product-code writes, backup-harvest facade tools (not `mcp_*`), and init the ledger on session start.
+The plugin also registers hooks: they inject a short contract onto the **user message** (not the system prompt; does not dump skill bodies), block product-code writes, backup-harvest `resolve_library` / `docs_query` (not `mcp_*`), and init the ledger on session start.
 
 Settings (`plugins.entries.research-bot.settings`, read via `ctx.get_config`):
 

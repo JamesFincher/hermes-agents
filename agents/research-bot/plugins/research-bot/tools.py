@@ -1,4 +1,6 @@
-"""Tools this native plugin registers.
+"""Handlers for tools the research-bot plugin registers.
+
+This module is not a plugin and not a skill.
 
 Official adding-tools danger box: return json.dumps string, never a dict;
 errors are {"error": "..."}, never raise; handler(args: dict, **kwargs);
