@@ -1,12 +1,12 @@
 ---
 name: literature-review
-description: Survey primary sources into the research-bot ledger. Use when the user wants a literature review, survey, or "what do the docs and papers say?"
+description: Survey primary sources into the army source ledger. Use when the user wants a literature review, survey, or "what do the docs and papers say?"
 version: 1.0.0
 metadata:
   hermes:
     tags: [research, literature, context7]
     category: research
-    requires_toolsets: [research-bot]
+    requires_toolsets: [army]
     requires_tools: [source_ledger_add, source_ledger_list, source_ledger_cite]
 ---
 

@@ -40,7 +40,7 @@ hermes profile update research-bot
 
 | Agent | Path | Role |
 | --- | --- | --- |
-| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships `plugins/research-bot/` (enabled only on this profile). |
+| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Enables shared `army-runtime` (`write_policy: research`). |
 
 ## Add the next agent
 
@@ -48,11 +48,11 @@ One agent per PR. Checklist is in `AGENTS.md`. Short version:
 
 1. Context7 + official docs for every knob.
 2. New directory `agents/<name>/` with `distribution.yaml` at its root.
-3. Fill the whole distribution together (never "plugin or skills first"): `SOUL.md`, `profile.yaml`, `config.yaml` (`memory.provider: honcho`; `plugins.enabled` for general plugins), process code in `plugins/<id>/` when a host capability is required, skill recipes, MCP only if headers can be `${env:VAR}`.
+3. Fill the whole distribution: `SOUL.md`, `profile.yaml`, `config.yaml` (`memory.provider: honcho`; `plugins.enabled: [army-runtime]`), copy `plugins/army-runtime/` into the agent, skill recipes in the normal index (`requires_toolsets: [army]`), MCP only if headers can be `${env:VAR}`.
 4. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
 5. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`
 
-Skills are recipes (`agents/<name>/skills/`, later `skills-tap/skills/`). Plugins are process code. Honcho is the memory plugin — not an `enabled` entry. Per-agent vs shared enablement: `plugins/README.md`. Do not vendor Gengar or fork Ouroboros.
+New host capability → add a tool to `army-runtime`, declare `requires_tools` on the skill. Per-agent plugin only when the capability must not leak. See `plugins/README.md`. Do not vendor Gengar or fork Ouroboros.
 
 ## License
 

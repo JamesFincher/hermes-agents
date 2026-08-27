@@ -1,8 +1,11 @@
-"""research-bot plugin — execution layer for the research-bot profile.
+"""army-runtime — shared process layer for this factory's agents.
 
 Official native plugin contract (Context7 /nousresearch/hermes-agent):
 register(ctx) plus plugin.yaml. Tools return JSON strings and never raise.
 Hooks accept **kwargs. Plugin state lives in plugin-data/, never this tree.
+
+Skills stay in the normal skill index (agents/<name>/skills/, skills-tap/).
+Do not bundle the primary library as plugin skills — those loads are hidden/opt-in.
 """
 
 from __future__ import annotations
@@ -18,25 +21,25 @@ def register(ctx: Any) -> None:
 
     ctx.register_tool(
         name="source_ledger_add",
-        toolset="research-bot",
+        toolset=runtime.TOOLSET,
         schema=schemas.SOURCE_LEDGER_ADD,
         handler=tools.source_ledger_add,
     )
     ctx.register_tool(
         name="source_ledger_list",
-        toolset="research-bot",
+        toolset=runtime.TOOLSET,
         schema=schemas.SOURCE_LEDGER_LIST,
         handler=tools.source_ledger_list,
     )
     ctx.register_tool(
         name="source_ledger_cite",
-        toolset="research-bot",
+        toolset=runtime.TOOLSET,
         schema=schemas.SOURCE_LEDGER_CITE,
         handler=tools.source_ledger_cite,
     )
     ctx.register_tool(
         name="source_ledger_check",
-        toolset="research-bot",
+        toolset=runtime.TOOLSET,
         schema=schemas.SOURCE_LEDGER_CHECK,
         handler=tools.source_ledger_check,
     )

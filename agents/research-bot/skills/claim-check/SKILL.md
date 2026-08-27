@@ -1,12 +1,12 @@
 ---
 name: claim-check
-description: Test a factual claim against the research-bot ledger. Use before asserting a fact, delivering a brief, or when a citation looks unsourced.
+description: Test a factual claim against the army source ledger. Use before asserting a fact, delivering a brief, or when a citation looks unsourced.
 version: 1.0.0
 metadata:
   hermes:
     tags: [research, citations, integrity]
     category: research
-    requires_toolsets: [research-bot]
+    requires_toolsets: [army]
     requires_tools: [source_ledger_check, source_ledger_cite]
 ---
 

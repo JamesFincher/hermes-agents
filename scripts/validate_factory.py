@@ -24,7 +24,8 @@ OUROBOROS_PLUGIN_NAMES = {
     "autopilot",
     "forge",
 }
-ARMY_RUNTIME_NAMES = {"army-runtime", "army_runtime"}
+ARMY_PLUGIN = "army-runtime"
+ARMY_TOOLSET = "army"
 SECRET_NAMES = {
     ".env",
     "auth.json",
@@ -160,32 +161,21 @@ def check_agent(agent_dir: Path) -> None:
         skill_files = list(skills.glob("*/SKILL.md"))
         if not skill_files:
             fail(f"{agent_dir.name}/skills has no SKILL.md files")
-        plugin_toolset = agent_plugin_toolset(agent_dir)
         for skill_md in skill_files:
             front = check_skill(skill_md)
-            if plugin_toolset and isinstance(front, dict):
+            if isinstance(front, dict):
                 hermes = (front.get("metadata") or {}).get("hermes") or {}
                 required = hermes.get("requires_toolsets") or []
-                if plugin_toolset not in required:
+                if ARMY_TOOLSET not in required:
                     fail(
                         f"{skill_md.relative_to(ROOT)} must set "
-                        f"metadata.hermes.requires_toolsets including {plugin_toolset!r}"
+                        f"metadata.hermes.requires_toolsets including {ARMY_TOOLSET!r}"
                     )
                 if not hermes.get("requires_tools"):
                     fail(
                         f"{skill_md.relative_to(ROOT)} must set "
-                        "metadata.hermes.requires_tools for plugin tools"
+                        "metadata.hermes.requires_tools for army tools"
                     )
-
-
-def agent_plugin_toolset(agent_dir: Path) -> str | None:
-    plugin_yaml = agent_dir / "plugins" / agent_dir.name / "plugin.yaml"
-    if not plugin_yaml.is_file():
-        return None
-    data = load_yaml(plugin_yaml)
-    if isinstance(data, dict) and isinstance(data.get("name"), str):
-        return data["name"]
-    return agent_dir.name
 
 
 def _shipped_plugin_yamls(agent_dir: Path) -> list[Path]:
@@ -193,6 +183,18 @@ def _shipped_plugin_yamls(agent_dir: Path) -> list[Path]:
     if not plugins_root.is_dir():
         return []
     return sorted(plugins_root.glob("*/plugin.yaml"))
+
+
+def _file_fingerprint(root: Path) -> dict[str, str]:
+    skip = {"__pycache__", ".pyc"}
+    found: dict[str, str] = {}
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        if any(part in skip or part.endswith(".pyc") for part in path.parts):
+            continue
+        found[str(path.relative_to(root))] = path.read_text(encoding="utf-8")
+    return found
 
 
 def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
@@ -206,7 +208,7 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
             f"{plugin_yaml.relative_to(ROOT)} name {plugin_name!r} "
             f"!= directory {expected_dirname!r}"
         )
-    if plugin_name in OUROBOROS_PLUGIN_NAMES or plugin_name in ARMY_RUNTIME_NAMES:
+    if plugin_name in OUROBOROS_PLUGIN_NAMES:
         fail(f"forbidden plugin name: {plugin_name!r}")
     if not manifest.get("provides_tools") and not manifest.get("provides_hooks"):
         fail(
@@ -220,6 +222,30 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
     init_text = (plugin_dir / "__init__.py").read_text(encoding="utf-8")
     if "def register(" not in init_text:
         fail(f"{plugin_dir.relative_to(ROOT)}/__init__.py missing register(ctx)")
+    if "ctx.register_skill" in init_text or "register_skill(" in init_text:
+        fail(
+            f"{plugin_dir.relative_to(ROOT)} must not register plugin-bundled "
+            "skills for the primary library"
+        )
+    if list(plugin_dir.glob("skills/*/SKILL.md")):
+        fail(
+            f"{plugin_dir.relative_to(ROOT)} ships plugin-bundled skills; "
+            "keep recipes in agents/*/skills/ or skills-tap/"
+        )
+
+
+def check_army_runtime_source() -> None:
+    source = ROOT / "plugins" / ARMY_PLUGIN
+    plugin_yaml = source / "plugin.yaml"
+    if not plugin_yaml.is_file():
+        fail(f"missing factory source {plugin_yaml.relative_to(ROOT)}")
+        return
+    check_one_plugin_manifest(plugin_yaml, ARMY_PLUGIN)
+    manifest = load_yaml(plugin_yaml)
+    if isinstance(manifest, dict):
+        tools = manifest.get("provides_tools") or []
+        if "source_ledger_cite" not in tools:
+            fail("army-runtime must provide source_ledger_cite (structured citation)")
 
 
 def check_agent_plugin(agent_dir: Path) -> None:
@@ -237,17 +263,16 @@ def check_agent_plugin(agent_dir: Path) -> None:
     enabled_names = [str(name) for name in enabled]
     if "honcho" in enabled_names:
         fail(f"{agent_dir.name}: Honcho is memory.provider, not plugins.enabled")
+    if ARMY_PLUGIN not in enabled_names:
+        fail(f"{agent_dir.name} plugins.enabled must include {ARMY_PLUGIN!r}")
     for name in enabled_names:
         if name in OUROBOROS_PLUGIN_NAMES:
             fail(f"{agent_dir.name} plugins.enabled collides with ouroboros name {name!r}")
-        if name in ARMY_RUNTIME_NAMES:
-            fail(f"{agent_dir.name}: do not enable a shared army-runtime")
         plugin_yaml = agent_dir / "plugins" / name / "plugin.yaml"
         if not plugin_yaml.is_file():
             fail(
                 f"{agent_dir.name} enables {name!r} but missing "
-                f"{plugin_yaml.relative_to(ROOT)} "
-                "(per-agent or copied shared plugin must live in this distribution)"
+                f"{plugin_yaml.relative_to(ROOT)}"
             )
 
     shipped = _shipped_plugin_yamls(agent_dir)
@@ -270,22 +295,27 @@ def check_agent_plugin(agent_dir: Path) -> None:
                     "does not claim plugins (not in the official default owned set)"
                 )
 
-    if agent_dir.name in enabled_names:
-        custom = config.get("custom_toolsets") or {}
-        bundled: list[str] = []
-        if isinstance(custom, dict):
-            for names in custom.values():
-                if isinstance(names, list):
-                    bundled.extend(str(item) for item in names)
-        if agent_dir.name not in bundled:
-            fail(
-                f"{agent_dir.name} custom_toolsets must include plugin toolset "
-                f"{agent_dir.name!r}"
-            )
+    custom = config.get("custom_toolsets") or {}
+    bundled: list[str] = []
+    if isinstance(custom, dict):
+        for names in custom.values():
+            if isinstance(names, list):
+                bundled.extend(str(item) for item in names)
+    if ARMY_TOOLSET not in bundled:
+        fail(f"{agent_dir.name} custom_toolsets must include toolset {ARMY_TOOLSET!r}")
 
-    army = ROOT / "plugins" / "army-runtime"
-    if army.exists():
-        fail("do not ship a shared army-runtime; extract a named primitive after two agents copy it")
+    factory = ROOT / "plugins" / ARMY_PLUGIN
+    consumer = agent_dir / "plugins" / ARMY_PLUGIN
+    if factory.is_dir() and consumer.is_dir():
+        factory_files = _file_fingerprint(factory)
+        consumer_files = _file_fingerprint(consumer)
+        if factory_files != consumer_files:
+            fail(
+                f"{agent_dir.name}/plugins/{ARMY_PLUGIN} must match "
+                f"factory plugins/{ARMY_PLUGIN} — edit the factory source and recopy"
+            )
+    elif factory.is_dir():
+        fail(f"{agent_dir.name} missing copy of plugins/{ARMY_PLUGIN}")
 
 
 def main() -> int:
@@ -295,6 +325,7 @@ def main() -> int:
         return 1
     check_no_secret_files()
     check_no_literal_keys()
+    check_army_runtime_source()
     agent_dirs = sorted(p for p in agents_root.iterdir() if p.is_dir() and not p.name.startswith("."))
     if not agent_dirs:
         fail("no agent directories under agents/")

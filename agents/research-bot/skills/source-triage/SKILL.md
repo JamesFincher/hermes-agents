@@ -6,7 +6,7 @@ metadata:
   hermes:
     tags: [research, sources, triage]
     category: research
-    requires_toolsets: [research-bot]
+    requires_toolsets: [army]
     requires_tools: [source_ledger_add, source_ledger_list]
 ---
 

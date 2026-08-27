@@ -3,14 +3,14 @@
 # name, version, description, provides_tools, provides_hooks,
 # config_schema (v2: keys under plugins.entries.<id>.settings)
 
-name: research-bot
+name: army-runtime
 version: 0.1.0
 manifest_version: 2
 api_version: 1
-description: "Research execution layer — source ledger, citation, and write policy for the research-bot profile."
+description: "Shared army process layer — source ledger, citation, and optional research write policy (toolset army)."
 author: James Fincher
 license: Apache-2.0
-tags: [research, citations, ledger]
+tags: [army, ledger, citations]
 provides_tools:
   - source_ledger_add
   - source_ledger_list
@@ -27,8 +27,8 @@ config_schema:
     default: apa
     description: "Citation format for source_ledger_cite: apa, ieee, or chicago."
     required: false
-  strictness:
+  write_policy:
     type: str
-    default: strict
-    description: "Write policy. strict blocks product-code writes; relaxed allows them."
+    default: "off"
+    description: "research blocks product-code writes; off leaves writes alone. Set per profile so the policy does not leak."
     required: false

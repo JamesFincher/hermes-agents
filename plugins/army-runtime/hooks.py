@@ -1,22 +1,27 @@
-"""research-bot workflow hooks. Every handler accepts **kwargs.
+"""army-runtime hooks. Every handler accepts **kwargs.
 
 Official signatures:
 https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks
 pre_llm_call injects onto the user message, not the system prompt.
+Do not dump skill bodies — the normal skill index already exists.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from . import ledger, policy
+from . import ledger, policy, runtime
 
-RESEARCH_CONTRACT = (
-    "[research-bot] Use the research-bot source ledger. After retrieving a source, "
-    "call source_ledger_add. Before citing, call source_ledger_cite and only use "
-    "those formatted entries. Before asserting a factual claim, call "
-    "source_ledger_check. Do not invent citations. Do not write product code; "
-    "research artifacts only (notes/, research/, briefs/, .md/.txt/.bib)."
+ARMY_CONTRACT = (
+    "[army-runtime] Skills are already in the index — do not paste skill bodies. "
+    "After retrieving a source, call source_ledger_add. Before citing, call "
+    "source_ledger_cite and only use those formatted entries. Before asserting "
+    "a factual claim, call source_ledger_check. Do not invent citations."
+)
+
+RESEARCH_WRITE_NOTE = (
+    " write_policy=research: do not write product code; research artifacts only "
+    "(notes/, research/, briefs/, .md/.txt/.bib)."
 )
 
 
@@ -30,11 +35,14 @@ def on_session_start(session_id: str, model: str, platform: str, **kwargs: Any) 
 
 
 def pre_llm_call(session_id: str, user_message: str, **kwargs: Any) -> dict[str, str] | None:
-    """Inject the research contract onto the user message (keeps the system-prompt cache)."""
+    """Short army contract on the user message (keeps the system-prompt cache)."""
     del session_id, kwargs
-    if RESEARCH_CONTRACT in (user_message or ""):
+    contract = ARMY_CONTRACT
+    if runtime.write_policy_mode() == "research":
+        contract = ARMY_CONTRACT + RESEARCH_WRITE_NOTE
+    if contract in (user_message or ""):
         return None
-    return {"context": RESEARCH_CONTRACT}
+    return {"context": contract}
 
 
 def pre_tool_call(
@@ -43,7 +51,7 @@ def pre_tool_call(
     task_id: str,
     **kwargs: Any,
 ) -> dict[str, str] | None:
-    """Block product-code writes; allow research artifacts."""
+    """Optional research write policy. Off by default so it does not leak."""
     del task_id, kwargs
     return policy.write_policy(tool_name, args)
 

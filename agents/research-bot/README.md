@@ -2,7 +2,7 @@
 
 Research partner profile. Reads source, official docs, and papers. Writes cited findings. Does not implement product code.
 
-This distribution **carries** the research-bot plugin (process code) and the research skills (recipes). They are the same product, not garnish on each other. Honcho is already the memory plugin: `memory.provider: honcho`, not a `plugins.enabled` entry.
+This distribution **carries** shared `army-runtime` (process code, toolset `army`) and research skills (recipes in the normal index). Honcho is already the memory plugin: `memory.provider: honcho`, not a `plugins.enabled` entry.
 
 Kanban description (also in `profile.yaml`):
 
@@ -16,7 +16,7 @@ This factory has no repo-root `distribution.yaml`. GitHub-URL install of `JamesF
 hermes profile install ./agents/research-bot --alias
 ```
 
-That copies this directory (including `plugins/research-bot/`) into `~/.hermes/profiles/research-bot/`. Each profile is its own `HERMES_HOME`, so the plugin is discovered as `plugins/research-bot/` under that home. Official layout: https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
+That copies this directory (including `plugins/army-runtime/`, a copy of factory `plugins/army-runtime/`) into `~/.hermes/profiles/research-bot/`. Each profile is its own `HERMES_HOME`. Official layout: https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 
 Override the local name if `research-bot` already exists:
 
@@ -37,10 +37,10 @@ Reserved names (rejected by the installer): `hermes`, `test`, `tmp`, `root`, `su
    ```
 
    Expected: Honcho active. Setup wizard if needed: `hermes memory setup`.
-4. Confirm the plugin is enabled (`plugins.enabled: [research-bot]` in this profile's `config.yaml`). Optional doctor (local Hermes, not CI):
+4. Confirm the plugin is enabled (`plugins.enabled: [army-runtime]`). Optional doctor (local Hermes, not CI):
 
    ```bash
-   hermes plugins doctor ~/.hermes/profiles/research-bot/plugins/research-bot --ci
+   hermes plugins doctor ~/.hermes/profiles/research-bot/plugins/army-runtime --ci
    ```
 5. Optional kanban text (already shipped in `profile.yaml`):
 
@@ -68,9 +68,11 @@ hermes profile update research-bot
 
 ## Plugin (process code)
 
-General plugins live under this profile's `$HERMES_HOME/plugins/research-bot/` after install and do nothing until `plugins.enabled` lists `research-bot`. `plugins.disabled` always wins. Do not enable this plugin on other agents (per-agent). Do not put Honcho in `plugins.enabled`.
+Shared `army-runtime` lives under this profile's `$HERMES_HOME/plugins/army-runtime/` after install and does nothing until `plugins.enabled` lists `army-runtime`. `plugins.disabled` always wins. Do not put Honcho in `plugins.enabled`.
 
-Toolset `research-bot` is part of `custom_toolsets.research`:
+This profile also sets `write_policy: research` so product-code writes are blocked. Other agents that enable army-runtime should leave `write_policy` at `off` unless they want the same gate.
+
+Toolset `army` is part of `custom_toolsets.research`:
 
 | Tool | When |
 | --- | --- |
@@ -79,14 +81,14 @@ Toolset `research-bot` is part of `custom_toolsets.research`:
 | `source_ledger_cite` | Before citing — use only this formatted text |
 | `source_ledger_check` | Before asserting a factual claim |
 
-Hooks inject a short research contract onto the **user message** (not the system prompt), block product-code writes, harvest URLs into the ledger, and init the ledger on session start.
+Hooks inject a short army contract onto the **user message** (not the system prompt; does not dump skill bodies), optionally block product-code writes, harvest URLs into the ledger, and init the ledger on session start.
 
-Settings (`plugins.entries.research-bot.settings`, read via `ctx.get_config`):
+Settings (`plugins.entries.army-runtime.settings`, read via `ctx.get_config`):
 
 - `citation_style`: `apa` | `ieee` | `chicago`
-- `strictness`: `strict` (block product-code writes) | `relaxed`
+- `write_policy`: `research` (this profile) | `off`
 
-Ledger state lives in `<HERMES_HOME>/plugin-data/research-bot/` via official `plugin_data_dir`. Never next to `plugin.yaml`.
+Ledger state lives in `<HERMES_HOME>/plugin-data/army-runtime/` via official `plugin_data_dir`. Never next to `plugin.yaml`.
 
 ## Context7 MCP
 
@@ -109,13 +111,13 @@ Never two writers on this `aiPeer`.
 
 ## Toolsets
 
-`custom_toolsets.research` = `web`, `terminal`, `file`, `skills`, `memory`, `session_search`, `research-bot`. `toolsets: [research]` selects that bundle. Built-in names from the official toolsets reference; `research-bot` is this profile's plugin toolset.
+`custom_toolsets.research` = `web`, `terminal`, `file`, `skills`, `memory`, `session_search`, `army`. `toolsets: [research]` selects that bundle. Built-in names from the official toolsets reference; `army` is the army-runtime plugin toolset.
 
 `terminal.cwd` is `"."` (Gateway/cron). CLI uses the launch directory. Backend is `local` — this profile is not a sandbox.
 
 ## Skills
 
-Primary skills stay in `skills/` (normal skill index), **not** `plugin:skill`. Each declares `metadata.hermes.requires_toolsets: [research-bot]` so they hide if the plugin is off.
+Primary skills stay in `skills/` (normal skill index), **not** `plugin:skill`. Each declares `metadata.hermes.requires_toolsets: [army]` so they hide if army-runtime is off.
 
 1. `literature-review` — survey primaries; call `source_ledger_add` / `list` / `cite`.
 2. `source-triage` — rank links; call `source_ledger_list` then `source_ledger_add`.
@@ -132,7 +134,7 @@ None. Official docs: distribution cron is not auto-scheduled. A weekly digest wi
 ```bash
 hermes profile install ./agents/research-bot --name research-bot-test --alias
 research-bot-test chat
-# "Name the research-bot ledger tools and one write-policy rule. Do not invent a paper."
+# "Name the army ledger tools and one write-policy rule. Do not invent a paper."
 hermes profile delete research-bot-test --yes
 ```
 

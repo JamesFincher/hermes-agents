@@ -13,7 +13,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-PLUGIN_ID = "research-bot"
+PLUGIN_ID = "army-runtime"
+TOOLSET = "army"
 
 _ctx: Any = None
 
@@ -45,11 +46,11 @@ def citation_style() -> str:
     return "apa"
 
 
-def strictness() -> str:
-    raw = str(get_setting("strictness", "strict")).strip().lower()
-    if raw in {"strict", "relaxed"}:
+def write_policy_mode() -> str:
+    raw = str(get_setting("write_policy", "off")).strip().lower()
+    if raw in {"research", "off"}:
         return raw
-    return "strict"
+    return "off"
 
 
 def plugin_data_root() -> Path:

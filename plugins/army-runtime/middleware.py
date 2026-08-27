@@ -24,6 +24,6 @@ def tool_request_defaults(**kwargs: Any) -> dict[str, Any] | None:
     args["style"] = runtime.citation_style()
     return {
         "args": args,
-        "source": "research-bot",
-        "reason": "defaulted citation_style from plugins.entries.research-bot.settings",
+        "source": "army-runtime",
+        "reason": "defaulted citation_style from plugins.entries.army-runtime.settings",
     }

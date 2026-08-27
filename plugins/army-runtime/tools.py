@@ -1,4 +1,4 @@
-"""research-bot source ledger tools. Handlers never raise; always return JSON."""
+"""army-runtime source ledger tools. Handlers never raise; always return JSON."""
 
 from __future__ import annotations
 

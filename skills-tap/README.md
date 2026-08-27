@@ -1,6 +1,6 @@
 # Shared skill tap
 
-Skills are **recipes**. They are not a substitute for plugins (process code). A distribution carries both. Never ask "plugin or skills first."
+Skills are **recipes** in the normal skill index. Process code lives in `army-runtime`. A distribution carries both. Do not put these recipes in a plugin (`plugin:skill`).
 
 Official tap layout is `skills/<slug>/SKILL.md` at the tap root (default path `skills/`). This factory keeps **shared** recipes here so they are not copied into every agent profile.
 

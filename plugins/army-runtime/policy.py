@@ -1,5 +1,7 @@
-"""Product-code write policy for pre_tool_call.
+"""Optional product-code write policy for pre_tool_call.
 
+Gated by plugins.entries.army-runtime.settings.write_policy.
+Default off so the policy does not leak to agents that implement code.
 Official directive: {"action": "block", "message": "..."}
 https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks
 """
@@ -9,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .runtime import strictness
+from .runtime import write_policy_mode
 
 _WRITE_TOOLS = {"write_file", "patch"}
 _CODE_SUFFIXES = {
@@ -78,7 +80,7 @@ def is_product_code_path(path: str) -> bool:
 def write_policy(tool_name: str, args: dict[str, Any]) -> dict[str, str] | None:
     if tool_name not in _WRITE_TOOLS:
         return None
-    if strictness() != "strict":
+    if write_policy_mode() != "research":
         return None
     path = _target_path(args)
     if not is_product_code_path(path):
@@ -86,8 +88,8 @@ def write_policy(tool_name: str, args: dict[str, Any]) -> dict[str, str] | None:
     return {
         "action": "block",
         "message": (
-            f"research-bot blocks product-code writes ({tool_name} → {path}). "
-            "Write cited findings under notes/, research/, briefs/, findings/, "
-            "or a .md/.txt/.bib research artifact. Another profile implements code."
+            f"army-runtime write_policy=research blocks product-code writes "
+            f"({tool_name} → {path}). Write cited findings under notes/, "
+            "research/, briefs/, findings/, or a .md/.txt/.bib artifact."
         ),
     }

@@ -11,7 +11,7 @@
 # custom_toolsets + toolsets:
 #   https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference
 #   Core names verified: web, terminal, file, skills, memory, session_search
-#   research-bot is this profile's plugin toolset (register_tool toolset=)
+#   army is the shared army-runtime plugin toolset (register_tool toolset=)
 # mcp_servers + ${env:VAR} header interpolation:
 #   https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference
 # plugins.enabled / plugins.disabled / plugins.entries.<id>.settings:
@@ -40,19 +40,19 @@ custom_toolsets:
     - skills
     - memory
     - session_search
-    - research-bot
+    - army
 
 toolsets:
   - research
 
 plugins:
   enabled:
-    - research-bot
+    - army-runtime
   entries:
-    research-bot:
+    army-runtime:
       settings:
         citation_style: apa
-        strictness: strict
+        write_policy: research
 
 mcp_servers:
   context7:
