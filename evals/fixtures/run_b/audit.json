@@ -1,0 +1,10 @@
+{
+  "fetches": [
+    "https://doi.org/10.1234/fixture",
+    "https://example.com/paywall-paper"
+  ],
+  "tokens": 8000,
+  "tier_ab_sources": 2,
+  "wall_seconds": 90,
+  "tier_budget_seconds": 360
+}

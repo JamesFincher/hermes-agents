@@ -1,0 +1,183 @@
+{
+  "Q01": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
+        "title": "Creating Skills",
+        "text": "A skill is an indexed SKILL.md recipe loaded via skill_view. It is not a tool and not a plugin."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools",
+        "title": "Adding Tools",
+        "text": "A tool is a registry schema plus handler the model invokes. register_tool attaches it to a toolset."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/plugins",
+        "title": "Plugins",
+        "text": "A plugin is plugin.yaml plus register(ctx). It may register tools and hooks. It is not itself a tool."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference",
+        "title": "MCP config",
+        "text": "An MCP server is a backend. The plugin calls it with ctx.call_mcp. The model should use facade tools, not raw mcp_*."
+      }
+    ]
+  },
+  "Q02": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching",
+        "title": "Context compression",
+        "text": "compression.in_place default is true. Pre-compaction turns are soft-archived under the same session id."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
+        "title": "Configuration",
+        "text": "in_place: true is the documented default on the compression block."
+      }
+    ]
+  },
+  "Q03": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents",
+        "title": "Mixture of Agents",
+        "text": "MoA is no longer listed under hermes tools; there is no moa toolset to enable. Use provider moa."
+      },
+      {
+        "url": "https://example.com/secondary-moa-blog",
+        "title": "Secondary MoA recap",
+        "text": "Enable the moa toolset and run mixture_of_agents. This secondary recap is stale."
+      }
+    ]
+  },
+  "Q04": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
+        "title": "Toolsets reference",
+        "text": "The toolsets reference lists web, browser, vision, file, terminal, and others. No army-runtime toolset is listed."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/tools",
+        "title": "Tools",
+        "text": "Official tool names do not include army-runtime. I did not find that toolset on this page."
+      }
+    ]
+  },
+  "Q05": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools",
+        "title": "Adding Tools",
+        "text": "Custom tools use the plugin route. ctx.register_tool with a flat schema {name, description, parameters}."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/plugins",
+        "title": "Plugins",
+        "text": "register(ctx) is the host entry. Handler returns a json.dumps string and never raises."
+      }
+    ]
+  },
+  "Q06": {
+    "pages": [
+      {
+        "url": "https://doi.org/10.1234/fixture",
+        "title": "Fixture paper",
+        "text": "Abstract. We show the method reached 12% efficiency in 2024 under the fixture protocol."
+      },
+      {
+        "url": "https://arxiv.org/abs/2401.00001",
+        "title": "Fixture preprint",
+        "text": "The method reached 12% efficiency in 2024. PDF text extracted by pdf_text.py."
+      }
+    ]
+  },
+  "Q07": {
+    "pages": [
+      {
+        "url": "https://example.com/paywall-paper",
+        "title": "Paywalled fixture",
+        "text": "This paywalled fixture has abstract only; no OA copy was returned by Unpaywall. Fetch status is paywall.",
+        "fetch_status": "paywall"
+      },
+      {
+        "url": "https://doi.org/10.1234/fixture",
+        "title": "Fixture paper",
+        "text": "Abstract. We show the method reached 12% efficiency in 2024 under the fixture protocol."
+      }
+    ]
+  },
+  "Q08": {
+    "pages": [
+      {
+        "url": "https://example.com/dead-product",
+        "title": "Dead product page",
+        "text": "Archived 2023-03-01. We announced the product launched in March after a quiet beta. The live host now returns 404.",
+        "archived_url": "https://web.archive.org/web/20230301000000/https://example.com/dead-product",
+        "fetch_status": "archived"
+      },
+      {
+        "url": "https://web.archive.org/web/20230301000000/https://example.com/dead-product",
+        "title": "Wayback snapshot",
+        "text": "We announced the product launched in March after a quiet beta."
+      }
+    ]
+  },
+  "Q09": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents",
+        "title": "Mixture of Agents",
+        "text": "Live docs 2026-08-27: MoA is a provider. It is no longer listed under hermes tools."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/tools",
+        "title": "Tools",
+        "text": "The 2026 tools page does not list a moa toolset. The surface changed in the last 6 months to provider moa."
+      }
+    ]
+  },
+  "Q10": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
+        "title": "Toolsets reference",
+        "text": "web, browser, vision, file, terminal, code_execution, skills, memory, session_search, todo, clarify, delegation, cronjob are official toolsets."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation",
+        "title": "Delegation",
+        "text": "delegation is required for fan-out. Children inherit parent toolsets and cannot widen them."
+      }
+    ]
+  },
+  "Q11": {
+    "pages": [
+      {
+        "url": "https://example.com/hdr-spec-g01",
+        "title": "HDR gap G01",
+        "text": "G01 is the missing research loop. research_plan and gap_scan fix it."
+      },
+      {
+        "url": "https://example.com/hdr-spec-g05",
+        "title": "HDR gap G05",
+        "text": "G05 was lexical overlap. claim_verify replaces source_ledger_check with exact spans."
+      }
+    ]
+  },
+  "Q12": {
+    "pages": [
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks",
+        "title": "Hooks",
+        "text": "HDR uses pre_llm_call, pre_tool_call, transform_tool_result, pre_api_request, post_api_request, transform_llm_output, subagent_start, subagent_stop."
+      },
+      {
+        "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/plugins",
+        "title": "Plugins",
+        "text": "pre_tool_call is a directive hook. transform_tool_result is a transform hook. pre_api_request is an observer."
+      }
+    ]
+  }
+}

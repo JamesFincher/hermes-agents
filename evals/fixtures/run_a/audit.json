@@ -1,0 +1,11 @@
+{
+  "fetches": [
+    "https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents",
+    "https://example.com/secondary-moa-blog",
+    "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference"
+  ],
+  "tokens": 12000,
+  "tier_ab_sources": 2,
+  "wall_seconds": 40,
+  "tier_budget_seconds": 360
+}

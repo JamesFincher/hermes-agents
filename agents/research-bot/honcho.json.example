@@ -1,0 +1,14 @@
+{
+  "workspace": "hermes",
+  "hosts": {
+    "hermes.research-bot": {
+      "enabled": true,
+      "aiPeer": "research-bot",
+      "workspace": "hermes",
+      "recallMode": "hybrid",
+      "writeFrequency": "async",
+      "sessionStrategy": "per-directory",
+      "pinUserPeer": true
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# Kanban routing text. Official persist location: <profile_dir>/profile.yaml
+# https://hermes-agent.nousresearch.com/docs/reference/profile-commands
+
+description: "Plans, fans out, verifies, and writes cited research briefs. Does not write product code."
+description_auto: false

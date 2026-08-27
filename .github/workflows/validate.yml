@@ -1,0 +1,22 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  factory-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validator deps
+        run: pip install pyyaml
+      - name: Validate distributions
+        run: python scripts/validate_factory.py
+        # Does not call Hermes or Context7. Do not reference CONTEXT7_API_KEY here.
+      - name: Plugin unit tests
+        run: python -m unittest discover -s tests -v
+        # Isolated HERMES_HOME fixtures. No live Hermes.

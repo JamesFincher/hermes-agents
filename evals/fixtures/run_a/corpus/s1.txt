@@ -1,0 +1,2 @@
+MoA is no longer listed under hermes tools; there is no moa toolset to enable.
+Use provider moa or the /moa command. Config lives under moa.presets.

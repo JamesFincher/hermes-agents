@@ -1,0 +1,10 @@
+{
+  "fetches": [
+    "https://example.com/dead-product",
+    "https://web.archive.org/web/20230301000000/https://example.com/dead-product"
+  ],
+  "tokens": 4000,
+  "tier_ab_sources": 1,
+  "wall_seconds": 25,
+  "tier_budget_seconds": 90
+}

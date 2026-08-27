@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "judge_rubric": [
+    "factual_accuracy",
+    "citation_validity",
+    "coverage",
+    "contradiction_handling",
+    "calibration",
+    "concision"
+  ],
+  "judge_scale": "0-3 end-state; nightly, not per commit",
+  "questions": [
+    {
+      "id": "Q01",
+      "tier": "standard",
+      "kind": "comparison",
+      "prompt": "What is the official difference between a Hermes skill, tool, plugin, and MCP server?"
+    },
+    {
+      "id": "Q02",
+      "tier": "standard",
+      "kind": "single-fact",
+      "prompt": "What is the official default for compression.in_place?"
+    },
+    {
+      "id": "Q03",
+      "tier": "standard",
+      "kind": "contradiction",
+      "prompt": "Do reputable sources agree on whether toolset moa exists in hermes tools?"
+    },
+    {
+      "id": "Q04",
+      "tier": "standard",
+      "kind": "no-source",
+      "prompt": "Which official Hermes page names an army-runtime toolset?"
+    },
+    {
+      "id": "Q05",
+      "tier": "deep",
+      "kind": "survey",
+      "prompt": "Survey how Hermes registers custom tools in 2026 docs. Prefer primary pages."
+    },
+    {
+      "id": "Q06",
+      "tier": "deep",
+      "kind": "pdf",
+      "prompt": "Extract the abstract claim from the fixture PDF paper and cite the span."
+    },
+    {
+      "id": "Q07",
+      "tier": "deep",
+      "kind": "paywall",
+      "prompt": "What does the paywalled fixture paper claim, and is an OA copy available?"
+    },
+    {
+      "id": "Q08",
+      "tier": "deep",
+      "kind": "dead-link",
+      "prompt": "What did the dead fixture URL say, using its archived copy?"
+    },
+    {
+      "id": "Q09",
+      "tier": "deep",
+      "kind": "time-sensitive",
+      "prompt": "When did the live docs last change the Mixture of Agents surface from a toolset to a provider?"
+    },
+    {
+      "id": "Q10",
+      "tier": "deep",
+      "kind": "multi-entity",
+      "prompt": "List every toolset in the HDR research bundle and one official reason each is present."
+    },
+    {
+      "id": "Q11",
+      "tier": "exhaustive",
+      "kind": "due-diligence",
+      "prompt": "Map every HDR gap G01–G25 to the shipped mechanism and remaining honest limit."
+    },
+    {
+      "id": "Q12",
+      "tier": "exhaustive",
+      "kind": "enumeration",
+      "prompt": "Enumerate official Hermes hook names HDR uses and the category of each."
+    }
+  ]
+}

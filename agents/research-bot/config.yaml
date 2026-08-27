@@ -1,0 +1,147 @@
+# HDR v2. Cited knobs only. Facts: docs/HERMES-FACTS.md
+# Official: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+#
+# Do not invent model ids. The operator sets the frontier planner and the
+# cheap worker on the deploy host (model.default / delegation.model).
+# Empty delegation.model inherits the parent (official).
+
+# ─── model routing ───────────────────────────────────────────────────────────
+delegation:
+  # model: "<fast-cheap-model>"   # set on the host; empty inherits parent
+  # provider: "<provider>"
+  max_concurrent_children: 5
+  max_iterations: 30
+  max_spawn_depth: 2
+  orchestrator_enabled: true
+  child_timeout_seconds: 900
+  worktree_isolation: false
+  surface_child_process_notifications: false
+
+auxiliary:
+  compression:
+    reasoning_effort: "low"
+    max_concurrency: 2
+  vision:
+    reasoning_effort: "none"
+  title_generation:
+    enabled: false
+
+# ─── context economics ───────────────────────────────────────────────────────
+compression:
+  enabled: true
+  threshold: 0.55
+  threshold_tokens: 220000
+  tail_mode: lean
+  protect_last_n: 12
+  protect_first_n: 2
+  in_place: true
+  idle_compact_after_seconds: 1800
+  proactive_prune_tokens: 48000
+  proactive_prune_min_result_chars: 4000
+  proactive_prune_min_reclaim_tokens: 8192
+  context_timeout_seconds: 180
+
+tool_output:
+  max_bytes: 40000
+  max_lines: 1500
+  max_line_length: 1200
+
+tool_budget:
+  mcp_result_size_chars: 30000
+
+file_read_max_chars: 150000
+context_file_max_chars: 20000
+
+prompt_caching:
+  cache_ttl: "1h"
+
+agent:
+  max_turns: none
+  run_budget_seconds: 1800
+  api_max_retries: 2
+  session_stall_timeout: 300
+  verify_on_stop: false
+  coding_instructions: ""
+
+# ─── execution surface ───────────────────────────────────────────────────────
+terminal:
+  backend: docker
+  docker_image: "nikolaik/python-nodejs:python3.11-nodejs20"
+  docker_network: true
+  docker_mount_cwd_to_workspace: false
+  container_persistent: true
+  container_memory: 4096
+  timeout: 180
+  env_passthrough: []
+
+# ─── retrieval ───────────────────────────────────────────────────────────────
+web:
+  search_backend: "searxng"
+  extract_backend: "firecrawl"
+  keyless_fallback: true
+  keyless_rescue: true
+
+browser:
+  cdp_url: "${env:HERMES_CDP_URL}"
+
+skills:
+  inline_shell: false
+  write_approval: false
+  guard_agent_created: true
+
+memory:
+  provider: honcho
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 1600
+  user_char_limit: 900
+  write_approval: false
+
+# ─── capability surface ──────────────────────────────────────────────────────
+# Official: there is no moa toolset (HERMES-FACTS.md STOP). MoA is a provider.
+custom_toolsets:
+  research:
+    - web
+    - browser
+    - vision
+    - file
+    - terminal
+    - code_execution
+    - skills
+    - memory
+    - session_search
+    - todo
+    - clarify
+    - delegation
+    - cronjob
+    - hdr
+
+toolsets:
+  - research
+
+plugins:
+  enabled:
+    - hdr
+  stream_reasoning_deltas: false
+  entries:
+    hdr:
+      mcp_allowlist:
+        - context7
+      settings:
+        citation_style: apa
+        default_tier: standard
+        corpus_retention_days: 30
+        untrusted_content_wrapping: true
+        domain_denylist: []
+        domain_tier_overrides: {}
+        max_card_spans: 3
+        span_max_words: 25
+
+mcp_servers:
+  context7:
+    url: "https://mcp.context7.com/mcp"
+    headers:
+      CONTEXT7_API_KEY: "${env:CONTEXT7_API_KEY}"
+    tools:
+      resources: true
+      prompts: true
