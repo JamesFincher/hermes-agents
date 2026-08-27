@@ -25,6 +25,23 @@ _JSONLD_RE = re.compile(
 )
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 _DATE_RE = re.compile(r"(20\d{2}|19\d{2})-\d{2}-\d{2}")
+_REL_AUTHOR = re.compile(
+    r'<a[^>]+rel=["\']author["\'][^>]*>(.*?)</a>',
+    re.I | re.S,
+)
+_BYLINE = re.compile(
+    r'<(?:span|div|p)[^>]+class=["\'][^"\']*\bbyline\b[^"\']*["\'][^>]*>(.*?)</(?:span|div|p)>',
+    re.I | re.S,
+)
+_ITEMPROP_AUTHOR = re.compile(
+    r'<[^>]+itemprop=["\']author["\'][^>]*>(.*?)</[^>]+>',
+    re.I | re.S,
+)
+_META_AUTHOR = re.compile(
+    r'<meta[^>]+name=["\']author["\'][^>]+content=["\']([^"\']+)["\']',
+    re.I,
+)
+_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def extract_metadata(html_or_text: str, url: str = "") -> dict[str, Any]:
@@ -75,8 +92,25 @@ def extract_metadata(html_or_text: str, url: str = "") -> dict[str, Any]:
         arxiv = re.search(r"(\d{4}\.\d{4,5})", url)
         if arxiv:
             meta["arxiv"] = arxiv.group(1)
+    _apply_byline(meta, text)
     meta["authors"] = list(dict.fromkeys(meta["authors"]))
     return meta
+
+
+def _clean_name(value: str) -> str:
+    return re.sub(r"\s+", " ", _TAG_RE.sub("", value or "")).strip()
+
+
+def _apply_byline(meta: dict[str, Any], text: str) -> None:
+    for match in _META_AUTHOR.finditer(text):
+        name = _clean_name(match.group(1))
+        if name:
+            meta["authors"].append(name)
+    for pattern in (_REL_AUTHOR, _BYLINE, _ITEMPROP_AUTHOR):
+        for match in pattern.finditer(text):
+            name = _clean_name(match.group(1))
+            if name:
+                meta["authors"].append(name)
 
 
 def _apply_og(meta: dict[str, Any], key: str, value: str) -> None:

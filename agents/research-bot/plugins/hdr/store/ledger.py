@@ -11,6 +11,7 @@ from ..runtime import plugin_data_root
 from . import bus
 
 LEDGER_VERSION = 2
+KNOWN_KINDS = frozenset({"primary", "secondary", "tertiary", "dataset", "filing", "spec"})
 
 
 def _now_iso() -> str:
@@ -38,6 +39,23 @@ def _next_sid(sources: list[Any]) -> str:
     return f"S{highest + 1}"
 
 
+def _map_kind(raw: Any) -> str:
+    kind = str(raw or "").strip().lower()
+    if kind in KNOWN_KINDS:
+        return kind
+    return "secondary"
+
+
+def _corpus_file_exists(corpus: Any) -> bool:
+    raw = str(corpus or "").strip()
+    if not raw:
+        return False
+    name = Path(raw).name
+    if not name.endswith(".txt"):
+        name = f"{bus.hash_key(raw)}.txt"
+    return (bus.corpus_dir() / name).is_file()
+
+
 def migrate_v1(data: dict[str, Any]) -> dict[str, Any]:
     sources = data.get("sources")
     if not isinstance(sources, list):
@@ -52,6 +70,8 @@ def migrate_v1(data: dict[str, Any]) -> dict[str, Any]:
         elif not isinstance(sid, str) or not sid.startswith("S"):
             sid = f"S{index}"
         url = str(raw.get("url") or "")
+        corpus = raw.get("corpus")
+        real_file = _corpus_file_exists(corpus)
         migrated.append(
             {
                 "id": sid,
@@ -66,10 +86,10 @@ def migrate_v1(data: dict[str, Any]) -> dict[str, Any]:
                 "retrieved": raw.get("retrieved") or _now_iso(),
                 "doi": raw.get("doi"),
                 "arxiv": raw.get("arxiv"),
-                "kind": raw.get("kind") or "secondary",
-                "tier": raw.get("tier") or "D",
+                "kind": _map_kind(raw.get("kind")),
+                "tier": "D",
                 "tier_reason": raw.get("tier_reason") or "migrated-v1",
-                "corpus": raw.get("corpus"),
+                "corpus": corpus if real_file else None,
                 "bytes": raw.get("bytes") or 0,
                 "content_hash": raw.get("content_hash"),
                 "spans": raw.get("spans") if isinstance(raw.get("spans"), list) else [],
@@ -77,7 +97,7 @@ def migrate_v1(data: dict[str, Any]) -> dict[str, Any]:
                 "origin": raw.get("origin") or "manual",
                 "fetch_status": raw.get("fetch_status") or "ok",
                 "duplicate_of": raw.get("duplicate_of"),
-                "needs_backfill": raw.get("needs_backfill", True),
+                "needs_backfill": False if real_file else True,
                 "quote": raw.get("quote") or "",
             }
         )
@@ -129,11 +149,40 @@ def init_ledger() -> dict[str, Any]:
         return data
 
 
+def _merge_existing(existing: dict[str, Any], entry: dict[str, Any]) -> None:
+    for key in (
+        "title",
+        "quote",
+        "publisher",
+        "published",
+        "doi",
+        "arxiv",
+        "corpus",
+        "content_hash",
+        "bytes",
+        "spans",
+        "archived_url",
+        "authors",
+        "kind",
+        "tier",
+        "tier_reason",
+        "fetch_status",
+        "origin",
+        "run_id",
+    ):
+        value = entry.get(key)
+        if value and not existing.get(key):
+            existing[key] = value
+    if entry.get("needs_backfill") is False:
+        existing["needs_backfill"] = False
+
+
 def add_source(entry: dict[str, Any]) -> dict[str, Any]:
     url = str(entry.get("url") or "").strip()
     if not url:
         return {"error": "url is required"}
     canonical = str(entry.get("canonical_url") or bus.canonicalize(url))
+    incoming_hash = bus.hash_key(entry.get("content_hash"))
     with bus.lock():
         data = _load_unlocked()
         sources = data["sources"]
@@ -141,73 +190,76 @@ def add_source(entry: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(existing, dict):
                 continue
             if existing.get("canonical_url") == canonical or existing.get("url") == url:
-                for key in (
-                    "title",
-                    "quote",
-                    "publisher",
-                    "published",
-                    "doi",
-                    "arxiv",
-                    "corpus",
-                    "content_hash",
-                    "bytes",
-                    "spans",
-                    "archived_url",
-                    "authors",
-                    "kind",
-                    "tier",
-                    "tier_reason",
-                    "fetch_status",
-                    "origin",
-                    "run_id",
-                ):
-                    value = entry.get(key)
-                    if value and not existing.get(key):
-                        existing[key] = value
-                if entry.get("needs_backfill") is False:
-                    existing["needs_backfill"] = False
+                _merge_existing(existing, entry)
                 save_ledger(data)
                 from . import index as inverted
 
                 inverted.update_source(existing)
                 return {"ok": True, "updated": True, "source": existing}
+        if incoming_hash:
+            for existing in sources:
+                if not isinstance(existing, dict):
+                    continue
+                if bus.hash_key(existing.get("content_hash")) != incoming_hash:
+                    continue
+                sid = _next_sid(sources)
+                record = _new_record(sid, url, canonical, entry)
+                record["duplicate_of"] = existing.get("id")
+                record["corpus"] = entry.get("corpus") or existing.get("corpus")
+                record["content_hash"] = entry.get("content_hash") or existing.get("content_hash")
+                record["bytes"] = entry.get("bytes") or existing.get("bytes") or 0
+                record["spans"] = entry.get("spans") or existing.get("spans") or []
+                sources.append(record)
+                _note_run(data, record.get("run_id") or "")
+                save_ledger(data)
+                from . import index as inverted
+
+                inverted.update_source(record)
+                return {"ok": True, "updated": False, "source": record}
         sid = _next_sid(sources)
-        record = {
-            "id": sid,
-            "run_id": entry.get("run_id") or "",
-            "url": url,
-            "canonical_url": canonical,
-            "archived_url": entry.get("archived_url"),
-            "title": entry.get("title") or "",
-            "authors": entry.get("authors") if isinstance(entry.get("authors"), list) else [],
-            "publisher": entry.get("publisher") or "",
-            "published": entry.get("published"),
-            "retrieved": entry.get("retrieved") or _now_iso(),
-            "doi": entry.get("doi"),
-            "arxiv": entry.get("arxiv"),
-            "kind": entry.get("kind") or "secondary",
-            "tier": entry.get("tier") or "C",
-            "tier_reason": entry.get("tier_reason") or "",
-            "corpus": entry.get("corpus"),
-            "bytes": entry.get("bytes") or 0,
-            "content_hash": entry.get("content_hash"),
-            "spans": entry.get("spans") if isinstance(entry.get("spans"), list) else [],
-            "claims": entry.get("claims") if isinstance(entry.get("claims"), list) else [],
-            "origin": entry.get("origin") or "manual",
-            "fetch_status": entry.get("fetch_status") or "ok",
-            "duplicate_of": entry.get("duplicate_of"),
-            "needs_backfill": bool(entry.get("needs_backfill", False)),
-            "quote": entry.get("quote") or "",
-        }
+        record = _new_record(sid, url, canonical, entry)
         sources.append(record)
-        run_id = record["run_id"]
-        if run_id and run_id not in data["run_ids"]:
-            data["run_ids"].append(run_id)
+        _note_run(data, record.get("run_id") or "")
         save_ledger(data)
         from . import index as inverted
 
         inverted.update_source(record)
         return {"ok": True, "updated": False, "source": record}
+
+
+def _note_run(data: dict[str, Any], run_id: str) -> None:
+    if run_id and run_id not in data["run_ids"]:
+        data["run_ids"].append(run_id)
+
+
+def _new_record(sid: str, url: str, canonical: str, entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": sid,
+        "run_id": entry.get("run_id") or "",
+        "url": url,
+        "canonical_url": canonical,
+        "archived_url": entry.get("archived_url"),
+        "title": entry.get("title") or "",
+        "authors": entry.get("authors") if isinstance(entry.get("authors"), list) else [],
+        "publisher": entry.get("publisher") or "",
+        "published": entry.get("published"),
+        "retrieved": entry.get("retrieved") or _now_iso(),
+        "doi": entry.get("doi"),
+        "arxiv": entry.get("arxiv"),
+        "kind": entry.get("kind") or "secondary",
+        "tier": entry.get("tier") or "C",
+        "tier_reason": entry.get("tier_reason") or "",
+        "corpus": entry.get("corpus"),
+        "bytes": entry.get("bytes") or 0,
+        "content_hash": entry.get("content_hash"),
+        "spans": entry.get("spans") if isinstance(entry.get("spans"), list) else [],
+        "claims": entry.get("claims") if isinstance(entry.get("claims"), list) else [],
+        "origin": entry.get("origin") or "manual",
+        "fetch_status": entry.get("fetch_status") or "ok",
+        "duplicate_of": entry.get("duplicate_of"),
+        "needs_backfill": bool(entry.get("needs_backfill", False)),
+        "quote": entry.get("quote") or "",
+    }
 
 
 def get_source(src_id: str) -> dict[str, Any] | None:
@@ -245,7 +297,8 @@ def mark_corpus_gone(sha256: str, archived_url: str | None = None) -> None:
             if not isinstance(source, dict):
                 continue
             corpus = str(source.get("corpus") or "")
-            if digest in corpus:
+            hashed = bus.hash_key(source.get("content_hash"))
+            if digest in corpus or hashed == bus.hash_key(digest):
                 source["corpus"] = None
                 if archived_url:
                     source["archived_url"] = archived_url

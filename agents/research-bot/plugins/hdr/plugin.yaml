@@ -83,3 +83,8 @@ config_schema:
     default: 25
     description: "Max words per quote span."
     required: false
+  untrusted_content_wrapping:
+    type: bool
+    default: true
+    description: "Scan retrieved text for injection shapes and record them in the audit log. Corpus stays raw. The model sees a card."
+    required: false

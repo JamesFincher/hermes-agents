@@ -1,40 +1,29 @@
 """Corpus read/write, URL canonicalization, hashing, locking.
 
-Content-addressed, write-once. Thread-safe. Official plugin-data path.
+Content-addressed, write-once. Thread-safe and process-safe.
+Official plugin-data path.
 https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 """
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
-import re
 import tempfile
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from typing import Any, Iterator
 
 from ..runtime import plugin_data_root
+from .urls import canonicalize
 
 _LOCK = threading.RLock()
-_TRACKING = frozenset(
-    {
-        "utm_source",
-        "utm_medium",
-        "utm_campaign",
-        "utm_term",
-        "utm_content",
-        "fbclid",
-        "gclid",
-        "mc_cid",
-        "mc_eid",
-    }
-)
-_DOI_RE = re.compile(r"(10\.\d{4,9}/[-._;()/:A-Z0-9]+)", re.IGNORECASE)
-_ARXIV_RE = re.compile(r"arxiv\.org/(?:abs|pdf)/([0-9]{4}\.[0-9]{4,5})(?:v\d+)?", re.I)
+_LOCK_DEPTH = 0
+_LOCK_FD: int | None = None
 
 
 def _now_iso() -> str:
@@ -59,6 +48,10 @@ def index_dir() -> Path:
     return path
 
 
+def lock_path() -> Path:
+    return plugin_data_root() / "ledger.json.lock"
+
+
 def atomic_write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix="hdr-", suffix=".tmp", dir=str(path.parent))
@@ -75,54 +68,42 @@ def atomic_write(path: Path, text: str) -> None:
         raise
 
 
-def lock() -> threading.Lock:
-    return _LOCK
-
-
-def canonicalize(url: str) -> str:
-    raw = (url or "").strip()
-    if not raw:
-        return ""
-    doi = _DOI_RE.search(raw)
-    if raw.lower().startswith("doi:") and doi:
-        return f"https://doi.org/{doi.group(1)}"
-    arxiv = _ARXIV_RE.search(raw)
-    if arxiv:
-        return f"https://arxiv.org/abs/{arxiv.group(1)}"
-    if "://" not in raw and raw.startswith("www."):
-        raw = "https://" + raw
-    parsed = urlparse(raw)
-    if not parsed.scheme:
-        return raw.rstrip("/")
-    host = parsed.hostname or ""
-    host = host.lower()
-    if host.startswith("m."):
-        host = host[2:]
-    if host.endswith(".ampproject.org"):
-        host = host[: -len(".ampproject.org")]
-    query = [
-        (key, value)
-        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-        if key.lower() not in _TRACKING
-    ]
-    path = parsed.path or ""
-    if path.endswith("/") and path != "/":
-        path = path.rstrip("/")
-    rebuilt = urlunparse(
-        (
-            parsed.scheme.lower(),
-            host + (f":{parsed.port}" if parsed.port else ""),
-            path,
-            "",
-            urlencode(query, doseq=True),
-            "",
-        )
-    )
-    return rebuilt
+@contextmanager
+def lock() -> Iterator[None]:
+    """Reentrant thread lock plus an exclusive file lock for child processes."""
+    global _LOCK_DEPTH, _LOCK_FD
+    with _LOCK:
+        if _LOCK_DEPTH == 0:
+            path = lock_path()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            _LOCK_FD = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
+            fcntl.flock(_LOCK_FD, fcntl.LOCK_EX)
+        _LOCK_DEPTH += 1
+        try:
+            yield
+        finally:
+            _LOCK_DEPTH -= 1
+            if _LOCK_DEPTH == 0 and _LOCK_FD is not None:
+                try:
+                    fcntl.flock(_LOCK_FD, fcntl.LOCK_UN)
+                finally:
+                    os.close(_LOCK_FD)
+                    _LOCK_FD = None
 
 
 def content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def hash_key(value: Any) -> str:
+    return str(value or "").replace("sha256:", "").strip().lower()
+
+
+def wayback_latest_url(url: str) -> str:
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    return "https://web.archive.org/web/" + raw
 
 
 def write_corpus(text: str, meta: dict[str, Any]) -> dict[str, Any]:
@@ -137,8 +118,9 @@ def write_corpus(text: str, meta: dict[str, Any]) -> dict[str, Any]:
         "written_at": _now_iso(),
         **meta,
     }
-    with _LOCK:
-        if not txt_path.exists():
+    with lock():
+        existed = txt_path.exists()
+        if not existed:
             atomic_write(txt_path, body)
         if not meta_path.exists():
             atomic_write(meta_path, json.dumps(record, indent=2, ensure_ascii=False) + "\n")
@@ -149,6 +131,7 @@ def write_corpus(text: str, meta: dict[str, Any]) -> dict[str, Any]:
         "abs": str(txt_path),
         "bytes": record["bytes"],
         "chars": record["chars"],
+        "existed": existed,
     }
 
 
@@ -182,12 +165,30 @@ def corpus_exists_for_url(canonical: str) -> dict[str, Any] | None:
     return None
 
 
+def source_for_hash(digest: str) -> dict[str, Any] | None:
+    from . import ledger
+
+    needle = hash_key(digest)
+    if not needle:
+        return None
+    data = ledger.load_ledger()
+    for source in data.get("sources", []):
+        if not isinstance(source, dict):
+            continue
+        if hash_key(source.get("content_hash")) == needle:
+            return source
+        corpus = str(source.get("corpus") or "")
+        if needle and needle in corpus:
+            return source
+    return None
+
+
 def prune_corpus(retention_days: int) -> list[str]:
     if retention_days <= 0:
         return []
     cutoff = datetime.now(timezone.utc).timestamp() - retention_days * 86400
     removed: list[str] = []
-    with _LOCK:
+    with lock():
         for path in corpus_dir().glob("*.txt"):
             try:
                 if path.stat().st_mtime < cutoff:
@@ -206,7 +207,27 @@ def append_audit(run_id: str, event: dict[str, Any]) -> None:
         return
     path = audit_dir() / f"{run_id}.jsonl"
     line = json.dumps({"at": _now_iso(), **event}, ensure_ascii=False) + "\n"
-    with _LOCK:
+    with lock():
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
             handle.write(line)
+
+
+__all__ = [
+    "append_audit",
+    "atomic_write",
+    "audit_dir",
+    "canonicalize",
+    "content_hash",
+    "corpus_dir",
+    "corpus_exists_for_url",
+    "hash_key",
+    "index_dir",
+    "lock",
+    "lock_path",
+    "prune_corpus",
+    "read_corpus",
+    "source_for_hash",
+    "wayback_latest_url",
+    "write_corpus",
+]

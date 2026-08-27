@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from pathlib import Path
@@ -16,6 +17,7 @@ from ..runtime import (
     READ_ONLY_WHEN_HARD,
     TERMINAL_TOOLS,
     WRITE_TOOLS,
+    estimate_tokens,
     setting,
 )
 from ..store import bus, ledger, run
@@ -51,30 +53,41 @@ def pre_tool_call(
             return None
         current = run.load_run()
         governor = (current or {}).get("governor") or "GREEN"
+        if (current or {}).get("phase") == "synthesis" and name in NETWORK_TOOLS:
+            return _decide(
+                current,
+                name,
+                {
+                    "action": "block",
+                    "message": "Phase SYNTHESIS: no network. Read the Evidence Bus.",
+                },
+                reason="phase-synthesis",
+                args=payload,
+            )
         if name == "delegate_task":
             blocked = _delegate_fence(payload, current, governor)
             if blocked:
-                return blocked
+                return _decide(current, name, blocked, reason="delegate-fence", args=payload)
         blocked = _budget_fence(name, governor)
         if blocked:
-            return blocked
+            return _decide(current, name, blocked, reason="budget-fence", args=payload)
         blocked = _dedupe_fence(name, payload)
         if blocked:
-            return blocked
+            return _decide(current, name, blocked, reason="dedupe-fence", args=payload)
         blocked = _domain_soft_cap(name, payload, current)
         if blocked:
-            return blocked
+            return _decide(current, name, blocked, reason="domain-cap", args=payload)
         if name in WRITE_TOOLS:
             blocked = _write_allowlist(payload)
             if blocked:
-                return blocked
+                return _decide(current, name, blocked, reason="write-allowlist", args=payload)
             blocked = _citation_gate(payload)
             if blocked:
-                return blocked
+                return _decide(current, name, blocked, reason="citation-gate", args=payload)
         if name in TERMINAL_TOOLS:
             blocked = _terminal_effect(payload)
             if blocked:
-                return blocked
+                return _decide(current, name, blocked, reason="terminal-effect", args=payload)
         return None
     except Exception:
         return None
@@ -99,6 +112,35 @@ def post_tool_call(
             run.add_spend(fetches=1)
     except Exception:
         return
+
+
+def _decide(
+    current: dict[str, Any] | None,
+    tool_name: str,
+    decision: dict[str, Any],
+    *,
+    reason: str,
+    args: dict[str, Any],
+) -> dict[str, Any]:
+    blocked = decision.get("action") == "block"
+    bus.append_audit(
+        (current or {}).get("run_id") or "",
+        {
+            "tool": tool_name,
+            "tokens_in": estimate_tokens(json_or_text(args)),
+            "tokens_out": estimate_tokens(str(decision.get("message") or "")),
+            "blocked": blocked,
+            "reason": reason,
+        },
+    )
+    return decision
+
+
+def json_or_text(value: Any) -> str:
+    try:
+        return json.dumps(value, ensure_ascii=False)
+    except TypeError:
+        return str(value)
 
 
 def _named_gaps(current: dict[str, Any] | None) -> list[str]:

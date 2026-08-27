@@ -39,7 +39,23 @@ def _save_unlocked(data: dict[str, Any]) -> None:
     bus.atomic_write(index_path(), json.dumps(data, ensure_ascii=False) + "\n")
 
 
-def update_source(source: dict[str, Any]) -> None:
+def _claim_texts(source: dict[str, Any], graph: dict[str, Any] | None = None) -> list[str]:
+    if graph is None:
+        from . import claims
+
+        graph = claims.load_claims()
+    texts: list[str] = []
+    for claim in source.get("claims") or []:
+        key = str(claim)
+        node = graph.get(key) if isinstance(graph, dict) else None
+        if isinstance(node, dict) and node.get("text"):
+            texts.append(str(node["text"]))
+        else:
+            texts.append(key)
+    return texts
+
+
+def update_source(source: dict[str, Any], claim_graph: dict[str, Any] | None = None) -> None:
     sid = str(source.get("id") or "")
     if not sid:
         return
@@ -52,8 +68,7 @@ def update_source(source: dict[str, Any]) -> None:
     for span in source.get("spans") or []:
         if isinstance(span, dict):
             parts.append(str(span.get("q") or ""))
-    for claim in source.get("claims") or []:
-        parts.append(str(claim))
+    parts.extend(_claim_texts(source, claim_graph))
     tokens = tokenize(" ".join(parts))
     tf: dict[str, int] = {}
     for token in tokens:
@@ -107,3 +122,13 @@ def search(query: str, limit: int = 25) -> list[tuple[str, float]]:
                 scores[sid] = score
     ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
     return ranked[: max(1, limit)]
+
+
+def rebuild() -> None:
+    from . import claims, ledger
+
+    graph = claims.load_claims()
+    with bus.lock():
+        _save_unlocked({"docs": {}, "df": {}})
+    for source in ledger.list_sources():
+        update_source(source, claim_graph=graph)
