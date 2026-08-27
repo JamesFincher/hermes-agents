@@ -34,14 +34,14 @@ def _http_json(url: str, timeout: int = 20) -> Any:
 
 
 def resolve_library(args: dict[str, Any], **kwargs: Any) -> str:
-    kwargs.get("task_id")
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         query = str((args or {}).get("query") or (args or {}).get("library_name") or "").strip()
         if not query:
             return error("query is required")
         payload: dict[str, Any] = {"query": query}
-        if (args or {}).get("library_name"):
-            payload["libraryName"] = str(args["library_name"])
+        payload["libraryName"] = str((args or {}).get("library_name") or query)
         envelope = normalize_envelope(call_mcp(MCP_RESOLVE_TOOL, payload))
         blob = json.dumps(envelope, ensure_ascii=False)
         url = first_openable_url(blob)
@@ -66,7 +66,8 @@ def resolve_library(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def docs_query(args: dict[str, Any], **kwargs: Any) -> str:
-    kwargs.get("task_id")
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         library_id = str((args or {}).get("library_id") or "").strip()
         query = str((args or {}).get("query") or "").strip()
@@ -102,7 +103,8 @@ def docs_query(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
-    kwargs.get("task_id")
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         query = str((args or {}).get("query") or "").strip()
         if not query:
@@ -174,7 +176,8 @@ def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def archive_lookup(args: dict[str, Any], **kwargs: Any) -> str:
-    kwargs.get("task_id")
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         url = str((args or {}).get("url") or "").strip()
         if not url:

@@ -5,12 +5,22 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ..runtime import citation_style, dump, error
+from ..runtime import CITATION_STYLES, citation_style, dump, error
 from ..store import bus, claims, ledger
+from ..store import spans as span_mod
+
+
+def _stance_from_check(check: dict[str, Any]) -> str:
+    if check.get("exact"):
+        return "supports"
+    if check.get("entity_match") and check.get("numeric_match") is False:
+        return "contradicts"
+    return "silent"
 
 
 def claim_verify(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         claim = str((args or {}).get("claim") or "").strip()
         if not claim:
@@ -21,9 +31,8 @@ def claim_verify(args: dict[str, Any], **kwargs: Any) -> str:
             allow = {str(item) for item in wanted}
             sources = [src for src in sources if src.get("id") in allow]
         evidence = []
+        partials = []
         unsupported_parts = [claim]
-        from ..store import spans as span_mod
-
         for source in sources:
             corpus = str(source.get("corpus") or "")
             if not corpus:
@@ -33,6 +42,16 @@ def claim_verify(args: dict[str, Any], **kwargs: Any) -> str:
             if page.get("error"):
                 continue
             check = span_mod.verify_claim(claim, str(page.get("text") or ""))
+            sid = str(source.get("id") or "")
+            stance = _stance_from_check(check)
+            span_off = check.get("off") if check.get("exact") else check.get("partial_off")
+            if sid:
+                claims.upsert_claim(
+                    claim,
+                    src=sid,
+                    stance=stance,
+                    span=int(span_off) if isinstance(span_off, int) else None,
+                )
             if check.get("exact"):
                 evidence.append(
                     {
@@ -43,6 +62,15 @@ def claim_verify(args: dict[str, Any], **kwargs: Any) -> str:
                         "numeric_match": check.get("numeric_match"),
                         "entity_match": check.get("entity_match"),
                         "span": check.get("span"),
+                    }
+                )
+            elif check.get("partial_span"):
+                partials.append(
+                    {
+                        "src": source.get("id"),
+                        "partial_span": check.get("partial_span"),
+                        "partial_off": check.get("partial_off"),
+                        "exact": False,
                     }
                 )
         status = "unsupported"
@@ -57,6 +85,7 @@ def claim_verify(args: dict[str, Any], **kwargs: Any) -> str:
                 "ok": True,
                 "status": status,
                 "evidence": evidence,
+                "partial_spans": partials,
                 "unsupported_parts": unsupported_parts,
             }
         )
@@ -65,7 +94,9 @@ def claim_verify(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def conflict_report(args: dict[str, Any], **kwargs: Any) -> str:
-    del args, kwargs
+    del args
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         rows = claims.conflicts()
         return dump({"ok": True, "count": len(rows), "conflicts": rows})
@@ -74,9 +105,16 @@ def conflict_report(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def cite_source(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
-        style = str((args or {}).get("style") or citation_style()).lower()
+        raw_style = (args or {}).get("style")
+        if raw_style not in (None, ""):
+            style = str(raw_style).lower()
+            if style not in CITATION_STYLES:
+                return error("style must be apa, ieee, or chicago")
+        else:
+            style = citation_style()
         ids = (args or {}).get("ids")
         sources = ledger.list_sources()
         if isinstance(ids, list) and ids:

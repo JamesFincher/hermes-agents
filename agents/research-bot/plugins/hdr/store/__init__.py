@@ -1,6 +1,6 @@
 """HDR durable store: corpus, ledger v2, claims, run state."""
 
-from . import bus, claims, draft, extract, index, ledger, run, sanitize, score, spans
+from . import bus, claims, draft, extract, index, ledger, run, sanitize, score, spans, support
 
 __all__ = [
     "bus",
@@ -13,4 +13,5 @@ __all__ = [
     "sanitize",
     "score",
     "spans",
+    "support",
 ]

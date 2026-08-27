@@ -5,11 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from ..runtime import dump, error
-from ..store import bus, extract, ledger, run, score, spans
+from ..store import bus, extract, index as inverted, ledger, run, score, spans
+from ..store import claims as claim_store
+from ..store import support as support_mod
 
 
 def evidence_add(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         url = str((args or {}).get("url") or "").strip()
         if not url:
@@ -57,25 +60,27 @@ def evidence_add(args: dict[str, Any], **kwargs: Any) -> str:
                 "needs_backfill": not bool(text),
             }
         )
+        if result.get("error"):
+            return error(str(result["error"]))
         return dump(result)
     except Exception as exc:  # noqa: BLE001
         return error(str(exc))
 
 
 def evidence_search(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
-        query = str((args or {}).get("query") or "")
+        query = str((args or {}).get("query") or "").strip()
+        if not query:
+            return error("query is required")
         sources = ledger.list_sources()
-        if query.strip():
-            from ..store import index as inverted
-
-            ranked = inverted.search(query, limit=25)
-            if ranked:
-                by_id = {str(src.get("id")): src for src in sources}
-                sources = [by_id[sid] for sid, _ in ranked if sid in by_id]
-            else:
-                sources = ledger.list_sources(query=query)
+        ranked = inverted.search(query, limit=25)
+        if ranked:
+            by_id = {str(src.get("id")): src for src in sources}
+            sources = [by_id[sid] for sid, _ in ranked if sid in by_id]
+        else:
+            sources = ledger.list_sources(query=query)
         cards = []
         backfill = 0
         for source in sources[:25]:
@@ -98,7 +103,8 @@ def evidence_search(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def evidence_read(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         src = str((args or {}).get("src") or "")
         source = ledger.get_source(src)
@@ -117,25 +123,42 @@ def evidence_read(args: dict[str, Any], **kwargs: Any) -> str:
                 offset = max(0, int(span.get("off") or 0) - 200)
             except Exception:
                 pass
-        return dump(bus.read_corpus(digest, offset=offset, limit=limit))
+        page = bus.read_corpus(digest, offset=offset, limit=limit)
+        if page.get("error"):
+            return error(str(page["error"]))
+        return dump(page)
     except Exception as exc:  # noqa: BLE001
         return error(str(exc))
 
 
 def evidence_stats(args: dict[str, Any], **kwargs: Any) -> str:
-    del args, kwargs
+    del args
+    task_id = kwargs.get("task_id")
+    del task_id
     try:
         current = run.load_run()
         sources = ledger.list_sources()
+        graph = claim_store.load_claims()
         by_tier: dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0}
         for source in sources:
             tier = str(source.get("tier") or "D")
             by_tier[tier] = by_tier.get(tier, 0) + 1
+        by_question = []
+        for question in (current or {}).get("open_questions") or []:
+            coverage = support_mod.question_coverage(str(question), sources, graph)
+            by_question.append(
+                {
+                    "q": coverage["q"],
+                    "support": coverage["support"],
+                    "tiers": coverage["tiers"],
+                }
+            )
         return dump(
             {
                 "ok": True,
                 "sources": len(sources),
                 "by_tier": by_tier,
+                "by_question": by_question,
                 "open_questions": (current or {}).get("open_questions") or [],
                 "new_source_yield": (current or {}).get("new_source_yield"),
                 "governor": (current or {}).get("governor"),

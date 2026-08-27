@@ -239,12 +239,13 @@ class HdrTest(unittest.TestCase):
                     "action": "create",
                     "question": "What shipped in 2024?",
                     "tier": "standard",
-                    "open_questions": ["What shipped in 2024?"],
+                    "open_questions": ["What shipped in 2024?", "What is the recall rate?"],
                 }
             )
         )
         self.assertTrue(plan.get("ok"))
         self.assertEqual(plan["budget"]["tokens"], 200000)
+        self.assertNotIn("spend", plan)
         digest = self.pkg.hooks.pre_llm_call("s", "hello")
         self.assertIsNotNone(digest)
         self.assertLessEqual(len((digest or {}).get("context", "")), 1200)
@@ -261,6 +262,13 @@ class HdrTest(unittest.TestCase):
         self.assertTrue(scan.get("ok"))
         self.assertIn("saturation", scan)
         self.assertIsInstance(scan["saturation"], float)
+        self.assertIn("What is the recall rate?", scan["unanswered"])
+        self.assertIn("What shipped in 2024?", scan["unanswered"])
+        self.assertEqual(scan["recommend"], "depth")
+        stats = json.loads(self.pkg.tools.evidence_stats({}))
+        by_q = {row["q"]: row["support"] for row in stats.get("by_question") or []}
+        self.assertEqual(by_q.get("What is the recall rate?"), 0)
+        self.assertEqual(by_q.get("What shipped in 2024?"), 1)
 
     def test_three_worker_batch_parent_stays_small(self) -> None:
         mandates = ["Mandate A", "Mandate B", "Mandate C"]
@@ -304,22 +312,47 @@ class HdrTest(unittest.TestCase):
         self.assertNotIn("secret page body", parent_text)
 
     def test_claim_verify_and_conflicts(self) -> None:
-        text = "The device reached 12% efficiency in 2024 at NIST."
+        claim = "The device reached 12% efficiency in 2024 at NIST."
+        page_a = (
+            "Lead-in from the lab notes. "
+            f"{claim} "
+            "The rest of the page discusses methods and apparatus."
+        )
+        page_b = (
+            "Lead-in from a second lab. "
+            "The device reached 8% efficiency in 2024 at NIST. "
+            "The rest of the page discusses methods and apparatus."
+        )
+        self.assertNotEqual(page_a, claim)
         self.pkg.hooks.transform_tool_result(
             "web_extract",
-            {"url": "https://www.nist.gov/note", "text": text},
+            {"url": "https://www.nist.gov/note", "text": page_a},
             {"url": "https://www.nist.gov/note"},
         )
-        verify = json.loads(self.pkg.tools.claim_verify({"claim": text}))
+        self.pkg.hooks.transform_tool_result(
+            "web_extract",
+            {"url": "https://www.nature.com/note", "text": page_b},
+            {"url": "https://www.nature.com/note"},
+        )
+        verify = json.loads(self.pkg.tools.claim_verify({"claim": claim}))
         self.assertEqual(verify["status"], "supported")
-        self.pkg.store.claims.upsert_claim(
-            "efficiency", src="S1", stance="supports", conf=0.9
-        )
-        self.pkg.store.claims.upsert_claim(
-            "efficiency", src="S2", stance="contradicts", conf=0.8
-        )
+        self.assertTrue(all(row.get("exact") for row in verify.get("evidence") or []))
+        graph = self.pkg.store.claims.load_claims()
+        self.assertTrue(graph)
+        stances = {
+            edge.get("stance")
+            for node in graph.values()
+            if isinstance(node, dict)
+            for edge in (node.get("support") or [])
+            if isinstance(edge, dict)
+        }
+        self.assertIn("supports", stances)
+        self.assertIn("contradicts", stances)
         report = json.loads(self.pkg.tools.conflict_report({}))
         self.assertGreaterEqual(report["count"], 1)
+        self.assertIn("src", report["conflicts"][0]["support"][0])
+        self.assertIn("stance", report["conflicts"][0]["support"][0])
+        self.assertIn("tier", report["conflicts"][0]["support"][0])
         cite = json.loads(self.pkg.tools.cite_source({}))
         self.assertGreaterEqual(cite["count"], 1)
         out = self.pkg.hooks.transform_llm_output("The device reached 12% efficiency [S1].")
@@ -347,7 +380,7 @@ class HdrTest(unittest.TestCase):
                 "run_id": created["run_id"],
             }
         )
-        search = json.loads(self.pkg.tools.evidence_search({}))
+        search = json.loads(self.pkg.tools.evidence_search({"query": "Prior"}))
         self.assertGreaterEqual(search["count"], 1)
         drafted = self.pkg.store.draft.draft_brief()
         self.assertTrue(drafted.get("brief"))
@@ -464,6 +497,181 @@ class HdrTest(unittest.TestCase):
         raw = json.loads(self.pkg.tools.docs_query({"library_id": "/x", "query": "y"}))
         self.assertFalse(raw.get("ledger"))
         self.assertEqual(self.pkg.store.ledger.list_sources(), [])
+
+    def test_seen_ids_split_from_last_batch(self) -> None:
+        created = json.loads(
+            self.pkg.tools.research_plan(
+                {
+                    "question": "Compare entities",
+                    "open_questions": ["Mandate A"],
+                    "tier": "standard",
+                }
+            )
+        )
+        parent = self.pkg.store.ledger.add_source(
+            {
+                "url": "https://example.com/parent",
+                "title": "Parent card",
+                "run_id": created["run_id"],
+            }
+        )
+        parent_id = parent["source"]["id"]
+        brief = json.loads(self.pkg.tools.worker_brief({"open_question": "Mandate A"}))
+        self.assertTrue(brief.get("ok"))
+        self.assertTrue(brief.get("brief_id"))
+        live = Path(os.environ["HERMES_HOME"]) / "cache" / "delegation" / "live" / "batch-seen"
+        live.mkdir(parents=True, exist_ok=True)
+        first = live / "task-1.log"
+        first.write_text("FINDING: one\nhttps://example.com/child-a\n", encoding="utf-8")
+        harvest1 = json.loads(
+            self.pkg.tools.worker_harvest(
+                {
+                    "subagent_id": "sa-1",
+                    "brief_id": brief["brief_id"],
+                    "transcript_path": str(first),
+                }
+            )
+        )
+        self.assertNotIn(parent_id, harvest1["new_ids"])
+        self.assertEqual(len(harvest1["new_ids"]), 1)
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(current["last_batch_ids"], harvest1["new_ids"])
+        self.assertIn(parent_id, current["seen_ids"])
+        self.assertEqual(current["children"][brief["brief_id"]]["subagent_id"], "sa-1")
+        first_new = harvest1["new_ids"][0]
+        second = live / "task-2.log"
+        second.write_text("FINDING: two\nhttps://example.com/child-b\n", encoding="utf-8")
+        harvest2 = json.loads(
+            self.pkg.tools.worker_harvest(
+                {"subagent_id": "sa-2", "transcript_path": str(second)}
+            )
+        )
+        self.assertNotIn(first_new, harvest2["new_ids"])
+        self.assertNotIn(parent_id, harvest2["new_ids"])
+        self.assertEqual(len(harvest2["new_ids"]), 1)
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(current["last_batch_ids"], harvest2["new_ids"])
+        self.assertIn(first_new, current["seen_ids"])
+        scan = json.loads(self.pkg.tools.gap_scan({"detail": "summary"}))
+        self.assertEqual(scan["new_source_yield"], 0.0)
+        self.assertIn("backfill", scan)
+
+    def test_research_plan_status_and_enums(self) -> None:
+        created = json.loads(
+            self.pkg.tools.research_plan({"question": "status envelope", "tier": "quick"})
+        )
+        self.assertTrue(created.get("ok"))
+        bad_action = json.loads(self.pkg.tools.research_plan({"action": "explode"}))
+        self.assertEqual(bad_action.get("error"), "action must be create, update, or status")
+        bad_tier = json.loads(
+            self.pkg.tools.research_plan({"action": "update", "tier": "max"})
+        )
+        self.assertEqual(bad_tier.get("error"), "tier must be quick, standard, deep, or exhaustive")
+        status = json.loads(self.pkg.tools.research_plan({"action": "status"}))
+        self.assertTrue(status.get("ok"))
+        self.assertEqual(set(status), {"ok", "run_id", "tier", "budget", "open_questions", "phase"})
+        self.assertEqual(set(status["budget"]), {"tokens", "fetches", "seconds"})
+        self.assertEqual(status["run_id"], created["run_id"])
+
+    def test_default_tier_on_omitted_tier(self) -> None:
+        self.ctx.settings["default_tier"] = "deep"
+        created = json.loads(self.pkg.tools.research_plan({"question": "default tier"}))
+        self.assertEqual(created["tier"], "deep")
+        self.assertEqual(created["budget"]["tokens"], 800000)
+
+    def test_evidence_search_requires_query(self) -> None:
+        missing = json.loads(self.pkg.tools.evidence_search({}))
+        self.assertEqual(missing.get("error"), "query is required")
+
+    def test_claim_verify_partial_span_is_not_supported(self) -> None:
+        claim = (
+            "The widget recall started in March 2026 after a 12% failure rate "
+            "according to the agency brief."
+        )
+        page = "The widget recall started in March 2026 after a 12% failure rate. Extra notes."
+        self.pkg.hooks.transform_tool_result(
+            "web_extract",
+            {"url": "https://example.com/partial", "text": page},
+            {"url": "https://example.com/partial"},
+        )
+        verify = json.loads(self.pkg.tools.claim_verify({"claim": claim}))
+        self.assertNotEqual(verify["status"], "supported")
+        self.assertEqual(verify["evidence"], [])
+        self.assertTrue(verify.get("partial_spans"))
+
+    def test_worker_brief_interpolates_must_find_and_since(self) -> None:
+        self.pkg.tools.research_plan(
+            {
+                "question": "Recall",
+                "open_questions": ["Mandate A"],
+                "tier": "standard",
+                "constraints": {"since": "2024-01-01"},
+            }
+        )
+        brief = json.loads(
+            self.pkg.tools.worker_brief(
+                {
+                    "open_question": "Mandate A",
+                    "must_find": ["filing date", "recall count"],
+                }
+            )
+        )
+        self.assertIn("must_find: filing date, recall count", brief["brief"])
+        self.assertIn("since 2024-01-01", brief["brief"])
+
+    def test_gap_scan_stale_and_thin(self) -> None:
+        created = json.loads(
+            self.pkg.tools.research_plan(
+                {
+                    "question": "Dates",
+                    "open_questions": ["What is the recall rate?"],
+                    "tier": "standard",
+                    "constraints": {"since": "2025-01-01"},
+                }
+            )
+        )
+        self.pkg.store.ledger.add_source(
+            {
+                "url": "https://blog.example.com/old",
+                "title": "What is the recall rate?",
+                "quote": "What is the recall rate? old note",
+                "tier": "D",
+                "published": "2020-06-01",
+                "needs_backfill": True,
+                "run_id": created["run_id"],
+            }
+        )
+        scan = json.loads(self.pkg.tools.gap_scan({"detail": "full"}))
+        self.assertTrue(any(row.get("q") == "What is the recall rate?" for row in scan["thin"]))
+        self.assertTrue(any(row.get("published") == "2020-06-01" for row in scan["stale"]))
+        self.assertTrue(scan["backfill"])
+        self.assertFalse(any(row.get("needs_backfill") for row in scan["stale"]))
+
+    def test_resolve_library_passes_library_name(self) -> None:
+        raw = json.loads(self.pkg.tools.resolve_library({"query": "hermes-agent"}))
+        self.assertIn("openable_url", raw)
+        self.assertEqual(self.ctx.mcp_calls[-1][2]["libraryName"], "hermes-agent")
+        self.assertEqual(self.ctx.mcp_calls[-1][2]["query"], "hermes-agent")
+
+    def test_schema_enums_and_scholar_description(self) -> None:
+        schemas = self.pkg.schemas
+        self.assertEqual(schemas.RESEARCH_PLAN["parameters"]["properties"]["action"]["enum"], ["create", "update", "status"])
+        self.assertEqual(
+            schemas.RESEARCH_PLAN["parameters"]["properties"]["tier"]["enum"],
+            ["quick", "standard", "deep", "exhaustive"],
+        )
+        self.assertEqual(schemas.GAP_SCAN["parameters"]["properties"]["detail"]["enum"], ["summary", "full"])
+        self.assertEqual(
+            schemas.CITE_SOURCE["parameters"]["properties"]["style"]["enum"],
+            ["apa", "ieee", "chicago"],
+        )
+        self.assertNotIn("OpenAlex-style", schemas.SCHOLAR_SEARCH["description"])
+        bad_style = json.loads(self.pkg.tools.cite_source({"style": "mla"}))
+        self.assertEqual(bad_style.get("error"), "style must be apa, ieee, or chicago")
+        bad_detail = json.loads(self.pkg.tools.gap_scan({"detail": "huge"}))
+        self.assertEqual(bad_detail.get("error"), "detail must be summary or full")
 
 
 if __name__ == "__main__":
