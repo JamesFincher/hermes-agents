@@ -1,0 +1,28 @@
+---
+description: Hermes Agents factory — Context7 first, one agent per PR, no invented knobs
+alwaysApply: true
+---
+
+# Hermes Agents factory
+
+You are working in James Fincher's profile-distribution factory. Read `AGENTS.md` and `docs/WORKFLOW.md` before editing.
+
+## Docs order (mandatory)
+
+1. Context7 first for every Hermes / Honcho / library question.
+   - Resolve + query. Official library IDs:
+     - Hermes Agent: `/nousresearch/hermes-agent`
+     - Honcho: `/plastic-labs/honcho`
+   - Also useful: `/llmstxt/hermes-agent_nousresearch_llms_txt`, `/websites/honcho_dev_v3`
+   - James's paid Context7 is Context7-API. Use it. Never print, log, or commit `CONTEXT7_API_KEY`.
+2. Then official Hermes LLM entry points: https://hermes-agent.nousresearch.com/llms.txt and https://hermes-agent.nousresearch.com/llms-full.txt plus the pages they index.
+3. Do not clone NousResearch/hermes-agent or any of James's other repos. Read official docs / Context7 / GitHub raw/API only.
+
+## Non-negotiables
+
+- One agent (or one shared skill / plugin) per PR. Tight. Recreatable. No drive-by refactors.
+- Never invent Hermes or Honcho config knobs. Cite the Context7 hit or official URL.
+- Never two writers on one profile. Honcho is shared memory (`workspace: hermes`, unique `aiPeer` per profile).
+- Never commit secrets. Installer strip is not gitignore. Target stock Hermes `~/.hermes`, not Gengar.
+- Plugins are opt-in (`plugins.enabled`). Cron / blueprints are suggestions, not auto-scheduled.
+- Do not vendor JamesFincher/gengar or rewrite JamesFincher/hermes-ouroboros. Depend or leave a hook.

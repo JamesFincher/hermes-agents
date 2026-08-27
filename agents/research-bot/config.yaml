@@ -1,0 +1,47 @@
+# Cited knobs only. Do not add keys you cannot point at in official docs.
+#
+# memory.provider:
+#   https://hermes-agent.nousresearch.com/docs/user-guide/features/memory-providers
+# memory.memory_enabled / user_profile_enabled:
+#   https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+# terminal.backend / terminal.cwd:
+#   https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+#   cwd is Gateway/cron working directory. CLI always uses the launch directory.
+#   This profile is not a sandbox (backend: local).
+# custom_toolsets + toolsets:
+#   https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference
+#   Core names verified: web, terminal, file, skills, memory, session_search
+# mcp_servers + ${env:VAR} header interpolation:
+#   https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference
+# plugins.enabled omitted on purpose — plugins are opt-in and none are shipped.
+# No messaging gateway tokens. No model/provider pin (installer already has one).
+
+memory:
+  provider: honcho
+  memory_enabled: true
+  user_profile_enabled: true
+
+terminal:
+  backend: local
+  cwd: "."
+
+custom_toolsets:
+  research:
+    - web
+    - terminal
+    - file
+    - skills
+    - memory
+    - session_search
+
+toolsets:
+  - research
+
+mcp_servers:
+  context7:
+    url: "https://mcp.context7.com/mcp"
+    headers:
+      CONTEXT7_API_KEY: "${env:CONTEXT7_API_KEY}"
+    tools:
+      resources: true
+      prompts: true
