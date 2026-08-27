@@ -25,9 +25,9 @@ Skill, Tool, Plugin, and MCP are four different official objects. See the playbo
 ## Non-negotiables
 
 - One agent per PR. Isolated `HERMES_HOME`. That profile owns its plugin, toolset, skills, and MCP.
-- Next agent writes its own plugin + skills from scratch if it needs them. Zero imports from `research-bot`.
-- There is no repo-root `plugins/` package.
-- Gather is locked: `web_search` / `web_extract`, SearXNG search, Firecrawl extract, keyless ring off.
+- Next agent writes its own plugin + skills from scratch if it needs them. Zero imports from `hdr`.
+- There is no repo-root `plugins/` package. Plugin path is `agents/<name>/plugins/<plugin-id>/`.
+- Gather is locked: `web_search` / `web_extract`, SearXNG search, Firecrawl extract, `keyless_fallback` and `keyless_rescue` **true** (degrade, do not die).
 - Honcho is `memory.provider: honcho` (settled). Not `plugins.enabled`.
 - Never invent knobs. Cite Context7 or an official URL.
 - Never commit secrets. Target stock Hermes `~/.hermes`, not Gengar.

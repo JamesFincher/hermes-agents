@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Nightly LLM judge. Not CI. Skip when no judge model is configured.
+"""On-demand mechanical rubric. Not a scheduled nightly LLM judge.
+
+A host cron may set HDR_JUDGE_MODEL. This repo does not invent a model id
+or a GitHub Actions secret. Skip when HDR_JUDGE_MODEL is unset.
 
 When HDR_JUDGE_MODEL is set, score the 12-question offline loop with the
 mechanical rubric (always) and optionally invoke HDR_JUDGE_CMD with a JSON
@@ -24,7 +27,7 @@ from evals.run_offline import run_all
 def main() -> int:
     model = os.environ.get("HDR_JUDGE_MODEL")
     if not model:
-        print(json.dumps({"skipped": True, "reason": "HDR_JUDGE_MODEL unset; nightly only"}))
+        print(json.dumps({"skipped": True, "reason": "HDR_JUDGE_MODEL unset; on-demand mechanical only"}))
         return 0
     payload = run_all()
     rows = []
@@ -33,29 +36,33 @@ def main() -> int:
         scored = score_brief(
             brief=str(row.get("brief") or ""),
             kind=str(row.get("kind") or "survey"),
-            gate_errors=[],
+            gate_errors=list(row.get("gate_errors") or []),
         )
         rows.append(
             {
                 "id": row.get("id"),
                 "kind": row.get("kind"),
+                "tier": row.get("tier"),
                 "mean": scored["mean"],
                 "dims": scored["dims"],
+                "gate_errors": row.get("gate_errors") or [],
             }
         )
         scores.append(float(scored["mean"]))
     mean = sum(scores) / len(scores) if scores else 0.0
+    clean = all(not (row.get("gate_errors") or []) for row in payload.get("results") or [])
     report = {
-        "ok": payload.get("completed") == payload.get("total") == 12 and mean >= 2.4,
+        "ok": payload.get("completed") == payload.get("total") == 12 and mean >= 2.4 and clean,
         "judge_model": model,
         "completed": payload.get("completed"),
         "total": payload.get("total"),
         "rubric_mean": mean,
         "results": rows,
         "note": (
-            "Mechanical rubric is the deterministic nightly floor. "
+            "On-demand mechanical rubric. Not a nightly LLM judge. "
             "Set HDR_JUDGE_CMD to a host command that reads this JSON on stdin "
-            "if you want a second-model pass. Official MoA is a provider, not a toolset."
+            "if you want a second-model pass. Official MoA is a provider, not a toolset. "
+            "Do not invent a model id or a GitHub Actions secret."
         ),
     }
     cmd = os.environ.get("HDR_JUDGE_CMD")

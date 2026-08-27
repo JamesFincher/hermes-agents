@@ -1,4 +1,4 @@
-"""Mechanical end-state rubric. Nightly LLM judge is separate."""
+"""Mechanical end-state rubric. On-demand judge script is separate (not a nightly LLM)."""
 
 from __future__ import annotations
 

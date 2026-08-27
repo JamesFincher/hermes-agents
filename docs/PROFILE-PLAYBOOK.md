@@ -40,9 +40,9 @@ If you omit `plugins` from `distribution_owned`, `hermes profile install` will n
 
 Each profile is its own `HERMES_HOME`. There is no shared plugin, no shared toolset, and no shared Python package across profiles.
 
-- Repo-root `plugins/` must not exist. Live process code lives only in `agents/<name>/plugins/<name>/`.
-- `research-bot` is the toolset id for that profile only. Do not enable it on any other profile. Do not rename it.
-- The next profile writes its own plugin, its own toolset, and its own skills. Zero imports from `research-bot`.
+- Repo-root `plugins/` must not exist. Live process code lives only in `agents/<name>/plugins/<plugin-id>/`. The plugin id may differ from the profile name.
+- `research-bot` is the **profile** name. Its plugin and toolset are `hdr` at `agents/research-bot/plugins/hdr/`. Do not enable `hdr` on any other profile unless that profile independently needs HDR. Do not name a new toolset after the profile by default.
+- The next profile writes its own plugin, its own toolset, and its own skills. Zero imports from `hdr`.
 
 ### Install path
 
@@ -120,7 +120,7 @@ Do not have a profile plugin register a Firecrawl or SearXNG tool.
 Do not wrap those builtins as facade tools.
 Do not add an MCP server for general web search.
 
-Context7 stays library docs only. The research-bot plugin registers `resolve_library` and `docs_query` and calls `ctx.call_mcp`. That is not the open web.
+Context7 stays library docs only. The **hdr** plugin (this profile only) registers `resolve_library` and `docs_query` and calls `ctx.call_mcp`. That is not the open web.
 
 ### Backends are bundled Hermes plugins
 
@@ -139,11 +139,12 @@ Write this block in the profile `config.yaml` (research-bot already does):
 
 ```yaml
 # Cited from official web-search + configuration docs.
+# HDR v2: degrade, do not die. A dead primary path must fall through.
 web:
   search_backend: "searxng"
   extract_backend: "firecrawl"
-  keyless_fallback: false
-  keyless_rescue: false
+  keyless_fallback: true
+  keyless_rescue: true
 ```
 
 Set these on the deploy host only. Never commit secrets or keys.
@@ -159,7 +160,7 @@ Official: when `FIRECRAWL_API_URL` is set, `FIRECRAWL_API_KEY` is optional (disa
 
 Search = local SearXNG. Extract = local Firecrawl on the deploy host.
 
-Turn the keyless ring off. Do not fall back to Exa, Parallel, Tavily, cloud Firecrawl, or Keenable free tiers.
+Keep `keyless_fallback` and `keyless_rescue` **true** so a dead primary path degrades. Do not use Exa, Parallel, Tavily, cloud Firecrawl, or Keenable as the main path.
 
 Do not use Firecrawl `/search` against Google on self-host. That path hits "Too many requests". If the Firecrawl instance itself needs a search backend, point **that instance** at the same local SearXNG. That is Firecrawl's setting, not a Hermes config key. Hermes must still call SearXNG for `web_search` and Firecrawl only for `web_extract`.
 
@@ -176,7 +177,7 @@ Do not use these as the gather path:
 
 ### Skills
 
-`literature-review`, `source-triage`, and `claim-check` name `web_search` and `web_extract` in the Procedure. They do not name raw `mcp_*`. They do not invent a ranker tool. Source-triage is the recipe that ranks what the tools already return.
+`deep-research-run`, `source-triage`, `claim-audit`, `literature-sweep`, and `web-fallback-fetch` name `web_search` and `web_extract` in the Procedure when they use the web. They do not name raw `mcp_*`. They do not invent a ranker tool. Source-triage is the recipe that ranks what the tools already return.
 
 Optional skill `official/research/searxng-search` is a curl fallback when the `web` toolset is missing. `research-bot` already has `web`. Do not install that skill as the primary path.
 
@@ -192,7 +193,7 @@ Official cache: `web_search` is in-memory. `web_extract` is on disk under `~/.he
 | --- | --- |
 | Skill | When to search vs extract vs cite. Names `web_search` / `web_extract`. |
 | Tool | Builtins `web_search` / `web_extract`. The profile plugin does not re-register them. |
-| Plugin (research-bot) | Facade + ledger + user-message contract. Not a search backend. |
+| Plugin (`hdr`) | Facade + Evidence Bus + governor + digest. Not a search backend. |
 | Plugin (bundled web) | Official Hermes `plugins/web/searxng` and `plugins/web/firecrawl`. `kind: backend`. |
 | MCP | Context7 only for library docs. |
 
@@ -258,26 +259,28 @@ A specialized profile in this repo ships a **general** plugin only (`register(ct
 Official: [Developer Guide — Plugins](https://hermes-agent.org/docs/developer-guide/plugins/).
 
 ```
-agents/<name>/plugins/<name>/
-  plugin.yaml          # name: <name>  — must match plugins.enabled
+agents/<name>/plugins/<plugin-id>/
+  plugin.yaml          # name: <plugin-id>  — must match plugins.enabled
   __init__.py          # def register(ctx): ...
 ```
 
-Discovery (expected, **UNVERIFIED exact glob**): `$HERMES_HOME/plugins/<name>/plugin.yaml`.
+The plugin id may differ from the profile name. `research-bot` ships `plugins/hdr/`.
+
+Discovery (expected, **UNVERIFIED exact glob**): `$HERMES_HOME/plugins/<plugin-id>/plugin.yaml`.
 
 `register(ctx)` may:
 
-- `ctx.register_tool(name, handler, schema=..., toolset=<name>, …)` — each tool is a **tool**, registered by the plugin
-- `ctx.register_hook(...)` — `on_session_start`, `pre_llm_call`, `pre_tool_call`, `post_tool_call`
-- `ctx.get_config` / `ctx.get_plugin_config` / `ctx.plugin_data_dir` (`<HERMES_HOME>/plugin-data/<plugin-name>/`)
+- `ctx.register_tool(name, handler, schema=..., toolset=<plugin-id>, …)` — each tool is a **tool**, registered by the plugin
+- `ctx.register_hook(...)` — including `pre_tool_call`. The hdr governor **can** block `delegate_task` on AMBER/RED/HARD. Official: use `pre_tool_call` to block `delegate_task`. A `pre_tool_call` block on `memory` is ineffective (intercepted before the registry).
+- `ctx.get_config` / `ctx.get_plugin_config` / `ctx.plugin_data_dir` (`<HERMES_HOME>/plugin-data/<plugin-id>/`)
 
 `plugin.yaml` `toolsets:` declares toolset ids this plugin **provides**. `config.yaml` `toolsets:` / `custom_toolsets` must **enable** those ids or the registered tools stay hidden.
 
-`plugins.enabled: [<name>]`. `plugins.disabled` always wins. Default-off: `plugins.entries.<id>.mcp_allowlist` — list the MCP **server names** this plugin may call. No wildcards.
+`plugins.enabled: [<plugin-id>]`. `plugins.disabled` always wins. Default-off: `plugins.entries.<id>.mcp_allowlist` — list the MCP **server names** this plugin may call. No wildcards.
 
 Do not collide with ouroboros plugin names: `echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`.
 
-The next profile does **not** copy this plugin. If it needs tools, it writes `agents/<next>/plugins/<next>/` from scratch.
+The next profile does **not** copy this plugin. If it needs tools, it writes `agents/<next>/plugins/<its-plugin-id>/` from scratch.
 
 ### Step 4 — This profile's toolset
 
@@ -286,11 +289,11 @@ Official: [User Guide — Tools](https://hermes-agent.nousresearch.com/docs/user
 - Every tool belongs to exactly one toolset. Enabling a toolset shows all of its tools.
 - Official builtin toolset ids include `web`, `search`, `terminal`, `file`, `browser`, `vision`, `image_gen`, `skills`, `tts`, `todo`, `memory`, `session_search`, `cronjob`, `code_execution`, `delegation`, `clarify`. CLI default bundle: `hermes-cli`.
 - `platform_toolsets.cli` was **not found**. Official knobs are `toolsets` and `custom_toolsets`.
-- This profile invents **one** toolset id, typically the profile name (`research-bot`). The plugin registers each tool with `toolset="<name>"`.
+- This profile invents **one** toolset id. It does not have to match the profile name. `research-bot` uses `hdr`. The plugin registers each tool with `toolset="<plugin-id>"`.
 - `custom_toolsets.<bundle>` is a **bundle of toolset ids**, not a list of tool names. Include `skills` plus the builtins the workflow needs plus **this profile's** toolset.
 - `toolsets: [<bundle>]` enables that bundle. Context7: a new plugin toolset defaults to enabled until `hermes tools` disables it. Still list it in the bundle so the profile is explicit.
 
-The next profile invents its own toolset id. It does not enable `research-bot`.
+The next profile invents its own toolset id. It does not enable `hdr` unless it independently needs HDR.
 
 ### Step 5 — MCP (only if the plugin must call a server)
 
@@ -318,20 +321,22 @@ Official MCP guide says the model *can* use MCP tools like normal tools. This li
 
 ### Step 6 — Skills that require **this** profile's toolset
 
-Each workflow skill:
+Each workflow skill. Gating keys sit under `metadata.hermes` (G16). Flat top-level `requires_*` is the wrong shape.
 
 ```yaml
-requires_toolsets:
-  - <this-profile-toolset>
-requires_tools:
-  - <exact registered names the Procedure calls>
-related_skills:
-  - <this profile's other workflow skills>
+metadata:
+  hermes:
+    requires_toolsets:
+      - <this-profile-toolset>
+    requires_tools:
+      - <exact registered names the Procedure calls>
+    related_skills:
+      - <this profile's other workflow skills>
 ```
 
-If you write `requires_toolsets: [research-bot]` on a different profile's skill, that skill will be **hidden** on the new profile. That is correct: the new profile does not have research-bot's tools.
+If you write `requires_toolsets: [hdr]` on a different profile's skill, that skill will be **hidden** on the new profile. That is correct: the new profile does not have hdr's tools.
 
-Do not put `CONTEXT7_API_KEY` in skill env. Do not add a blueprint unless a scheduled job was requested. `research-bot` skills require `resolve_library`, `docs_query`, and `cite_source` by those exact registered names. Their Procedure also names the builtins `web_search` and `web_extract`.
+Do not put `CONTEXT7_API_KEY` in skill env. Do not add a blueprint unless a scheduled job was requested. `research-bot` skills gate on `hdr` plus the tools each Procedure calls (`research_plan`, `gap_scan`, `evidence_*`, `claim_verify`, `cite_source`, `delegate_task`, and others). Their Procedure also names the builtins `web_search` and `web_extract` when they use the web.
 
 ### Step 7 — Memory (one paragraph, then stop)
 
@@ -347,7 +352,7 @@ Prefer the Hermes Honcho tool table (`honcho_profile`, `honcho_search`, `honcho_
 
 | File | Role |
 | --- | --- |
-| `distribution.yaml` | `name`, `description`, `version`, `hermes_min_version`, `distribution_owned` (include `plugins` if you ship one) |
+| `distribution.yaml` | `name`, `description`, `version`, `hermes_requires` (official examples `>=0.12.0` / `>=0.13.0`; not an invented `0.14.0`), `distribution_owned` (include `plugins` if you ship one) |
 | `config.yaml` | `model`, `memory.provider: honcho`, `toolsets`, `custom_toolsets`, `mcp_servers`, `plugins.enabled: [<this-plugin>]` if any |
 | `mcp.json` | MCP servers this plugin may call |
 | `SOUL.md` | Identity only |
@@ -396,7 +401,7 @@ Customize via SOUL / MEMORY / USER / project context / skills / optional system 
 
 ### Tool path
 
-Official agent-loop: agent-level tools `todo`, `memory`, `session_search`, `delegate_task` are intercepted **before** `handle_function_call` / registry. They return synthetic results. **Do not** rely on `pre_tool_call` / `post_tool_call` to police them.
+Official agent-loop: agent-level tools `todo`, `memory`, `session_search`, `delegate_task` are intercepted **before** `handle_function_call` / registry. They return synthetic results. Official hooks page: `pre_tool_call` **can** block `delegate_task`. The hdr governor does that on AMBER/RED/HARD. A `pre_tool_call` block on `memory` is ineffective.
 
 Registry tools: resolve `tools/registry.py` → `pre_tool_call` → `approval.py` if dangerous → handler → `post_tool_call` → append `role=tool`. Multiple `tool_calls` run concurrent `ThreadPoolExecutor`; interactive tools (`clarify`) force sequential; results reinserted in original order. Ledger writes must be thread-safe.
 
@@ -410,9 +415,9 @@ Interrupt abandons the API thread; no partial response enters history.
 
 Preflight if conversation >50% of the context window. Gateway auto-compression >85% between turns.
 
-Order: flush memory to disk **first**, summarize middle turns, keep `protect_last_n` (default 20), never split tool/result pairs, generate a new session lineage id (child session).
+Order: flush memory to disk **first**, summarize middle turns, keep `protect_last_n` (default 20), never split tool/result pairs.
 
-**Overlap flag:** the [context-compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) page also documents `in_place: true` as a default. Agent-loop (the page James locked) says compression creates a **child** session. Do not code a dependency on `in_place`. A durable store must survive child-session lineage: `<HERMES_HOME>/plugin-data/<plugin>/`, not keyed only to a discarded session id.
+**G22 — `in_place` is `[DOC]`.** Official compression page: `compression.in_place` default is `true`. Pre-compaction turns are soft-archived under the same session id. HDR sets `in_place: true`. A durable store still lives in `<HERMES_HOME>/plugin-data/<plugin-id>/`, not keyed only to a session id. See `docs/HERMES-FACTS.md`.
 
 After each turn: session SQLite persist; `MEMORY.md` / `USER.md` flush. Honcho is `memory.provider` — do not also write a parallel `MEMORY.md` personality from a profile plugin.
 
@@ -446,11 +451,9 @@ Children know nothing of the parent conversation. `goal` and `context` must be c
 
 Children inherit the parent's enabled toolsets. Official: `delegate_task` has no model-facing `toolsets` parameter. It cannot grant extra capabilities. Configure the parent's tools first.
 
-Hermes strips `clarify`, `memory`, and `send_message` from children. The user-guide also strips `cronjob`. Children keep `execute_code` except on leaf.
+Hermes strips `clarify`, `memory`, and `send_message` from children. The user-guide also strips `cronjob`.
 
-Leaf is the default. Leaf cannot call `delegate_task`, `clarify`, `memory`, or `execute_code`. An orchestrator keeps `delegate_task` only if `delegation.max_spawn_depth` is above 1 (default 1 = flat). `orchestrator_enabled: false` forces every child to leaf.
-
-**UNVERIFIED — `execute_code`.** The same [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns) page says children keep `execute_code` and also that leaf cannot call it. [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) says both roles retain `execute_code`. This library follows the leaf block list above. Do not code a dependency on the other readings.
+**G23 — `execute_code` is `[DOC]`.** Official delegation page: both leaf and orchestrator keep `execute_code`. Leaf cannot call `delegate_task`, `clarify`, `memory`, `send_message`, or `cronjob`. An orchestrator keeps `delegate_task` only if `delegation.max_spawn_depth` is above 1 (default 1 = flat). `orchestrator_enabled: false` forces every child to leaf. See `docs/HERMES-FACTS.md`.
 
 Defaults: 3 concurrent children, 50 iterations, process-local (not durable).
 
@@ -493,7 +496,7 @@ Need the model to follow a recipe with existing Hermes tools?
   → Skill only. Stop.
 
 Need a schema the model can invoke (facade, ledger, domain verb)?
-  → This profile's plugin registers that tool. toolset = this profile's id.
+  → This profile's plugin registers that tool. toolset = this plugin's id (may differ from the profile name).
 
 Need hooks, plugin-data, or ctx.call_mcp?
   → Same plugin. Still this profile only.
@@ -518,17 +521,17 @@ Need a new Hermes core tool?
 
 | Layer | research-bot value | Next profile |
 | --- | --- | --- |
-| Plugin | `agents/research-bot/plugins/research-bot/` | Empty unless *it* needs tools |
-| `plugins.enabled` | `[research-bot]` | `[<its-plugin>]` or omit |
-| Toolset | `research-bot` | Its own id |
+| Plugin | `agents/research-bot/plugins/hdr/` | Empty unless *it* needs tools. Invent its own plugin id. |
+| `plugins.enabled` | `[hdr]` | `[<its-plugin-id>]` or omit |
+| Toolset | `hdr` | Its own id. Do not enable `hdr` unless it independently needs HDR. |
 | MCP | server `context7`; `mcp_allowlist: [context7]` | Only if *it* calls a server |
-| Skills | `literature-review`, `source-triage`, `claim-check` | Its own recipes |
-| Skill gate | `requires_toolsets: [research-bot]` + `requires_tools: [resolve_library, docs_query, cite_source]`. Procedure also names `web_search` / `web_extract`. | `requires_toolsets: [<its-toolset>]` + that profile's registered names |
-| Bundle | `custom_toolsets.research` includes `web` and `research-bot` | Its own bundle. Keep the locked gather `web:` block if it uses the web. |
+| Skills | `deep-research-run`, `source-triage`, `claim-audit`, `literature-sweep`, `web-fallback-fetch` | Its own recipes |
+| Skill gate | `metadata.hermes.requires_toolsets: [hdr, …]` + the tools that Procedure calls | `metadata.hermes.requires_toolsets: [<its-toolset>]` + that profile's registered names |
+| Bundle | `custom_toolsets.research` includes `web`, `browser`, `delegation`, `hdr`, and the rest of the HDR list | Its own bundle. Keep the locked gather `web:` block if it uses the web. |
 | Facade tools | `resolve_library`, `docs_query` | Whatever *it* registers |
-| Ledger tools | `source_ledger_add`, `source_ledger_list`, `cite_source`, `source_ledger_check` | Only if *it* needs a ledger |
+| Ledger tools | `evidence_add`, `evidence_search`, `evidence_read`, `evidence_stats`, `claim_verify`, `cite_source` | Only if *it* needs a ledger |
 
-The research-bot plugin also registers hooks (this profile only): `on_session_start` inits the ledger; `pre_llm_call` injects the contract + digest on the **user** message; `pre_tool_call` blocks product-code writes and scaffolding terminal (does not police `todo`/`memory`/`session_search`/`delegate_task`); `post_tool_call` backup-harvests `resolve_library` / `docs_query`, not `mcp_*`. Ledger path is profile `plugin-data/`, not a session id.
+The **hdr** plugin also registers hooks (this profile only): `on_session_start` inits the ledger; `pre_llm_call` injects the contract + digest on the **user** message; `transform_tool_result` is the Evidence Bus; `pre_tool_call` is dedupe, write allowlist, Citation Gate, and the governor. The governor **can** block `delegate_task` on AMBER, RED, or HARD. `post_tool_call` backup-harvests `resolve_library` / `docs_query`, not `mcp_*`. Ledger path is profile `plugin-data/hdr/`, not a session id.
 
 SOUL does not tell the model to query Context7 MCP directly.
 

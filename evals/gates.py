@@ -4,14 +4,33 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 _SID = re.compile(r"\[S(\d+)\]")
 _STAT = re.compile(
     r"(\d+(?:\.\d+)?\s*%|\b(19|20)\d{2}\b|\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b)"
 )
 _SPLIT = re.compile(r"(?<=[.!?])\s+")
+
+_VERIFY: Callable[[str, str], dict[str, Any]] | None = None
+
+
+def _verify_claim(claim: str, corpus_text: str) -> dict[str, Any]:
+    """Exact-span check. Same function as the hdr plugin (`store.spans.verify_claim`)."""
+    global _VERIFY
+    if _VERIFY is None:
+        root = Path(__file__).resolve().parents[1]
+        tests = root / "tests"
+        if str(root) not in sys.path:
+            sys.path.insert(0, str(root))
+        if str(tests) not in sys.path:
+            sys.path.insert(0, str(tests))
+        from test_hdr_plugin import _load_plugin_package
+
+        _VERIFY = _load_plugin_package().store.spans.verify_claim
+    return _VERIFY(claim, corpus_text)
 
 
 def _calibration_line(sentence: str) -> bool:
@@ -77,7 +96,7 @@ def check_run(run_dir: Path) -> list[str]:
     wall = float(audit.get("wall_seconds") or 0)
     budget = float(audit.get("tier_budget_seconds") or 1)
     if wall > budget:
-        errors.append(f"wall {wall} exceeds tier budget {budget}")
+        errors.append(f"wall {wall} exceeds recorded tier budget {budget} (per-run, not a percentile)")
     errors.extend(_unsupported_claims(brief, run_dir, sources))
     return errors
 
@@ -87,6 +106,7 @@ def _unsupported_claims(
     run_dir: Path,
     sources: dict[str, Any],
 ) -> list[str]:
+    """claim_verify unsupported in the final brief = 0. Exact span, not lexical overlap."""
     from test_hdr_plugin import _load_plugin_package
 
     span_mod = _load_plugin_package().store.spans
@@ -104,7 +124,10 @@ def _unsupported_claims(
             corpus = src.get("corpus")
             if not corpus:
                 continue
-            text = (run_dir / str(corpus)).read_text(encoding="utf-8")
+            path = run_dir / str(corpus)
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
             quotes = " ".join(
                 str(item.get("q") or "")
                 for item in (src.get("spans") or [])
@@ -113,6 +136,7 @@ def _unsupported_claims(
             check = span_mod.verify_claim(claim, text, quote_text=quotes)
             if check.get("exact"):
                 supported = True
+                break
         if not supported:
             errors.append(f"unsupported cited sentence: {sentence.strip()[:80]}")
     return errors
@@ -142,6 +166,15 @@ def check_brief_against_plugin(brief: str, pkg: Any) -> list[str]:
     return errors
 
 
-def all_fixture_runs(root: Path | None = None) -> list[Path]:
+def happy_fixture_runs(root: Path | None = None) -> list[Path]:
+    """Authored happy-path runs only. Negatives live under fixtures/negatives/."""
     base = root or Path(__file__).resolve().parent / "fixtures"
-    return sorted(path for path in base.iterdir() if path.is_dir())
+    return sorted(
+        path
+        for path in base.iterdir()
+        if path.is_dir() and path.name.startswith("run_")
+    )
+
+
+def all_fixture_runs(root: Path | None = None) -> list[Path]:
+    return happy_fixture_runs(root)

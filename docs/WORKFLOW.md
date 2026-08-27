@@ -26,22 +26,23 @@ Never invent a `config.yaml` / `honcho.json` / `distribution.yaml` / `plugin.yam
 
 Follow the playbook checklist. Short version:
 
-- New agent: `agents/<name>/` with `distribution.yaml` at that directory’s root. That agent’s own `plugins/<name>/` **only if** it needs process code. `plugins.enabled: [<name>]`. Claim `plugins` in `distribution_owned`.
-- Skills in `agents/<name>/skills/`. Normal index. `requires_toolsets` / `requires_tools` of tools **this** plugin registers. Do not require another profile’s toolset.
-- No repo-root `plugins/` folder. Live process code lives only in `agents/<name>/plugins/<name>/`. Zero imports from another agent’s plugin. Toolset `research-bot` stays on that profile only. The next profile starts empty of `research-bot`’s plugin, tools, and skills.
-- Gather stays the official builtins. `web_search` + `web_extract`. Local SearXNG for search. Local Firecrawl for extract. Keyless ring off. Do not register a search tool.
+- New agent: `agents/<name>/` with `distribution.yaml` at that directory’s root. That agent’s own `plugins/<plugin-id>/` **only if** it needs process code. `plugins.enabled: [<plugin-id>]`. The id may differ from the profile name. Claim `plugins` in `distribution_owned`.
+- Skills in `agents/<name>/skills/`. Normal index. `metadata.hermes.requires_toolsets` / `requires_tools` of tools **this** plugin registers. Do not require another profile’s toolset.
+- No repo-root `plugins/` folder. Live process code lives only in `agents/<name>/plugins/<plugin-id>/`. Zero imports from another agent’s plugin. Toolset `hdr` stays on research-bot only. The next profile starts empty of `research-bot`’s plugin, tools, and skills.
+- Gather stays the official builtins. `web_search` + `web_extract`. Local SearXNG for search. Local Firecrawl for extract. `keyless_fallback` and `keyless_rescue` are **true**. Do not register a search tool.
 - Cron / blueprint: suggestion only. Official: distribution cron is not auto-scheduled.
 
-Local doctor (not CI). Official: [Plugins](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins) — `hermes plugins doctor [path-or-id]` runs the same discovery, manifest parse, `register(ctx)`, and registries Hermes uses. `--ci` exits non-zero on error. Doctor is not a sandbox.
+On Hermes 0.19.0, `hermes plugins` has no `doctor` action. Use list commands (local, not CI):
 
 ```bash
-hermes plugins doctor ~/.hermes/profiles/<name>/plugins/<name> --ci
+hermes -p <name> plugins list
+hermes -p <name> tools list
 ```
 
 Skill smoke (local, not CI). Official: [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills):
 
 ```bash
-hermes chat --toolsets skills -q "Use the literature-review skill to survey Hermes profiles"
+hermes chat --toolsets skills -q "Use the deep-research-run skill to survey Hermes profiles"
 ```
 
 ## PR

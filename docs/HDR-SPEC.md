@@ -9,6 +9,8 @@
 
 ## 0. How to read this document
 
+**Superseded knobs:** `docs/HERMES-FACTS.md` wins over leftover install text in this spec. Do not re-add a `moa` toolset, invented academic MCP servers (`openalex` / `pubmed` / `wayback`), `hermes_requires: ">=0.14.0"`, `hermes plugins doctor`, or a repo-root multi-profile index. P1 `/tools list` must not require `moa`. Official MoA is a provider.
+
 Every claim about Hermes carries a status tag. Do not implement an `UNVERIFIED` item without checking the live doc first.
 
 | Tag | Meaning |
@@ -352,7 +354,7 @@ custom_toolsets:
     - todo           # visible plan surface
     - clarify        # one scoping question, Gemini-style plan review
     - delegation     # ← the S1 fix: fan-out
-    - moa            # cross-model verification pass
+    - moa            # SUPERSEDED by HERMES-FACTS: no moa toolset. MoA is a provider.
     - cronjob        # standing research watches
     - hdr            # this plugin's toolset
 
@@ -365,7 +367,7 @@ plugins:
   stream_reasoning_deltas: false
   entries:
     hdr:
-      mcp_allowlist: [context7, openalex, pubmed, wayback]
+      mcp_allowlist: [context7]  # SUPERSEDED: no invented openalex/pubmed/wayback Hermes MCP. See HERMES-FACTS.
       settings:
         citation_style: apa
         default_tier: standard
@@ -390,9 +392,9 @@ plugins:
 | Server | Covers | Facade tool |
 | --- | --- | --- |
 | `context7` | library/SDK docs | `docs_query`, `resolve_library` |
-| `openalex` `[UNV]` | works, authors, citation counts, OA links | `scholar_search` |
-| `pubmed` `[UNV]` | biomedical literature | `scholar_search` (routed) |
-| `wayback` `[UNV]` | dead links, "what did this page say in March" | `archive_lookup` |
+| `openalex` | **SUPERSEDED by HERMES-FACTS — removed.** Not a first-party Hermes MCP. `scholar_search` uses HTTP. | `scholar_search` |
+| `pubmed` | **SUPERSEDED — removed.** Same as above. | `scholar_search` (HTTP) |
+| `wayback` | **SUPERSEDED — removed.** `archive_lookup` uses HTTP. | `archive_lookup` |
 
 If a server is unavailable, the facade degrades to the HTTP path in the matching skill (§6.4) rather than erroring — availability is a runtime condition, not a run-ending one. Keep `mcp_allowlist` explicit; no wildcards. Do not set `tools.include: []` (empty include reads as unset) and do not set `enabled: false` (it skips connection and breaks `ctx.call_mcp`).
 
@@ -457,11 +459,8 @@ Keep Honcho as the memory provider; constrain what it is for.
 name: research-bot
 version: 2.0.0
 description: "Plans, fans out, verifies, and writes cited research briefs. Does not write product code."
-hermes_requires: ">=0.14.0"     # [UNV] set to the floor that has
-                                # register_system_prompt_section,
-                                # transform_tool_result, transform_llm_output,
-                                # compression.proactive_prune_tokens,
-                                # agent.run_budget_seconds
+hermes_requires: ">=0.13.0"     # SUPERSEDED by HERMES-FACTS: 0.14.0 was [UNV] and removed.
+                                # Official examples are >=0.12.0 and >=0.13.0.
 author: "James Fincher"
 license: "Apache-2.0"
 
@@ -478,9 +477,9 @@ distribution_owned:
   - .gitignore
 ```
 
-- Add a **repo-root `distribution.yaml`** or a documented multi-profile index so GitHub-URL install can see profiles (G21).
+- **SUPERSEDED by HERMES-FACTS:** do not add a repo-root `distribution.yaml` or invent a multi-profile index. Official GitHub-URL install copies the repo root as one payload. Path install is the supported path (G21 closed by that STOP).
 - `plugin-data/` is not part of the install tree and survives `hermes profile update`. Ledger schema changes must therefore be handled by a migration in `store/ledger.py` keyed on the file's `version` field.
-- Post-install: copy `.env.EXAMPLE`, merge `honcho.json.example`, `hermes memory setup`, then `hermes plugins doctor <profile>/plugins/hdr --ci`.
+- Post-install: copy `.env.EXAMPLE`, merge `honcho.json.example`, `hermes memory setup`. **SUPERSEDED:** `hermes plugins doctor` is not a command on 0.19.0. Use `hermes -p research-bot plugins list` and `hermes -p research-bot tools list`.
 
 ---
 
@@ -794,11 +793,11 @@ Structure-only CI is not evidence that a research agent researches.
 | Claims with statistics and no marker | 0 |
 | `claim_verify` unsupported in the final brief | 0 |
 | Duplicate fetches of the same canonical URL | 0 |
-| Tokens per registered tier-A/B source | ≤ 8 k, tracked as a trend |
-| Wall clock within tier budget | 95th percentile |
+| Tokens per registered tier-A/B source | ≤ 8 k on the recorded fixture (not a trend series) |
+| Wall clock within the recorded tier budget | per fixture run (not a 95th percentile) |
 | Corpus files with no ledger entry, or vice versa | 0 |
 
-**Regression harness:** record fixtures (search results, page bodies) so the deterministic gates run offline in CI. The judge runs nightly, not per commit.
+**Regression harness:** record fixtures (search results, page bodies) so the deterministic gates run offline in CI. `evals/nightly_judge.py` is on-demand mechanical unless a host cron sets `HDR_JUDGE_MODEL`. Do not invent a model id.
 
 ---
 
@@ -809,7 +808,7 @@ Each phase is independently mergeable and independently testable. Do not start a
 | # | Phase | Deliverable | Acceptance |
 | --- | --- | --- | --- |
 | P0 | Doc probe | `docs/HERMES-FACTS.md`: for every `[DOC]` and `[UNV]` tag here, the URL, the quoted knob name, and the version it appeared in | Every `[UNV]` in this spec is resolved to `[DOC]` or removed |
-| P1 | Config + surfaces | `config.yaml` v2, toolset bundle, `distribution.yaml` v2, repo-root distribution index | `hermes profile install` succeeds; `/tools list` shows delegation, browser, vision, code_execution, moa, clarify, todo, hdr |
+| P1 | Config + surfaces | `config.yaml` v2, toolset bundle, `distribution.yaml` v2. **SUPERSEDED:** no repo-root index (HERMES-FACTS). | `hermes profile install` succeeds; `/tools list` shows delegation, browser, vision, code_execution, clarify, todo, hdr. **SUPERSEDED:** do not require `moa` (no moa toolset). |
 | P2 | Store layer | `store/` + schema v2 + v1 migration, no hooks yet, unit-tested | Migration is idempotent; concurrent writes from 8 threads lose nothing |
 | P3 | Evidence Bus | `transform_tool_result` intake, canonicalization, extraction, tiering, spans | A 40 k-char page yields a card ≤400 tokens; corpus round-trips byte-exact; hook fails open on malformed input |
 | P4 | Policy engine | `pre_tool_call`: dedupe fence, write allowlist, Citation Gate | Second fetch of the same URL is blocked with a card reference; a brief with an unresolvable `[S#]` is refused with the offending sentence quoted |
@@ -841,6 +840,6 @@ State these in the shipped README. A spec that hides its edges produces a profil
 - Source tiering is a heuristic over domains and metadata. It will misclassify a good preprint and flatter a bad institutional blog.
 - The Evidence Bus can only distil what the extractor returned. A page that renders its substance in canvas or images degrades to `vision_analyze`, which is lossy and costs tokens.
 - Prompt-injection handling is defence in depth, not a proof. The Docker backend is the boundary that matters; the sanitizer only reduces frequency.
-- Children writing to a shared ledger is `[INF]` until P0 verifies `HERMES_HOME` resolution for subagents. The transcript-grep backstop exists because of that uncertainty.
+- Children writing to a shared ledger: **SUPERSEDED by HERMES-FACTS.** P0 resolved profile-home `plugin-data/` and live transcripts as `[DOC]`. The transcript-grep backstop stays.
 - Budget numbers in §3.6 are starting points calibrated to nothing yet. P10 replaces them with measurements.
 - Cross-model MoA verification is only as good as the second model's independence; two models from the same family agreeing is weak evidence.
