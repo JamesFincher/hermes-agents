@@ -441,6 +441,8 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
             "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
             "https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api",
             "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
+            "https://hermes-agent.nousresearch.com/docs/user-guide/features/tools",
+            "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
         ):
             if url not in factory_text:
                 fail(f"{factory_integration.relative_to(ROOT)} must cite {url}")
@@ -456,6 +458,8 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
             "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
             "https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api",
             "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
+            "https://hermes-agent.nousresearch.com/docs/user-guide/features/tools",
+            "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
         ):
             if url not in integration_text:
                 fail(f"{integration.relative_to(ROOT)} must cite {url}")

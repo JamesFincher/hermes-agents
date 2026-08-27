@@ -24,6 +24,10 @@ Say: "the research-bot plugin registers the `resolve_library` tool." Never colla
 | Plugin LLM Access | https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access |
 | Subagent Lifecycle API | https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api |
 | Memory Provider Plugin | https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin |
+| Tools (user) | https://hermes-agent.nousresearch.com/docs/user-guide/features/tools |
+| Toolsets Reference | https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference |
+
+Context7 library this pass: `/nousresearch/hermes-agent` (resolve + query-docs). Official pages above are the join. Do not invent knobs.
 
 | Layer | This profile |
 | --- | --- |
@@ -64,9 +68,18 @@ https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access
 
 The adding-tools page is **built-in core only** (`tools/` + `toolsets.py`). A custom tool **must** be registered by this profile's plugin (`ctx.register_tool`). Never patch Hermes core.
 
+Context7 (`/nousresearch/hermes-agent`) + https://hermes-agent.nousresearch.com/docs/developer-guide/plugins:
+
+- `ctx.register_tool(name, toolset, schema, handler, check_fn=None, requires_env=None, is_async=False, description="", emoji="", override=False)`
+- Schema is flat: `{name, description, parameters:{type:object, properties, required}}`
+- Handler: `(args: dict, **kwargs) -> str`. Always `json.dumps`. Errors `{"error":"..."}`. Never raise. `task_id = kwargs.get("task_id")`
+- `check_fn` False hides the tool from the model
+- Every tool belongs to **exactly one** toolset. A tool is visible only when that toolset is enabled
+- This plugin registers its tools with `toolset="research-bot"` (this profile only)
+
 Native path: `plugin.yaml` + `__init__.py` `register(ctx)`. Not Portable Agent Plugins v1 (`plugin.json`). This plugin is the host package. It **registers** tools, hooks, and settings. It is not itself a tool.
 
-Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema descriptions say **when to call** `resolve_library` / `docs_query` / `cite_source`. Handlers return a `json.dumps` string, never raise, take `**kwargs`, read `task_id` from kwargs. Ledger writes are thread-safe (`plugin-data/`, concurrent tool pool).
+Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema descriptions say **when to call** `resolve_library` / `docs_query` / `cite_source`. Ledger writes are thread-safe (`plugin-data/`, concurrent tool pool).
 
 `distribution_owned` includes `plugins/` so install copies a flat `research-bot` plugin into this profile’s `HERMES_HOME`.
 
@@ -78,13 +91,15 @@ Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema d
 
 The model invokes tools. Context7 is a connected MCP server the **plugin** calls; it is not a skill and not a Hermes tool.
 
-- Server name: `context7`. Do not set `tools.include: []` or `enabled: false`.
-- `ctx.call_mcp("context7", "resolve-library-id", …)` and `ctx.call_mcp("context7", "query-docs", …)` — unsanitized MCP names.
-- The research-bot plugin registers `resolve_library` and `docs_query`; those are the tools the model calls for Context7.
-- `plugins.entries.research-bot.mcp_allowlist: [context7]`. No wildcards.
-- Skills and the user-message contract forbid raw `mcp_*`. Do not put `CONTEXT7_API_KEY` on a skill.
+Context7 (`/nousresearch/hermes-agent`) + official MCP/plugin pages:
 
-Sanitize of MCP-named tools is **UNVERIFIED**. Do not harvest or block raw `mcp_*`.
+- Server name: `context7`. Do not set `tools.include: []` (empty include is treated as unset). Do not set `enabled: false`.
+- `ctx.call_mcp(server, tool, args, timeout=…)` — timeout clamped 1–600s. Envelope: `{ok, result}` or `{ok, error}`.
+- This plugin calls unsanitized MCP names: `resolve-library-id`, `query-docs`.
+- The research-bot plugin registers `resolve_library` and `docs_query`; those are the tools the model calls for Context7.
+- User-guide MCP + native-mcp: model-facing MCP names look like `mcp_<server>_<tool>` (hyphens → underscores). Do not harvest or block those names. Skills `requires_tools` use facade names only.
+- `plugins.entries.research-bot.mcp_allowlist: [context7]`. No wildcards.
+- Do not put `CONTEXT7_API_KEY` on a skill.
 
 ---
 

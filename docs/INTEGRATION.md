@@ -20,6 +20,10 @@ Each profile is its own `HERMES_HOME`. Repo-root `plugins/` must not exist. Live
 - https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access
 - https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api
 - https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin
+- https://hermes-agent.nousresearch.com/docs/user-guide/features/tools
+- https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference
+
+Context7 this pass: `/nousresearch/hermes-agent`. A **tool** is a registry schema + handler (`ctx.register_tool`). It is not a plugin and not a skill. Custom tools use the plugin route, not `tools/` + `toolsets.py`. Every tool belongs to one toolset. `ctx.call_mcp` returns `{ok, result}` or `{ok, error}`.
 
 ## Settled: memory
 

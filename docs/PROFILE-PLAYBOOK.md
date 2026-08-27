@@ -163,13 +163,14 @@ The next profile does **not** copy this plugin. If it needs tools, it writes `ag
 
 ### Step 4 — This profile's toolset
 
-Official: [User Guide — Tools](https://hermes-agent.org/docs/user-guide/features/tools/), [Toolsets Reference](https://hermes-agent.org/docs/reference/toolsets-reference/).
+Official: [User Guide — Tools](https://hermes-agent.nousresearch.com/docs/user-guide/features/tools), [Toolsets Reference](https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference). Context7: `/nousresearch/hermes-agent`.
 
-- Built-in toolset ids include `web`, `search`, `terminal`, `file`, `browser`, `image`, `tts`, `cron`, `code_execution`, `memory`, `todo`, `session_search`, `skills`, `delegation`.
-- `platform_toolsets.cli` was **not found** in official docs. Official knobs are `toolsets` and `custom_toolsets`. The CLI default bundle name is `hermes-cli`.
-- This profile invents **one** toolset id, typically the profile name (`research-bot`). Plugin-registered tools use `toolset="<name>"`.
+- Every tool belongs to exactly one toolset. Enabling a toolset shows all of its tools.
+- Official builtin toolset ids include `web`, `search`, `terminal`, `file`, `browser`, `vision`, `image_gen`, `skills`, `tts`, `todo`, `memory`, `session_search`, `cronjob`, `code_execution`, `delegation`, `clarify`. CLI default bundle: `hermes-cli`.
+- `platform_toolsets.cli` was **not found**. Official knobs are `toolsets` and `custom_toolsets`.
+- This profile invents **one** toolset id, typically the profile name (`research-bot`). The plugin registers each tool with `toolset="<name>"`.
 - `custom_toolsets.<bundle>` is a **bundle of toolset ids**, not a list of tool names. Include `skills` plus the builtins the workflow needs plus **this profile's** toolset.
-- `toolsets: [<bundle>]` enables that bundle.
+- `toolsets: [<bundle>]` enables that bundle. Context7: a new plugin toolset defaults to enabled until `hermes tools` disables it. Still list it in the bundle so the profile is explicit.
 
 The next profile invents its own toolset id. It does not enable `research-bot`.
 
@@ -182,14 +183,14 @@ Keep Context7 (or whatever server) as `url` + `${env:CONTEXT7_API_KEY}` (or that
 Do **not** set `tools.include: []`. Official: empty include is treated as unset (all tools).
 Do **not** set `enabled: false`. Official: skipped entirely; `ctx.call_mcp` cannot reach it.
 
-`ctx.call_mcp(server, tool, arguments)` is the guaranteed plugin↔MCP join. Server = `mcp.json` name (`context7`). Tool = **unsanitized** MCP name (`resolve-library-id`, `query-docs`).
+`ctx.call_mcp(server, tool, arguments)` is the guaranteed plugin↔MCP join. Server = `mcp.json` name (`context7`). Tool = **unsanitized** MCP name (`resolve-library-id`, `query-docs`). Context7: the call returns `{ok, result}` or `{ok, error}`; optional `timeout` is clamped 1–600s.
 
 **Sanitize conflict — UNVERIFIED, do not code a dependency:**
 
 | Source | Pattern | Implied Context7 name |
 | --- | --- | --- |
-| User-guide MCP + native-mcp.md | `mcp_{server}_{tool}`, hyphens → underscores | `mcp_context7_resolve_library_id` |
-| MCP page example `create-issue` | hyphen kept in the example table | `mcp_github_create_issue` |
+| Context7 `/nousresearch/hermes-agent` + user-guide MCP + native-mcp.md | `mcp_<server>_<tool>`, hyphens → underscores | `mcp_context7_resolve_library_id` |
+| MCP page example `create-issue` | hyphen kept in one table | `mcp_github_create_issue` |
 | mcp-config-reference | `mcp__<server>__<tool>` | `mcp__context7__resolve-library-id` |
 
 Skills `requires_tools` use **facade** names (`resolve_library`), never `mcp_*`.

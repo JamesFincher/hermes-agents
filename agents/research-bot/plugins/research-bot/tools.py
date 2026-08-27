@@ -2,10 +2,12 @@
 
 This module is not a plugin and not a skill.
 
-Official adding-tools danger box: return json.dumps string, never a dict;
-errors are {"error": "..."}, never raise; handler(args: dict, **kwargs);
-task_id = kwargs.get("task_id").
+Official adding-tools danger box + Context7 /nousresearch/hermes-agent:
+return json.dumps string, never a dict; errors are {"error": "..."};
+never raise; handler(args: dict, **kwargs); task_id = kwargs.get("task_id").
+ctx.call_mcp returns {ok, result} or {ok, error}.
 https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools
+https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 """
 
 from __future__ import annotations
