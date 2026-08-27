@@ -175,6 +175,7 @@ def check_no_repo_root_plugin_package() -> None:
 def check_no_foreign_research_bot_imports() -> None:
     skip_roots = {
         ROOT / "agents" / "research-bot" / "plugins" / "research-bot",
+        ROOT / "agents" / "research-bot" / "plugins" / "hdr",
         ROOT / "tests",
     }
     needle = re.compile(
@@ -325,9 +326,14 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
             f"{plugin_yaml.relative_to(ROOT)} must be a general plugin; "
             "Honcho is memory.provider"
         )
-    for required_py in ("__init__.py", "schemas.py", "tools.py"):
+    for required_py in ("__init__.py", "schemas.py"):
         if not (plugin_dir / required_py).is_file():
             fail(f"{plugin_dir.relative_to(ROOT)} missing {required_py}")
+    tools_ok = (plugin_dir / "tools.py").is_file() or (plugin_dir / "tools" / "__init__.py").is_file()
+    if not tools_ok:
+        fail(f"{plugin_dir.relative_to(ROOT)} missing tools.py or tools/__init__.py")
+    if (plugin_dir / "tools.py").is_file() and (plugin_dir / "tools" / "__init__.py").is_file():
+        fail(f"{plugin_dir.relative_to(ROOT)} cannot ship both tools.py and tools/")
     if not (plugin_dir / "__init__.py").is_file():
         return
     init_text = (plugin_dir / "__init__.py").read_text(encoding="utf-8")
@@ -396,10 +402,43 @@ def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
             fail(f"{agent_dir.name} web.search_backend must be 'searxng'")
         if web.get("extract_backend") != "firecrawl":
             fail(f"{agent_dir.name} web.extract_backend must be 'firecrawl'")
-        if web.get("keyless_fallback") is not False:
-            fail(f"{agent_dir.name} web.keyless_fallback must be false")
-        if web.get("keyless_rescue") is not False:
-            fail(f"{agent_dir.name} web.keyless_rescue must be false")
+        if web.get("keyless_fallback") is not True:
+            fail(f"{agent_dir.name} web.keyless_fallback must be true (HDR v2 degrade, not die)")
+        if web.get("keyless_rescue") is not True:
+            fail(f"{agent_dir.name} web.keyless_rescue must be true")
+        if web.get("search_backend") == "searxng" and agent_dir.name == "research-bot":
+            bundled = []
+            custom = config.get("custom_toolsets") or {}
+            if isinstance(custom, dict):
+                for names in custom.values():
+                    if isinstance(names, list):
+                        bundled.extend(str(item) for item in names)
+            for needed in (
+                "web",
+                "browser",
+                "vision",
+                "file",
+                "terminal",
+                "code_execution",
+                "skills",
+                "memory",
+                "session_search",
+                "todo",
+                "clarify",
+                "delegation",
+                "cronjob",
+                "hdr",
+            ):
+                if needed not in bundled:
+                    fail(f"{agent_dir.name} custom_toolsets.research must include {needed!r}")
+            if "moa" in bundled:
+                fail(
+                    f"{agent_dir.name} must not list toolset moa "
+                    "(official: no moa toolset; MoA is a provider)"
+                )
+            plugins_enabled = (config.get("plugins") or {}).get("enabled") or []
+            if plugins_enabled != ["hdr"]:
+                fail(f"{agent_dir.name} plugins.enabled must be [hdr]")
     plugins_cfg = config.get("plugins") or {}
     if not isinstance(plugins_cfg, dict):
         plugins_cfg = {}
@@ -578,6 +617,21 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
         skill_files = list(skills.glob("*/SKILL.md"))
         if not skill_files:
             fail(f"{agent_dir.name}/skills has no SKILL.md files")
+        if agent_dir.name == "research-bot":
+            present = {path.parent.name for path in skill_files}
+            expected = {
+                "deep-research-run",
+                "source-triage",
+                "claim-audit",
+                "literature-sweep",
+                "web-fallback-fetch",
+            }
+            missing = expected - present
+            extra = present - expected
+            if missing:
+                fail(f"{agent_dir.name} missing HDR skills: {sorted(missing)}")
+            if extra:
+                fail(f"{agent_dir.name} unexpected skills: {sorted(extra)}")
         for skill_md in skill_files:
             front = check_skill(skill_md)
             if not isinstance(front, dict):
@@ -621,39 +675,65 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                     "unless a scheduled job was requested"
                 )
             if agent_dir.name == "research-bot":
+                skill_name = str(front.get("name") or skill_md.parent.name)
+                expected_skills = {
+                    "deep-research-run",
+                    "source-triage",
+                    "claim-audit",
+                    "literature-sweep",
+                    "web-fallback-fetch",
+                }
+                if skill_name not in expected_skills:
+                    fail(
+                        f"{skill_md.relative_to(ROOT)} unexpected skill {skill_name!r}; "
+                        f"HDR ships {sorted(expected_skills)}"
+                    )
                 tool_names = [str(item) for item in tools]
-                for needed in ("resolve_library", "docs_query", "cite_source"):
+                required_by_skill = {
+                    "deep-research-run": [
+                        "research_plan",
+                        "gap_scan",
+                        "cite_source",
+                        "delegate_task",
+                    ],
+                    "source-triage": ["evidence_add", "evidence_search"],
+                    "claim-audit": ["claim_verify", "cite_source"],
+                    "literature-sweep": ["scholar_search", "evidence_add"],
+                    "web-fallback-fetch": ["archive_lookup", "evidence_add"],
+                }
+                for needed in required_by_skill.get(skill_name, []):
                     if needed not in tool_names:
                         fail(
                             f"{skill_md.relative_to(ROOT)} requires_tools must "
                             f"include {needed!r}"
                         )
-                related = [str(item) for item in (hermes.get("related_skills") or [])]
-                skill_name = str(front.get("name") or skill_md.parent.name)
-                expected_related = {
-                    "literature-review",
-                    "source-triage",
-                    "claim-check",
-                } - {skill_name}
-                for other in sorted(expected_related):
-                    if other not in related:
+                if skill_name == "deep-research-run":
+                    for needed_set in ("hdr", "delegation", "web"):
+                        if needed_set not in required:
+                            fail(
+                                f"{skill_md.relative_to(ROOT)} requires_toolsets "
+                                f"must include {needed_set!r}"
+                            )
+                if skill_name == "web-fallback-fetch":
+                    fallback = [str(item) for item in (hermes.get("fallback_for_tools") or [])]
+                    if "web_extract" not in fallback:
                         fail(
-                            f"{skill_md.relative_to(ROOT)} related_skills must "
-                            f"include {other!r}"
+                            f"{skill_md.relative_to(ROOT)} must set "
+                            "fallback_for_tools: [web_extract]"
                         )
                 body = skill_md.read_text(encoding="utf-8")
-                for named in (
-                    "resolve_library",
-                    "docs_query",
-                    "cite_source",
-                    "web_search",
-                    "web_extract",
-                    "mcp_*",
-                ):
-                    if named not in body:
-                        fail(
-                            f"{skill_md.relative_to(ROOT)} Procedure must name {named}"
-                        )
+                if "mcp_*" not in body:
+                    fail(
+                        f"{skill_md.relative_to(ROOT)} must tell the model not "
+                        "to call raw mcp_* tools"
+                    )
+                if skill_name == "source-triage" and "${HERMES_SKILL_DIR}" not in body:
+                    fail(f"{skill_md.relative_to(ROOT)} must invoke scripts via ${{HERMES_SKILL_DIR}}")
+                if skill_name == "claim-audit" and "source_ledger_check" not in body:
+                    fail(
+                        f"{skill_md.relative_to(ROOT)} must state that "
+                        "source_ledger_check is gone"
+                    )
 
 
 def main() -> int:

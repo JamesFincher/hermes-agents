@@ -8,7 +8,7 @@ Each profile’s `agents/<name>/INTEGRATION.md` is that profile’s **execution 
 
 Copy the playbook’s **method**, not another profile’s plugin, tools, or skills.
 
-Each profile is its own `HERMES_HOME`. Repo-root `plugins/` must not exist. Live process code lives only in `agents/<name>/plugins/<name>/`. Toolset `research-bot` stays on that profile only. The next profile writes its own plugin, toolset, and skills. Zero imports from `research-bot`.
+Each profile is its own `HERMES_HOME`. Repo-root `plugins/` must not exist. Live process code lives only in that profile's `agents/<name>/plugins/`. research-bot ships plugin `hdr` (toolset `hdr`). The next profile writes its own plugin, toolset, and skills. Zero imports from `hdr`.
 
 `research-bot` is planned in [`../agents/research-bot/INTEGRATION.md`](../agents/research-bot/INTEGRATION.md). Official pages (do not invent knobs):
 
@@ -36,7 +36,7 @@ Context7 this pass: `/nousresearch/hermes-agent`. A **tool** is a registry schem
 
 1. **Identity + skills index** — SOUL is tone. Skills in profile `skills/` (indexed). Stable cached tier. https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills
 2. **Dedicated native plugin** — `plugin.yaml` + `register(ctx)`. Do not patch core `tools/`. `ctx.llm` is out of band only.
-3. **MCP as backend** — `ctx.call_mcp`. The model calls tools the plugin registered (`resolve_library`, `docs_query`), not raw `mcp_*`.
+3. **MCP as backend** — `ctx.call_mcp`. The model calls facade tools the plugin registered, not raw `mcp_*`.
 4. **Agent loop + hooks** — turn-varying contract on `pre_llm_call` (user message). Do not hook-police intercepted agent tools.
 5. **Skills require that plugin’s toolset** and name those tools in Procedure.
 6. **Gather** — builtins `web_search` / `web_extract`. Local SearXNG for search. Local Firecrawl for extract. Keyless ring off. Do not add a search tool.

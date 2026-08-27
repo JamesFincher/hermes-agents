@@ -1,54 +1,42 @@
 # research-bot
 
-Independent research-partner profile. Reads source, official docs, and papers. Writes cited findings. Does not implement product code. Full walkthrough: [`docs/research-bot-deep-dive.md`](../../docs/research-bot-deep-dive.md).
+HDR v2. Plans, fans out, verifies, and writes cited research briefs. Does not write product code.
 
-This profile ships **its own** plugin at `plugins/research-bot/` (toolset `research-bot`) and research skills in the normal index. The next profile does not inherit this plugin, these tools, or these skills.
+This profile is one shelf item in the **Hermes Agent Profile Library**. Full walkthrough: [`docs/research-bot-deep-dive.md`](../../docs/research-bot-deep-dive.md). Limits: [`docs/HONEST-LIMITS.md`](../../docs/HONEST-LIMITS.md). Facts: [`docs/HERMES-FACTS.md`](../../docs/HERMES-FACTS.md). Spec: [`docs/HDR-SPEC.md`](../../docs/HDR-SPEC.md).
 
-Honcho is the memory provider: `memory.provider: honcho`, not a `plugins.enabled` entry.
+The plugin lives at `plugins/hdr/` (toolset `hdr`). Skills live in `skills/`. The next profile does not inherit them.
 
-Kanban description (also in `profile.yaml`):
+Memory provider is honcho (`memory.provider`). It is not a `plugins.enabled` entry.
 
-> Reads source + external docs + papers, writes cited findings, does not implement product code.
+Kanban text (`profile.yaml`):
+
+> Plans, fans out, verifies, and writes cited research briefs. Does not write product code.
 
 ## Install (local path)
 
-This repo has no repo-root `distribution.yaml`. GitHub-URL install of `JamesFincher/hermes-agents` will not see this profile. Install the path:
+Official GitHub-URL install copies the **repo root** as one payload. This repo has many profiles. There is no official multi-profile index. Do not invent one. Install the path:
 
 ```bash
 hermes profile install ./agents/research-bot --alias
 ```
 
-That copies this directory (including `plugins/research-bot/`) into `~/.hermes/profiles/research-bot/`. This profile is its own `HERMES_HOME`. Official layout: https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
+That copies this directory, including `plugins/hdr/`, into `~/.hermes/profiles/research-bot/`. That directory is `HERMES_HOME`.
 
-Override the local name if `research-bot` already exists:
+Override the name if `research-bot` already exists:
 
 ```bash
 hermes profile install ./agents/research-bot --name research-bot-test --alias
 ```
 
-Reserved names (rejected by the installer): `hermes`, `test`, `tmp`, `root`, `sudo`.
+Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`.
 
 ## After install
 
-1. Copy env keys the installer wrote to `.env.EXAMPLE` into the profile `.env` (or export them in the shell). See **env_requires** below.
-2. Honcho: copy `honcho.json.example` to the profile `honcho.json` (or merge the `hermes.research-bot` host block into `~/.honcho/config.json`). Put the real API key only in `.env` / `HONCHO_API_KEY` — never commit `honcho.json`. `pinUserPeer: true` is official and **gateway-only**; it does nothing on the CLI.
-3. Confirm memory provider:
-
-   ```bash
-   hermes memory status
-   ```
-
-   Expected: Honcho active. Setup wizard if needed: `hermes memory setup`.
-4. Confirm the plugin is enabled (`plugins.enabled: [research-bot]`). Optional doctor (local Hermes, not CI):
-
-   ```bash
-   hermes plugins doctor ~/.hermes/profiles/research-bot/plugins/research-bot --ci
-   ```
-5. Optional kanban text (already shipped in `profile.yaml`):
-
-   ```bash
-   hermes profile describe research-bot --text "Reads source + external docs + papers, writes cited findings, does not implement product code."
-   ```
+1. Copy env keys from `.env.EXAMPLE` into the profile `.env`. See **env_requires**.
+2. Copy `honcho.json.example` to `honcho.json` (or merge the `hermes.research-bot` host). Never commit `honcho.json`. `pinUserPeer: true` is gateway-only.
+3. `hermes memory setup` if needed. `hermes memory status` should show the provider active.
+4. Confirm `plugins.enabled: [hdr]`. Optional: `hermes plugins doctor ~/.hermes/profiles/research-bot/plugins/hdr --ci`.
+5. `/tools list` should show toolsets `web`, `browser`, `vision`, `file`, `terminal`, `code_execution`, `skills`, `memory`, `session_search`, `todo`, `clarify`, `delegation`, `cronjob`, `hdr`. There is **no `moa` toolset**. MoA is a provider.
 
 ## Update
 
@@ -56,106 +44,56 @@ Reserved names (rejected by the installer): `hermes`, `test`, `tmp`, `root`, `su
 hermes profile update research-bot
 ```
 
-`distribution_owned` includes `plugins/` so this profile’s plugin is replaced on update. `config.yaml` is preserved unless you pass `--force-config`. Memories, sessions, `.env`, `auth.json`, and `plugin-data/` are never the install tree.
+`distribution_owned` includes `plugins/`. `plugin-data/` survives the update. Ledger schema migrates on load.
 
 ## env_requires
 
+Host env only. Never commit values.
+
 | Variable | Required | Why |
 | --- | --- | --- |
-| `HONCHO_API_KEY` | no (Cloud: you still need it) | `memory.provider: honcho`. Honcho Cloud needs this key. Self-hosted uses `baseUrl` in `honcho.json` instead. |
-| `CONTEXT7_API_KEY` | no | Header `${env:CONTEXT7_API_KEY}` on the Context7 MCP server. Without it, that server will not authenticate. |
-| `SEARXNG_URL` | deploy host | Official `web.search_backend: searxng`. Set on the deploy host only (example `http://localhost:8888`). Never commit the value. |
-| `FIRECRAWL_API_URL` | deploy host | Official `web.extract_backend: firecrawl`. Set on the deploy host only (example `http://localhost:3002`). Never commit the value. When this URL is set, `FIRECRAWL_API_KEY` is optional. |
-| Model provider key | no (this manifest) | This profile does not pin a model. Use the provider key your Hermes install already needs. |
+| `HONCHO_API_KEY` | no | Cloud memory. Self-hosted uses `honcho.json` `baseUrl`. |
+| `CONTEXT7_API_KEY` | no | Context7 MCP header. Library docs only. |
+| `SEARXNG_URL` | deploy host | `web.search_backend: searxng`. |
+| `FIRECRAWL_API_URL` | deploy host | `web.extract_backend: firecrawl`. Key optional when this URL is set. |
+| `HERMES_CDP_URL` | no | `browser.cdp_url`. Our name, not a Hermes-defined env. |
+| `UNPAYWALL_EMAIL` | no | Literature HTTP fallback. Auto-passed into Docker by skill env. |
+| `CROSSREF_MAILTO` | no | Crossref polite pool. |
+| `SEMANTIC_SCHOLAR_API_KEY` | no | Optional scholar HTTP. |
+| Model provider key | deploy host | This profile does not pin `model.default`. Set the frontier planner and cheap worker on the host. |
 
-`HONCHO_API_KEY` is `required: false` because self-hosted Honcho does not use it. If you use Honcho Cloud, set the key anyway — the installer will not block you if it is missing.
+`web.keyless_fallback` and `web.keyless_rescue` are **true**. A dead primary path must degrade.
 
 ## Plugin (this profile only)
 
-The research-bot plugin lives under this profile's `$HERMES_HOME/plugins/research-bot/` after install and does nothing until `plugins.enabled` lists `research-bot`. `plugins.disabled` always wins. Do not put Honcho in `plugins.enabled`. Do not copy this plugin into another profile.
-
-This profile blocks product-code writes from `pre_tool_call`.
-
-Toolset `research-bot` is part of `custom_toolsets.research`. The plugin **registers** these tools:
+The hdr plugin registers tools on toolset `hdr`. It is not a tool. Do not copy it.
 
 | Tool | When |
 | --- | --- |
-| `resolve_library` | Resolve a Context7 library ID (`ctx.call_mcp` → `resolve-library-id`) |
-| `docs_query` | Query that library’s docs (`ctx.call_mcp` → `query-docs`) |
-| `source_ledger_add` | After retrieving a non-Context7 page |
-| `source_ledger_list` | Before writing findings |
-| `cite_source` | After every claim — use only this formatted text |
-| `source_ledger_check` | Before asserting a factual claim |
+| `research_plan` | Start or update the run. Budget is computed. |
+| `gap_scan` | After a batch. Returns saturation. |
+| `evidence_add` / `search` / `read` / `stats` | Ledger and corpus. Cards, not pages. |
+| `claim_verify` | Exact span. `source_ledger_check` is gone. |
+| `conflict_report` | Disagreements. Do not average. |
+| `cite_source` | Only sanctioned bibliography. |
+| `worker_brief` / `worker_harvest` | Child contract and counts-only harvest. |
+| `resolve_library` / `docs_query` | Context7 facades. Openable URL or no ledger row. |
+| `scholar_search` / `archive_lookup` | HTTP literature and Wayback. |
 
-The plugin also registers hooks: they inject a short contract onto the **user message** (not the system prompt; does not dump skill bodies), block product-code writes, backup-harvest `resolve_library` / `docs_query` (not `mcp_*`), and init the ledger on session start.
+Hooks: Evidence Bus (`transform_tool_result`), policy (`pre_tool_call`), governor (`pre`/`post_api_request`), digest (`pre_llm_call` ≤1200 chars), bibliography (`transform_llm_output`).
 
-Settings (`plugins.entries.research-bot.settings`, read via `ctx.get_config`):
-
-- `citation_style`: `apa` | `ieee` | `chicago`
-
-`plugins.entries.research-bot.mcp_allowlist: [context7]` — default-off; no wildcards.
-
-Ledger state lives in `<HERMES_HOME>/plugin-data/research-bot/` via official `plugin_data_dir`. Never next to `plugin.yaml`.
-
-## Context7 MCP
-
-Official Hermes MCP config lives under `mcp_servers` in `config.yaml`. This distribution also ships `mcp.json` because that filename is in the official distribution-owned list.
-
-Both files use documented interpolation (`${env:CONTEXT7_API_KEY}` / `${CONTEXT7_API_KEY}`), not a literal key.
-
-Do not set `tools.include: []` or `enabled: false` — those break `ctx.call_mcp`.
-
-If your installed Hermes only reads `config.yaml` `mcp_servers` (the documented runtime path), you are already covered. If a future installer merges `mcp.json` instead, the same server is there.
-
-## Honcho
-
-- Workspace: `hermes`
-- Host block: `hermes.research-bot` (official pattern: `hermes.<profile>`)
-- `aiPeer`: `research-bot`
-- `recallMode`: `hybrid`
-- `writeFrequency`: `async`
-- `sessionStrategy`: `per-directory` (documented default). Use `per-repo` only if you want one Honcho session per git root; that is also documented, but this profile often runs from mixed working directories.
-- `pinUserPeer`: `true` — official, **gateway-only**. Does not change CLI identity.
-
-Never two writers on this `aiPeer`.
-
-## Toolsets
-
-`custom_toolsets.research` = `web`, `terminal`, `file`, `skills`, `memory`, `session_search`, `research-bot`. `toolsets: [research]` selects that bundle. Built-in names from the official toolsets reference; `research-bot` is the toolset this profile’s plugin registers.
-
-Gather is locked. The model calls the builtins `web_search` and `web_extract`. This plugin does not re-register them. `config.yaml` pins `web.search_backend: searxng` and `web.extract_backend: firecrawl` and turns the keyless ring off. Set `SEARXNG_URL` and `FIRECRAWL_API_URL` on the deploy host. Do not commit those values. Do not install `official/research/searxng-search` as the primary path. This profile already has the `web` toolset.
-
-`terminal.cwd` is `"."` (Gateway/cron). CLI uses the launch directory. Backend is `local` — this profile is not a sandbox.
+Store: `<HERMES_HOME>/plugin-data/hdr/`.
 
 ## Skills
 
-Primary skills stay in `skills/` (normal skill index), **not** `plugin:skill`. Official: [Creating Skills](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills). Each skill:
+Five disjoint skills. Frontmatter keys sit under `metadata.hermes`. Scripts use `${HERMES_SKILL_DIR}`.
 
-- `description`: one-line when-to-load (index text)
-- `requires_toolsets: [research-bot]`
-- `requires_tools: [resolve_library, docs_query, cite_source]` (exact registered names)
-- `related_skills`: the other two research skills
-- Procedure names those tools plus `web_search` / `web_extract`, forbids raw `mcp_*`, and says `cite_source` after every claim
-- No `CONTEXT7_API_KEY` in skill env. No blueprint.
+1. `deep-research-run` — full loop. Needs `hdr`, `delegation`, `web`.
+2. `source-triage` — pasted URLs. Script `dedupe_urls.py`.
+3. `claim-audit` — draft check. Script `extract_claims.py` plus `claim_verify`.
+4. `literature-sweep` — papers. Crossref / Unpaywall / PDF scripts.
+5. `web-fallback-fetch` — `fallback_for_tools: [web_extract]`.
 
-1. `literature-review` — survey primaries; call `resolve_library` / `docs_query` / `source_ledger_add` / `source_ledger_list` / `cite_source`.
-2. `source-triage` — rank links; call `source_ledger_list` then `source_ledger_add`.
-3. `claim-check` — test claims; call `source_ledger_check` then `cite_source`.
+## Honest limits
 
-Optional later recipes may live under `../../skills-tap/skills/`. A profile only uses a tap skill after it copies that skill into **its own** `skills/`.
-
-## Cron
-
-None. Official docs: distribution cron is not auto-scheduled. A weekly digest without a delivery target is not justified for this profile.
-
-## Smoke
-
-```bash
-hermes profile install ./agents/research-bot --name research-bot-test --alias
-research-bot-test chat
-# "Name the ledger tools and one write-policy rule. Do not invent a paper."
-hermes chat --toolsets skills -q "Use the literature-review skill to survey Hermes profiles"
-hermes profile delete research-bot-test --yes
-```
-
-Not run in CI (no live Hermes on this repo).
+`pre_verify` does not fire on markdown-only turns. `claim_verify` proves a span exists, not that the document is right. Source tiers are heuristics. See [`docs/HONEST-LIMITS.md`](../../docs/HONEST-LIMITS.md).

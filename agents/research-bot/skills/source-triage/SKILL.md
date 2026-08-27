@@ -1,51 +1,48 @@
 ---
 name: source-triage
-description: "Load when the user has a pile of links, search hits, or mixed-quality citations to rank."
-version: 1.0.0
+description: Dedupe and tier a pasted URL list, bibliography, or search dump. Not a ranker tool.
+version: 2.0.0
 metadata:
   hermes:
-    tags: [research, sources, triage]
-    category: research
-    related_skills: [literature-review, claim-check]
-    requires_toolsets: [research-bot]
-    requires_tools: [resolve_library, docs_query, cite_source]
+    tags: [Research, Sources, Triage]
+    requires_toolsets: [hdr]
+    requires_tools: [evidence_add, evidence_search]
+    related_skills: [deep-research-run, literature-sweep]
 ---
 
 # Source triage
 
+Turn a pile of URLs into a deduped, tiered ledger. This skill is a recipe. It is not a ranking tool.
+
 ## When to Use
 
-The user dumped URLs, search results, or a draft bibliography and needs them ranked: primary vs commentary, retrieved vs unread.
+Use this when the user pasted URLs, a bibliography, or a search dump.
+Do not use this to start a full research loop (use deep-research-run).
 
 ## Quick Reference
 
-| Step | Tool |
-| --- | --- |
-| See recorded sources | `source_ledger_list` |
-| Open-web search already run | `web_search` |
-| Read a URL you will rank | `web_extract` |
-| Record a page you opened | `source_ledger_add` |
-| Library docs (not raw MCP) | `resolve_library` then `docs_query` |
-| After every claim | `cite_source` |
+```bash
+python "${HERMES_SKILL_DIR}/scripts/dedupe_urls.py" urls.txt
+```
 
-Never call raw `mcp_*` tools. The research-bot plugin registers the `resolve_library`, `docs_query`, and `cite_source` tools. Do not put `CONTEXT7_API_KEY` in this skill.
+Then `evidence_add` each surviving URL. Call `evidence_search` to review cards.
 
 ## Procedure
 
-1. Call **`source_ledger_list`** first so you do not re-add sources already recorded.
-2. Rank what `web_search`, `web_extract`, and the ledger already returned. This skill is the recipe. Do not invent a ranker tool.
-3. If a candidate URL was not extracted yet, call **`web_extract`**. A snippet is not a retrieve.
-4. Rank: **Primary** (vendor docs, spec, paper) / **Supporting** / **Skip**.
-5. For every source you actually opened and will use, call **`source_ledger_add`**. If the source is a library docset, resolve and query via **`resolve_library`** / **`docs_query`** instead of raw MCP. Context7 is library docs only.
-6. Drop unread or low-quality items. Say what you skipped and why.
-7. After every claim in the ranked set, call **`cite_source`**. Do not write product code.
+Write the raw URLs to `sources/urls.txt`.
+Run `${HERMES_SKILL_DIR}/scripts/dedupe_urls.py`. Tracking query params and mobile mirrors collapse.
+For each remaining URL, `evidence_add` with whatever snippet you have. If you have full text, pass `text` so the corpus fills.
+Tiering is computed by the store. Do not invent a score.
+Prefer primary sources. Two copies of one press release are one source.
+Use `web_search` / `web_extract` only to fill `needs_backfill` rows.
+Do not call raw `mcp_*` tools.
 
 ## Pitfalls
 
-- Do not add a URL you did not open.
-- Training-data "I recall a paper titled…" is not a source.
-- When two pages conflict, keep both in the ledger and say which is primary.
+Do not treat this skill as a substitute for `gap_scan`.
+Do not keep UTM copies as distinct sources.
 
 ## Verification
 
-`source_ledger_list` shows only pages you retrieved. Rank labels match the page type. Every kept claim has a `cite_source` entry.
+`evidence_search` shows one card per canonical URL.
+Backfill-needed rows are listed, not hidden.

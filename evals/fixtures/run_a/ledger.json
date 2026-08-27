@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents",
+      "canonical_url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents",
+      "title": "Mixture of Agents",
+      "tier": "A",
+      "kind": "primary",
+      "corpus": "corpus/s1.txt",
+      "quote": "MoA is no longer listed under hermes tools; there is no moa toolset to enable."
+    },
+    {
+      "id": "S2",
+      "url": "https://example.com/secondary-moa-blog",
+      "canonical_url": "https://example.com/secondary-moa-blog",
+      "title": "Secondary MoA recap",
+      "tier": "C",
+      "kind": "secondary",
+      "corpus": "corpus/s2.txt",
+      "quote": "Enable the moa toolset and run mixture_of_agents."
+    },
+    {
+      "id": "S3",
+      "url": "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
+      "canonical_url": "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
+      "title": "Toolsets reference",
+      "tier": "A",
+      "kind": "primary",
+      "corpus": "corpus/s3.txt",
+      "quote": "No army-runtime toolset is listed."
+    }
+  ]
+}

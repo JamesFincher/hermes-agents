@@ -1,23 +1,17 @@
-# Manifest keys from official profile-distributions + profile-commands docs.
+# Manifest keys from official profile-distributions + profile-commands.
 # https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions
-# https://hermes-agent.nousresearch.com/docs/reference/profile-commands
-#
-# hermes_requires: official examples use ">=0.12.0" / ">=0.13.0". Floor is
-# 0.12.0 because that is the documented example for a research-bot
-# distribution (same page). Current tagged Hermes at time of writing: 0.20.6.
+# hermes_requires: official examples are ">=0.12.0" / ">=0.13.0".
+# 0.14.0 was [UNV] and is removed (docs/HERMES-FACTS.md).
 
 name: research-bot
-version: 0.1.0
-description: "Reads source + external docs + papers, writes cited findings, does not implement product code."
-hermes_requires: ">=0.12.0"
+version: 2.0.0
+description: "Plans, fans out, verifies, and writes cited research briefs. Does not write product code."
+hermes_requires: ">=0.13.0"
 author: "James Fincher"
 license: "Apache-2.0"
 
-# Official DEFAULT_DIST_OWNED is SOUL.md, config.yaml, mcp.json, skills/,
-# cron/, distribution.yaml. plugins/ is NOT in that default. Claim it so
-# updates replace process code. Setting this list replaces the default —
-# include the defaults we still want plus plugins and the other files we ship.
-# https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions
+# Official DEFAULT_DIST_OWNED does not include plugins/. Setting this list
+# replaces the default — keep the defaults we still want plus plugins.
 distribution_owned:
   - SOUL.md
   - config.yaml
@@ -32,11 +26,23 @@ distribution_owned:
 
 env_requires:
   - name: HONCHO_API_KEY
-    description: "Honcho Cloud API key (app.honcho.dev). Needed for Honcho Cloud. Self-hosted Honcho uses honcho.json baseUrl instead and can leave this unset."
+    description: "Honcho Cloud API key (app.honcho.dev). Self-hosted Honcho uses honcho.json baseUrl instead."
     required: false
   - name: CONTEXT7_API_KEY
-    description: "Context7 API key for the remote MCP server. Interpolated as ${env:CONTEXT7_API_KEY} in mcp.json / config.yaml. Optional; without it Context7 MCP will not authenticate."
+    description: "Context7 API key for the remote MCP server. Interpolated as ${env:CONTEXT7_API_KEY}."
     required: false
   - name: OPENAI_API_KEY
-    description: "Example model-provider key. This distribution does not pin a model or provider — use whichever provider key your Hermes setup already requires (OpenAI, Anthropic, Nous Portal, OpenRouter, …)."
+    description: "Example model-provider key. This distribution does not pin a model."
+    required: false
+  - name: HERMES_CDP_URL
+    description: "Optional CDP endpoint for browser.cdp_url. Host env, not a Hermes-defined name."
+    required: false
+  - name: UNPAYWALL_EMAIL
+    description: "Polite pool email for Unpaywall HTTP fallback (literature-sweep scripts)."
+    required: false
+  - name: CROSSREF_MAILTO
+    description: "Polite pool email for Crossref HTTP fallback."
+    required: false
+  - name: SEMANTIC_SCHOLAR_API_KEY
+    description: "Optional Semantic Scholar key for scholar_search HTTP fallback."
     required: false

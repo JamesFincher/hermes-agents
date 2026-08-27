@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://example.com/dead-product",
+      "canonical_url": "https://example.com/dead-product",
+      "archived_url": "https://web.archive.org/web/20230301000000/https://example.com/dead-product",
+      "title": "Dead product page",
+      "tier": "B",
+      "kind": "secondary",
+      "fetch_status": "archived",
+      "corpus": "corpus/s1.txt",
+      "quote": "the product launched in March"
+    }
+  ]
+}

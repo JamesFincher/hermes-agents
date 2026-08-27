@@ -1,0 +1,69 @@
+# Native general plugin (plugin.yaml + register(ctx)). Not portable plugin.json.
+# Not a memory-provider (kind: exclusive / memory.provider).
+# https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
+
+name: hdr
+version: 2.0.0
+manifest_version: 2
+api_version: 1
+description: "Host package that registers HDR research tools and Evidence Bus hooks (toolset hdr)."
+author: James Fincher
+license: Apache-2.0
+tags: [research, hdr, ledger, citations, evidence]
+provides_tools:
+  - research_plan
+  - gap_scan
+  - evidence_add
+  - evidence_search
+  - evidence_read
+  - evidence_stats
+  - claim_verify
+  - conflict_report
+  - cite_source
+  - worker_brief
+  - worker_harvest
+  - resolve_library
+  - docs_query
+  - scholar_search
+  - archive_lookup
+provides_hooks:
+  - on_session_start
+  - on_session_end
+  - on_session_finalize
+  - pre_llm_call
+  - pre_tool_call
+  - post_tool_call
+  - transform_tool_result
+  - transform_terminal_output
+  - transform_llm_output
+  - pre_api_request
+  - post_api_request
+  - subagent_start
+  - subagent_stop
+  - api_request_error
+config_schema:
+  citation_style:
+    type: str
+    default: apa
+    description: "Citation format for cite_source: apa, ieee, or chicago."
+    required: false
+  default_tier:
+    type: str
+    default: standard
+    description: "Default effort tier for research_plan."
+    required: false
+  corpus_retention_days:
+    type: int
+    default: 30
+    description: "Days to keep corpus files."
+    required: false
+  max_card_spans:
+    type: int
+    default: 3
+    description: "Quote spans per evidence card."
+    required: false
+  span_max_words:
+    type: int
+    default: 25
+    description: "Max words per quote span."
+    required: false

@@ -1,7 +1,5 @@
 # Kanban routing text. Official persist location: <profile_dir>/profile.yaml
-# Fields: description, description_auto
 # https://hermes-agent.nousresearch.com/docs/reference/profile-commands
-# (hermes profile describe)
 
-description: "Reads source + external docs + papers, writes cited findings, does not implement product code."
+description: "Plans, fans out, verifies, and writes cited research briefs. Does not write product code."
 description_auto: false

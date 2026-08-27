@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://doi.org/10.1234/fixture",
+      "canonical_url": "https://doi.org/10.1234/fixture",
+      "title": "Fixture paper",
+      "published": "2024-06-01",
+      "tier": "A",
+      "kind": "primary",
+      "corpus": "corpus/s1.txt",
+      "quote": "the method reached 12% efficiency in 2024"
+    },
+    {
+      "id": "S2",
+      "url": "https://example.com/paywall-paper",
+      "canonical_url": "https://example.com/paywall-paper",
+      "title": "Paywalled fixture",
+      "tier": "A",
+      "kind": "primary",
+      "fetch_status": "paywall",
+      "corpus": "corpus/s2.txt",
+      "quote": "abstract only; no OA copy"
+    }
+  ]
+}
