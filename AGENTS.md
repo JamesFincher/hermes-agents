@@ -1,6 +1,6 @@
-# Cursor agents — independent Hermes profiles
+# Cursor agents — Hermes Agent Profile Library
 
-This repo is a folder of **independent Hermes profile distributions**. Each directory under `agents/` is one specialized profile with its own `HERMES_HOME`. The repo name does not imply a shared runtime.
+This repo is the **Hermes Agent Profile Library**. It is a library of independent specialized Hermes profiles. Grow it by adding a new `agents/<name>/` distribution. Pull from it with `hermes profile install ./agents/<name>`. Each profile is complete and isolated. The library is the shelf, not a shared process layer.
 
 **Source of truth:** [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md)
 
@@ -16,11 +16,12 @@ Read the playbook before writing files. `docs/WORKFLOW.md` is the PR loop. Do no
 
 Skill, Tool, Plugin, and MCP are **four different official objects**. Definitions, load paths, and the one-turn join are in the playbook. Say “the `<name>` plugin registers the `<tool>` tool.”
 
-## Factory rules (summary — details in the playbook)
+## Library rules (summary — details in the playbook)
 
 - One agent per PR. Isolated `HERMES_HOME`. That profile owns its `SOUL.md`, `config.yaml`, skills, MCP, and — if it needs custom tools — its own plugin and toolset. Nothing leaks to the next profile.
 - Next agent = follow the playbook under `agents/<name>/`. Write **that** profile’s plugin + skills + MCP only if it needs them. Zero imports from `research-bot`. The next profile starts empty of research-bot’s plugin, tools, and skills.
-- There is no factory-root `plugins/` folder. Live process code lives only in `agents/<name>/plugins/<name>/`. Toolset `research-bot` stays on that profile only. Do not copy one profile’s plugin into another. Zero imports from `research-bot`.
+- There is no repo-root `plugins/` folder. Live process code lives only in `agents/<name>/plugins/<name>/`. Toolset `research-bot` stays on that profile only. Do not copy one profile’s plugin into another. Zero imports from `research-bot`.
+- Gather is locked: builtins `web_search` / `web_extract`. Search backend `searxng`. Extract backend `firecrawl`. Keyless ring off. Context7 is library docs only.
 - Honcho is settled: `memory.provider: honcho`, unique `aiPeer`, `pinUserPeer: true` (gateway-only). Not `plugins.enabled`.
 - If you ship a plugin, claim `plugins` in `distribution_owned` (not in official `DEFAULT_DIST_OWNED`).
 - Primary skills stay in profile `skills/`. Do not `ctx.register_skill` the primary library.

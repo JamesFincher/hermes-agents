@@ -26,6 +26,9 @@ Say: "the research-bot plugin registers the `resolve_library` tool." Never colla
 | Memory Provider Plugin | https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin |
 | Tools (user) | https://hermes-agent.nousresearch.com/docs/user-guide/features/tools |
 | Toolsets Reference | https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference |
+| Web Search | https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search |
+| Web Search Provider Plugins | https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin |
+| Configuration | https://hermes-agent.nousresearch.com/docs/user-guide/configuration |
 
 Context7 library this pass: `/nousresearch/hermes-agent` (resolve + query-docs). Official pages above are the join. Do not invent knobs.
 
@@ -37,7 +40,20 @@ Context7 library this pass: `/nousresearch/hermes-agent` (resolve + query-docs).
 | Tools the plugin registers | `resolve_library`, `docs_query`, `source_ledger_add`, `source_ledger_list`, `cite_source`, `source_ledger_check` |
 | MCP backend | server `context7`; `mcp_allowlist: [context7]`; plugin calls via `ctx.call_mcp` |
 | Skills | `literature-review`, `source-triage`, `claim-check` in profile `skills/` |
-| Skill gate | `requires_toolsets: [research-bot]` + `requires_tools: [resolve_library, docs_query, cite_source]` |
+| Skill gate | `requires_toolsets: [research-bot]` + `requires_tools: [resolve_library, docs_query, cite_source]`. Procedure names `web_search` / `web_extract`. |
+| Gather | Builtins `web_search` / `web_extract`. `web.search_backend: searxng`. `web.extract_backend: firecrawl`. Keyless off. |
+
+---
+
+## Settled: gather
+
+Search uses local SearXNG. Extract uses local Firecrawl on the deploy host. The model calls the builtins `web_search` and `web_extract`. This plugin does not register those tools. This plugin is not a search backend. Context7 is library docs only.
+
+Set `SEARXNG_URL` and `FIRECRAWL_API_URL` on the deploy host. Never commit those values. Official: when `FIRECRAWL_API_URL` is set, `FIRECRAWL_API_KEY` is optional.
+
+https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search
+https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin
+https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
 ---
 
@@ -149,7 +165,7 @@ Each research `SKILL.md`:
 - `metadata.hermes.requires_toolsets: [research-bot]`
 - `metadata.hermes.requires_tools: [resolve_library, docs_query, cite_source]` (exact registered names)
 - `metadata.hermes.related_skills`: the other two
-- Procedure **names** those tools, forbids raw `mcp_*`, and says `cite_source` after every claim
+- Procedure **names** those tools plus `web_search` / `web_extract`, forbids raw `mcp_*`, and says `cite_source` after every claim. Source-triage ranks what the tools already return. Do not invent a ranker tool.
 - Hide if ANY listed toolset/tool is missing. Missing env does **not** hide.
 - No `CONTEXT7_API_KEY` in skill env. No blueprint. `inline_shell` off. `scripts/` only if parsing cannot be the plugin.
 

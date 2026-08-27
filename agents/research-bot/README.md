@@ -64,6 +64,8 @@ hermes profile update research-bot
 | --- | --- | --- |
 | `HONCHO_API_KEY` | no (Cloud: you still need it) | `memory.provider: honcho`. Honcho Cloud needs this key. Self-hosted uses `baseUrl` in `honcho.json` instead. |
 | `CONTEXT7_API_KEY` | no | Header `${env:CONTEXT7_API_KEY}` on the Context7 MCP server. Without it, that server will not authenticate. |
+| `SEARXNG_URL` | deploy host | Official `web.search_backend: searxng`. Set on the deploy host only (example `http://localhost:8888`). Never commit the value. |
+| `FIRECRAWL_API_URL` | deploy host | Official `web.extract_backend: firecrawl`. Set on the deploy host only (example `http://localhost:3002`). Never commit the value. When this URL is set, `FIRECRAWL_API_KEY` is optional. |
 | Model provider key | no (this manifest) | This profile does not pin a model. Use the provider key your Hermes install already needs. |
 
 `HONCHO_API_KEY` is `required: false` because self-hosted Honcho does not use it. If you use Honcho Cloud, set the key anyway — the installer will not block you if it is missing.
@@ -121,6 +123,8 @@ Never two writers on this `aiPeer`.
 
 `custom_toolsets.research` = `web`, `terminal`, `file`, `skills`, `memory`, `session_search`, `research-bot`. `toolsets: [research]` selects that bundle. Built-in names from the official toolsets reference; `research-bot` is the toolset this profile’s plugin registers.
 
+Gather is locked. The model calls the builtins `web_search` and `web_extract`. This plugin does not re-register them. `config.yaml` pins `web.search_backend: searxng` and `web.extract_backend: firecrawl` and turns the keyless ring off. Set `SEARXNG_URL` and `FIRECRAWL_API_URL` on the deploy host. Do not commit those values. Do not install `official/research/searxng-search` as the primary path. This profile already has the `web` toolset.
+
 `terminal.cwd` is `"."` (Gateway/cron). CLI uses the launch directory. Backend is `local` — this profile is not a sandbox.
 
 ## Skills
@@ -131,7 +135,7 @@ Primary skills stay in `skills/` (normal skill index), **not** `plugin:skill`. O
 - `requires_toolsets: [research-bot]`
 - `requires_tools: [resolve_library, docs_query, cite_source]` (exact registered names)
 - `related_skills`: the other two research skills
-- Procedure names those tools, forbids raw `mcp_*`, and says `cite_source` after every claim
+- Procedure names those tools plus `web_search` / `web_extract`, forbids raw `mcp_*`, and says `cite_source` after every claim
 - No `CONTEXT7_API_KEY` in skill env. No blueprint.
 
 1. `literature-review` — survey primaries; call `resolve_library` / `docs_query` / `source_ledger_add` / `source_ledger_list` / `cite_source`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structure checks for independent Hermes profiles. No live Hermes. No API keys."""
+"""Structure checks for the Hermes Agent Profile Library. No live Hermes. No API keys."""
 
 from __future__ import annotations
 
@@ -76,6 +76,25 @@ def load_yaml(path: Path) -> object:
     return yaml.safe_load(text)
 
 
+_PRODUCT_NAME = "Hermes Agent Profile Library"
+_PRODUCT_NAME_PATHS = (
+    ROOT / "docs" / "PROFILE-PLAYBOOK.md",
+    ROOT / "AGENTS.md",
+    ROOT / "README.md",
+    ROOT / "docs" / "WORKFLOW.md",
+)
+
+
+def check_product_name() -> None:
+    for path in _PRODUCT_NAME_PATHS:
+        if not path.is_file():
+            fail(f"missing {path.relative_to(ROOT)}")
+            continue
+        text = path.read_text(encoding="utf-8")
+        if _PRODUCT_NAME not in text:
+            fail(f"{path.relative_to(ROOT)} must name the product {_PRODUCT_NAME!r}")
+
+
 def check_playbook() -> None:
     playbook = ROOT / "docs" / "PROFILE-PLAYBOOK.md"
     if not playbook.is_file():
@@ -91,6 +110,11 @@ def check_playbook() -> None:
         "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
         "https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api",
         "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
+        "https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search",
+        "https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin",
+        "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
+        "https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes",
+        "https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns",
     ):
         if url not in text:
             fail(f"PROFILE-PLAYBOOK.md must cite {url}")
@@ -279,7 +303,7 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
     if (plugin_dir / "plugin.json").is_file():
         fail(
             f"{plugin_dir.relative_to(ROOT)} ships plugin.json — "
-            "Portable Agent Plugins v1 is not this factory's path"
+            "Portable Agent Plugins v1 is not this library's path"
         )
     if manifest.get("kind") in {"exclusive", "memory-provider", "memory"}:
         fail(
@@ -351,6 +375,16 @@ def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
             f"{agent_dir.name} must not set config system_message "
             "(cached); turn-varying contract goes in pre_llm_call"
         )
+    if agent_dir.name == "research-bot":
+        web = config.get("web") if isinstance(config.get("web"), dict) else {}
+        if web.get("search_backend") != "searxng":
+            fail(f"{agent_dir.name} web.search_backend must be 'searxng'")
+        if web.get("extract_backend") != "firecrawl":
+            fail(f"{agent_dir.name} web.extract_backend must be 'firecrawl'")
+        if web.get("keyless_fallback") is not False:
+            fail(f"{agent_dir.name} web.keyless_fallback must be false")
+        if web.get("keyless_rescue") is not False:
+            fail(f"{agent_dir.name} web.keyless_rescue must be false")
     plugins_cfg = config.get("plugins") or {}
     if not isinstance(plugins_cfg, dict):
         plugins_cfg = {}
@@ -443,6 +477,9 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
             "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
             "https://hermes-agent.nousresearch.com/docs/user-guide/features/tools",
             "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
+            "https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin",
+            "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
         ):
             if url not in factory_text:
                 fail(f"{factory_integration.relative_to(ROOT)} must cite {url}")
@@ -460,6 +497,9 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
             "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
             "https://hermes-agent.nousresearch.com/docs/user-guide/features/tools",
             "https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference",
+            "https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin",
+            "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
         ):
             if url not in integration_text:
                 fail(f"{integration.relative_to(ROOT)} must cite {url}")
@@ -587,7 +627,14 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                             f"include {other!r}"
                         )
                 body = skill_md.read_text(encoding="utf-8")
-                for named in ("resolve_library", "docs_query", "cite_source", "mcp_*"):
+                for named in (
+                    "resolve_library",
+                    "docs_query",
+                    "cite_source",
+                    "web_search",
+                    "web_extract",
+                    "mcp_*",
+                ):
                     if named not in body:
                         fail(
                             f"{skill_md.relative_to(ROOT)} Procedure must name {named}"
@@ -599,6 +646,7 @@ def main() -> int:
     if not agents_root.is_dir():
         fail("missing agents/")
         return 1
+    check_product_name()
     check_playbook()
     check_docs_voice()
     check_no_repo_root_plugin_package()

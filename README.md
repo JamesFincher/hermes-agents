@@ -1,8 +1,8 @@
-# hermes-agents
+# Hermes Agent Profile Library
 
-A folder of **independent Hermes Agent profile distributions**. One directory per specialized profile. Each profile is its own `HERMES_HOME`, with its own `SOUL.md`, config, skills, MCP, and — if it needs custom tools — its own plugin. Honcho is each profile’s memory provider (`memory.provider: honcho`). Cursor (and Herbert) add agents one PR at a time.
+This repo is the **Hermes Agent Profile Library**. It is a library of independent specialized Hermes profiles. Grow it by adding a new `agents/<name>/` distribution. Pull from it with `hermes profile install ./agents/<name>`. Each profile is complete and isolated. The library is the shelf, not a shared process layer.
 
-The repo name is just the folder. It does not imply a shared runtime.
+Honcho is each profile’s memory provider (`memory.provider: honcho`). Cursor (and Herbert) add agents one PR at a time.
 
 Official `hermes profile install github.com/owner/repo` only reads a **repo-root** `distribution.yaml`. Official docs **do** allow `hermes profile install ./path` when the manifest sits at that path. We use the second form. There is no repo-root `distribution.yaml`.
 
@@ -53,8 +53,9 @@ One agent per PR. The playbook is the checklist. Short version:
 1. Context7 + official docs for every knob.
 2. New directory `agents/<name>/` with `distribution.yaml` at its root. Empty of `research-bot`’s plugin, tools, and skills. No repo-root `plugins/`. Zero imports from `research-bot`.
 3. Follow [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md): `SOUL.md`, `config.yaml` (`memory.provider: honcho`), **this** profile’s plugin only if it needs tools (`plugins.enabled: [<name>]`), skill recipes in **this** profile’s `skills/` (`requires_toolsets` of **this** profile’s toolset), MCP only if **this** plugin will `call_mcp` and headers can be `${env:VAR}`.
-4. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
-5. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`
+4. If the profile uses the web, keep the locked gather block: `web.search_backend: searxng`, `web.extract_backend: firecrawl`, keyless ring off. Do not add a search tool.
+5. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
+6. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`
 
 Do not vendor Gengar or fork Ouroboros.
 

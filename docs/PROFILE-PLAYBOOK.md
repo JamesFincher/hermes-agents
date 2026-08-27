@@ -2,7 +2,9 @@
 
 This file is the source of truth for every new agent in this repository.
 
-`hermes-agents` is a **folder of independent profile distributions**. Each profile is a totally independent, highly specialized Hermes agent. Isolated `HERMES_HOME`. Its own `SOUL.md`, `config.yaml`, skills, MCP, and — if it needs custom tools — its own plugin that registers **that profile's** tools. Nothing leaks. This repo is only a place to keep separate distributions side by side. The folder name does not make the profiles one runtime.
+This repo is the **Hermes Agent Profile Library**. It is a library of independent specialized Hermes profiles. Grow it by adding a new `agents/<name>/` distribution. Pull from it with `hermes profile install ./agents/<name>`. Each profile is complete and isolated. The library is the shelf, not a shared process layer.
+
+Each profile is its own `HERMES_HOME`. It owns its `SOUL.md`, `config.yaml`, skills, MCP, and — if it needs custom tools — its own plugin that registers **that profile's** tools. Nothing leaks.
 
 `research-bot` is one specialized profile. The next profile starts empty of research-bot's plugin, tools, and skills. Copy the **method** in this playbook. Do not copy research-bot's implementation unless that next profile independently needs the same capability.
 
@@ -57,7 +59,7 @@ Official: [User Guide — Skills](https://hermes-agent.org/docs/user-guide/featu
 | **SKILL** | Indexed `SKILL.md` recipe. `skill_view` loads the body. Procedure tells the model which **tools** to call. | Not a tool. Not a plugin. Contains no Python. | This profile's `skills/<name>/SKILL.md` | Progressive disclosure. Gated by `requires_toolsets` / `requires_tools` |
 | **TOOL** | Registry schema + handler the model invokes | Not a skill. Not a plugin. | Built-in, **or registered by this profile's plugin**, or MCP-named | Schema in the tool list when its toolset is enabled |
 | **PLUGIN** | Host package: `plugin.yaml` + `__init__.py` `register(ctx)` | **Not a tool.** May *register* tools, hooks, middleware, config | This profile's `plugins/<id>/` | Opt-in via `plugins.enabled`. `plugins.disabled` always wins |
-| **MCP** | Connected server in `mcp.json` / `mcp_servers` | Not a Hermes tool. Not a skill. Not a plugin | This profile's `mcp.json` + config | Default: MCP-named tools. This factory forbids the model from using those names; the plugin calls MCP |
+| **MCP** | Connected server in `mcp.json` / `mcp_servers` | Not a Hermes tool. Not a skill. Not a plugin | This profile's `mcp.json` + config | Default: MCP-named tools. This library's contract: the model uses facade tools; the plugin calls MCP |
 
 Say: "the `<profile>` plugin **registers** the `resolve_library` tool."
 Never collapse PLUGIN and TOOL into one noun.
@@ -97,7 +99,106 @@ For a specialized profile, gate every workflow skill on **that profile's** tools
 
 ---
 
-## 3. How to generate one specialized profile
+## 3. Gather layer (locked)
+
+This split is the source of truth for `research-bot` and every later profile that uses the web.
+
+Official (Context7 `/nousresearch/hermes-agent`, then these pages):
+
+- [Web Search](https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search)
+- [Web Search Provider Plugins](https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin)
+- [Configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration)
+
+James also cited `…/configuration.md`. That URL 404s. The same keys live on the Configuration page above. Do not invent replacements.
+
+### Tools stay the builtins
+
+The model calls `web_search` and `web_extract`. Those tools live in Hermes `tools/web_tools.py`.
+
+Do not add a search tool.
+Do not have a profile plugin register a Firecrawl or SearXNG tool.
+Do not wrap those builtins as facade tools.
+Do not add an MCP server for general web search.
+
+Context7 stays library docs only. The research-bot plugin registers `resolve_library` and `docs_query` and calls `ctx.call_mcp`. That is not the open web.
+
+### Backends are bundled Hermes plugins
+
+Official bundled web-search provider plugins live under Hermes `plugins/web/`. Manifest `kind: backend`.
+
+| Bundled plugin | Capability |
+| --- | --- |
+| `plugins/web/searxng` | Search only |
+| `plugins/web/firecrawl` | Extract and crawl (also advertises search; this library does not use that path) |
+
+Pair them with the official per-capability keys. Do not vendor Firecrawl or SearXNG into this repo. Do not clone extra repos. Do not invent a second search toolset.
+
+### Deploy keys
+
+Write this block in the profile `config.yaml` (research-bot already does):
+
+```yaml
+# Cited from official web-search + configuration docs.
+web:
+  search_backend: "searxng"
+  extract_backend: "firecrawl"
+  keyless_fallback: false
+  keyless_rescue: false
+```
+
+Set these on the deploy host only. Never commit secrets or keys.
+
+```bash
+# ~/.hermes/.env  (or the installed profile .env)
+SEARXNG_URL=http://localhost:8888
+FIRECRAWL_API_URL=http://localhost:3002
+```
+
+Official: a self-hosted SearXNG has no cloud rate limits.
+Official: when `FIRECRAWL_API_URL` is set, `FIRECRAWL_API_KEY` is optional (disable server auth with `USE_DB_AUTHENTICATION=false` on that instance). Self-hosted Firecrawl drops the cloud key, cloud quota, and per-page bill.
+
+Search = local SearXNG. Extract = local Firecrawl on the deploy host.
+
+Turn the keyless ring off. Do not fall back to Exa, Parallel, Tavily, cloud Firecrawl, or Keenable free tiers.
+
+Do not use Firecrawl `/search` against Google on self-host. That path hits "Too many requests". If the Firecrawl instance itself needs a search backend, point **that instance** at the same local SearXNG. That is Firecrawl's setting, not a Hermes config key. Hermes must still call SearXNG for `web_search` and Firecrawl only for `web_extract`.
+
+### Ban as the main path
+
+Do not use these as the gather path:
+
+- Public SearXNG (official: rate limits, variable uptime)
+- Brave free (official: 2 000 queries/mo)
+- DDGS (DuckDuckGo throttles)
+- Tavily / Exa free tiers
+- Cloud Firecrawl (official: 500 credits/mo)
+- Nous Tool Gateway as a substitute for the local pair
+
+### Skills
+
+`literature-review`, `source-triage`, and `claim-check` name `web_search` and `web_extract` in the Procedure. They do not name raw `mcp_*`. They do not invent a ranker tool. Source-triage is the recipe that ranks what the tools already return.
+
+Optional skill `official/research/searxng-search` is a curl fallback when the `web` toolset is missing. `research-bot` already has `web`. Do not install that skill as the primary path.
+
+### Honest caveat
+
+Target sites can still 429 a scrape. Local Firecrawl does not get cloud anti-bot extras.
+
+Official cache: `web_search` is in-memory. `web_extract` is on disk under `~/.hermes/cache/web/`. Keep that. Local and dev URLs are never cached.
+
+### Surfaces for gather
+
+| Surface | Gather role |
+| --- | --- |
+| Skill | When to search vs extract vs cite. Names `web_search` / `web_extract`. |
+| Tool | Builtins `web_search` / `web_extract`. The profile plugin does not re-register them. |
+| Plugin (research-bot) | Facade + ledger + user-message contract. Not a search backend. |
+| Plugin (bundled web) | Official Hermes `plugins/web/searxng` and `plugins/web/firecrawl`. `kind: backend`. |
+| MCP | Context7 only for library docs. |
+
+---
+
+## 4. How to generate one specialized profile
 
 Do this in order. Do not skip to copying another profile's plugin.
 
@@ -110,12 +211,27 @@ Do this in order. Do not skip to copying another profile's plugin.
 
 ### Step 1 — Identity (`SOUL.md`)
 
-Official: [User Guide — Personality](https://hermes-agent.org/docs/user-guide/features/personality/), [User Guide — Use SOUL.md](https://hermes-agent.org/docs/user-guide/guides/use-soul-with-hermes/), [Developer Guide — Prompt Assembly](https://hermes-agent.org/docs/developer-guide/prompt-assembly/).
+Official: [Use SOUL.md with Hermes](https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes), [Personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality), [Prompt Assembly](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly).
 
-- Hermes loads **`$HERMES_HOME/SOUL.md` only**. Not project-cwd `SOUL.md`.
-- SOUL is identity and tone. Not project paths. Not "query Context7 MCP directly."
-- Subagents skip SOUL (`skip_context_files`, `DEFAULT_AGENT_IDENTITY`). Workflow that must survive delegation belongs in the **plugin + skills**, not SOUL alone.
-- This repo's root `AGENTS.md` is Cursor workflow. Hermes loads cwd `AGENTS.md` only when no `.hermes.md` / `HERMES.md` exists. Do not rely on repo `AGENTS.md` as the Hermes contract.
+`SOUL.md` is **primary identity**. It is the first slot in the system prompt. It replaces the built-in default identity. Hermes adds no wrapper language.
+
+It lives at `$HERMES_HOME/SOUL.md` after install. That is the profile home. A repo-local `SOUL.md` is not loaded unless that directory **is** `HERMES_HOME`.
+
+**FOR:** tone, personality, communication style, how direct or warm it is, stylistic avoids, how it relates to uncertainty, disagreement, and ambiguity. Who it is and how it speaks.
+
+**NOT FOR:** repo conventions, file paths, commands, ports, architecture, project workflow, ledger steps, MCP names, or tool procedures.
+
+Project instructions go in the cwd context file. Official first-match: `.hermes.md` / `HERMES.md`, else `AGENTS.md`, else `CLAUDE.md`, else `.cursorrules`. If a rule applies everywhere for this profile, put it in SOUL. If it belongs to one project checkout, put it in that project's `AGENTS.md`.
+
+This repo's root `AGENTS.md` is Cursor workflow. Do not treat it as the Hermes contract.
+
+Suggested structure: Identity / Style / Avoid / Defaults. Four to eight strong lines beat generic filler. Empty SOUL adds nothing. Missing or unloadable SOUL falls back to the default identity. The file is security-scanned and truncated.
+
+`/personality` is a temporary overlay. SOUL is the durable baseline.
+
+Subagents skip SOUL (`skip_context_files` → `DEFAULT_AGENT_IDENTITY`). Specialized identity does not ride into children. Paste the contract into `goal` and `context` when you delegate.
+
+Do not put ledger, MCP, or tool procedures in `SOUL.md`. `research-bot` SOUL is a research-partner voice only.
 
 ### Step 2 — Decide the footprint (official ladder)
 
@@ -196,7 +312,7 @@ Do **not** set `enabled: false`. Official: skipped entirely; `ctx.call_mcp` cann
 Skills `requires_tools` use **facade** names (`resolve_library`), never `mcp_*`.
 `ctx.call_mcp` uses unsanitized names.
 
-Official MCP guide says the model *can* use MCP tools like normal tools. This factory's contract: the model uses facade tools; the plugin calls MCP. Do not claim official Hermes hides MCP tools — **UNVERIFIED**. Do not use `include: []` or `enabled: false` to attempt a hide.
+Official MCP guide says the model *can* use MCP tools like normal tools. This library's contract: the model uses facade tools; the plugin calls MCP. Do not claim official Hermes hides MCP tools — **UNVERIFIED**. Do not use `include: []` or `enabled: false` to attempt a hide.
 
 ### Step 6 — Skills that require **this** profile's toolset
 
@@ -213,7 +329,7 @@ related_skills:
 
 If you write `requires_toolsets: [research-bot]` on a different profile's skill, that skill will be **hidden** on the new profile. That is correct: the new profile does not have research-bot's tools.
 
-Do not put `CONTEXT7_API_KEY` in skill env. Do not add a blueprint unless a scheduled job was requested. `research-bot` skills require `resolve_library`, `docs_query`, and `cite_source` by those exact registered names.
+Do not put `CONTEXT7_API_KEY` in skill env. Do not add a blueprint unless a scheduled job was requested. `research-bot` skills require `resolve_library`, `docs_query`, and `cite_source` by those exact registered names. Their Procedure also names the builtins `web_search` and `web_extract`.
 
 ### Step 7 — Memory (one paragraph, then stop)
 
@@ -239,7 +355,7 @@ Prefer the Hermes Honcho tool table (`honcho_profile`, `honcho_search`, `honcho_
 
 ---
 
-## 4. One-turn join (the model must be able to finish)
+## 5. One-turn join (the model must be able to finish)
 
 Official pages James locked (read these, not training data):
 
@@ -306,15 +422,44 @@ Official: [Plugin LLM Access](https://hermes-agent.nousresearch.com/docs/develop
 
 ### Delegation and `ctx.subagent_lifecycle`
 
-Official: [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation), [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns), [Subagent Lifecycle API](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api), plus prompt-assembly `skip_context_files`.
+Keep **three** things distinct. Do not collapse them.
 
-Keep three paths distinct:
+1. `delegate_task` is a model-facing **tool** (toolset `delegation`). Official: [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation), [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns).
+2. `ctx.subagent_lifecycle` is a **plugin** host API. Official: [Subagent Lifecycle API](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api). It does not replace `delegate_task`.
+3. SOUL is skipped on children. Pass the specialized contract in `goal` and `context`.
 
-1. `delegate_task` — model-facing **tool** (toolset `delegation`). Children inherit parent toolsets. No model-facing toolsets param.
-2. `ctx.subagent_lifecycle.launch` — **plugin** host API. Same child path as `delegate_task`. Only during an active agent turn. Outside a turn: fail-closed `No active Hermes parent session`.
-3. SOUL is skipped on children. The specialized contract must live in plugin + skills (and be pasted into `goal`/`context`).
+#### `delegate_task` (model path)
 
-`allowed_toolsets` **narrows** the child. Unknown or parent-broadening toolsets are rejected. Do not give a research child write or product toolsets. Handles are opaque; persist `handle.to_dict()`; after process restart reconnect is `RECONNECT_UNAVAILABLE`. In-process results ~1 hour. Terminal results 32k, no transcripts/hidden reasoning.
+The child is isolated. It gets its own conversation, terminal, and toolset. Only the final summary returns.
+
+**WHEN:** reasoning-heavy work, context flood, parallel independent streams, fresh context.
+**NOT:** a single tool call, mechanical multi-step work (`execute_code`), user interaction (no `clarify`), quick edits, or durable work (`cronjob` or `terminal` with background + notify).
+
+Children know nothing of the parent conversation. `goal` and `context` must be complete. Include paths, constraints, and the research contract.
+
+Children inherit the parent's enabled toolsets. `delegate_task` has no model-facing `toolsets` parameter. It cannot grant extra capabilities. Configure the parent's tools first. Hermes strips `clarify`, `memory`, and `send_message` from children. The user-guide also strips `cronjob`.
+
+Leaf is the default. Leaf cannot call `delegate_task`. An orchestrator keeps `delegate_task` only if `delegation.max_spawn_depth` is above 1 (default 1 = flat). `orchestrator_enabled: false` forces every child to leaf.
+
+**UNVERIFIED — `execute_code` on leaf.** [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns) says leaf cannot call `execute_code`. [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) says both roles retain `execute_code`. Do not code a dependency on either reading.
+
+Defaults: 3 concurrent children, 50 iterations, process-local (not durable). Parallel research is an official pattern. It is not a reason to share plugins across profiles.
+
+If a specialized profile uses delegation, the parent must already have the toolsets the child needs.
+
+#### `ctx.subagent_lifecycle` (plugin path)
+
+A profile plugin may launch or supervise a child from a tool handler or hook. Do not import `tools.delegate_tool` or `AIAgent`. The host path is the same as `delegate_task` (tool-resolution restore, memory notification, `subagent_stop` hooks, cost rollup). This API does not change the `delegate_task` tool, batch delegation, or gateway/TUI display. The model's path remains `delegate_task`.
+
+Launch only during an active agent turn (CLI, gateway, `hermes chat -q`, kanban worker). Outside a turn: fail-closed `No active Hermes parent session`.
+
+`SubagentLaunchRequest` fields: `goal`, `context`, `role` (`leaf` / `orchestrator`), `correlation_id`, `allowed_toolsets`. `allowed_toolsets` **narrows** only. Unknown or parent-broadening toolsets are rejected. Per-tool blocks, workdir overrides, and per-launch timeouts are rejected (not supported yet). Do not give a research child write or product toolsets.
+
+The handle is a serializable, versioned, opaque capability. Use `status`, `wait`, `cancel`, `result`, `reconnect`. Persist `handle.to_dict()`. A forged handle returns `UNKNOWN` / `UNKNOWN_HANDLE`.
+
+States: `PENDING`, `STARTING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `INTERRUPTED`, `CANCEL_REQUESTED`, `CANCELLED`, `UNKNOWN`.
+
+`cancel` is cooperative (`CANCEL_REQUESTED`). Terminal results are immutable, idempotent, 32k, no transcripts or hidden reasoning, and include a stable hash. In-process metadata and results last about one hour. After process restart, `reconnect` is `RECONNECT_UNAVAILABLE` and does not spawn a replacement. Threads die with the process.
 
 Do not invent a child-pool shared across profiles.
 
@@ -324,7 +469,7 @@ Official: [Security](https://hermes-agent.org/docs/user-guide/security/). `termi
 
 ---
 
-## 5. Decision tree
+## 6. Decision tree
 
 ```
 Need the model to follow a recipe with existing Hermes tools?
@@ -350,7 +495,7 @@ Need a new Hermes core tool?
 
 ---
 
-## 6. research-bot is an example, not a template to clone
+## 7. research-bot is an example, not a template to clone
 
 `research-bot` is one specialized profile that happened to need:
 
@@ -361,8 +506,8 @@ Need a new Hermes core tool?
 | Toolset | `research-bot` | Its own id |
 | MCP | server `context7`; `mcp_allowlist: [context7]` | Only if *it* calls a server |
 | Skills | `literature-review`, `source-triage`, `claim-check` | Its own recipes |
-| Skill gate | `requires_toolsets: [research-bot]` + `requires_tools: [resolve_library, docs_query, cite_source]` | `requires_toolsets: [<its-toolset>]` + that profile's registered names |
-| Bundle | `custom_toolsets.research` includes `research-bot` | Its own bundle |
+| Skill gate | `requires_toolsets: [research-bot]` + `requires_tools: [resolve_library, docs_query, cite_source]`. Procedure also names `web_search` / `web_extract`. | `requires_toolsets: [<its-toolset>]` + that profile's registered names |
+| Bundle | `custom_toolsets.research` includes `web` and `research-bot` | Its own bundle. Keep the locked gather `web:` block if it uses the web. |
 | Facade tools | `resolve_library`, `docs_query` | Whatever *it* registers |
 | Ledger tools | `source_ledger_add`, `source_ledger_list`, `cite_source`, `source_ledger_check` | Only if *it* needs a ledger |
 
@@ -372,7 +517,7 @@ SOUL does not tell the model to query Context7 MCP directly.
 
 ---
 
-## 7. Factory repo vs Hermes home
+## 8. Library repo vs Hermes home
 
 | This git repo | Installed Hermes home |
 | --- | --- |
@@ -386,8 +531,8 @@ CI validates structure. It does not run Hermes.
 
 ---
 
-## 8. Official pages this playbook used
+## 9. Official pages this playbook used
 
-[Profiles](https://hermes-agent.org/docs/user-guide/profiles/) · [Profile distributions (user)](https://hermes-agent.org/docs/user-guide/features/profile-distributions/) · [Profile distributions (dev)](https://hermes-agent.org/docs/developer-guide/profile-distributions/) · [Which file does what](https://hermes-agent.org/docs/user-guide/which-file-does-what/) · [Configuration](https://hermes-agent.org/docs/user-guide/configuration/) · [Plugins (user)](https://hermes-agent.org/docs/user-guide/features/plugins/) · [Skills (user)](https://hermes-agent.org/docs/user-guide/features/skills/) · [Tools (user)](https://hermes-agent.org/docs/user-guide/features/tools/) · [MCP (user)](https://hermes-agent.org/docs/user-guide/features/mcp/) · [Hooks (user)](https://hermes-agent.org/docs/user-guide/features/hooks/) · [Memory (user)](https://hermes-agent.org/docs/user-guide/features/memory/) · [Personality](https://hermes-agent.org/docs/user-guide/features/personality/) · [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/) · [Built-in plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/) · [Tools reference](https://hermes-agent.org/docs/reference/tools-reference/) · [Toolsets reference](https://hermes-agent.org/docs/reference/toolsets-reference/) · [MCP config reference](https://hermes-agent.org/docs/reference/mcp-config-reference/) · [Profile commands](https://hermes-agent.org/docs/reference/cli/profile/) · [Use MCP](https://hermes-agent.org/docs/user-guide/guides/use-mcp-with-hermes/) · [Work with skills](https://hermes-agent.org/docs/user-guide/guides/work-with-skills/) · [Use SOUL](https://hermes-agent.org/docs/user-guide/guides/use-soul-with-hermes/) · [Delegation patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/) · [Agent loop (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop) · [Prompt assembly (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly) · [Adding tools (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools) · [Plugins native (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins) · [Creating skills (locked, priority)](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills) · [Plugin LLM access (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access) · [Subagent lifecycle (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api) · [Memory provider plugin (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin) · [Skills (dev)](https://hermes-agent.org/docs/developer-guide/skills/) · [MCP (dev)](https://hermes-agent.org/docs/developer-guide/mcp/) · [Hooks (dev)](https://hermes-agent.org/docs/developer-guide/hooks/) · [Tools (dev)](https://hermes-agent.org/docs/developer-guide/tools/) · [Tools runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/) · [Context compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) · [Memory (dev)](https://hermes-agent.org/docs/developer-guide/memory/) · [Memory providers](https://hermes-agent.org/docs/developer-guide/memory-providers/) · [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/) · [Security](https://hermes-agent.org/docs/user-guide/security/) · [Multi-profile gateways](https://hermes-agent.org/docs/user-guide/features/multi-profile-gateways/) · [Honcho × Hermes](https://docs.honcho.dev/v3/guides/agent-frameworks/hermes-agent)
+[Profiles](https://hermes-agent.org/docs/user-guide/profiles/) · [Profile distributions (user)](https://hermes-agent.org/docs/user-guide/features/profile-distributions/) · [Profile distributions (dev)](https://hermes-agent.org/docs/developer-guide/profile-distributions/) · [Which file does what](https://hermes-agent.org/docs/user-guide/which-file-does-what/) · [Configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) · [Web Search (locked)](https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search) · [Web Search Provider Plugins (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin) · [Plugins (user)](https://hermes-agent.org/docs/user-guide/features/plugins/) · [Skills (user)](https://hermes-agent.org/docs/user-guide/features/skills/) · [Tools (user)](https://hermes-agent.org/docs/user-guide/features/tools/) · [MCP (user)](https://hermes-agent.org/docs/user-guide/features/mcp/) · [Hooks (user)](https://hermes-agent.org/docs/user-guide/features/hooks/) · [Memory (user)](https://hermes-agent.org/docs/user-guide/features/memory/) · [Personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality) · [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) · [Built-in plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/) · [Tools reference](https://hermes-agent.org/docs/reference/tools-reference/) · [Toolsets reference](https://hermes-agent.org/docs/reference/toolsets-reference/) · [MCP config reference](https://hermes-agent.org/docs/reference/mcp-config-reference/) · [Profile commands](https://hermes-agent.org/docs/reference/cli/profile/) · [Use MCP](https://hermes-agent.org/docs/user-guide/guides/use-mcp-with-hermes/) · [Work with skills](https://hermes-agent.org/docs/user-guide/guides/work-with-skills/) · [Use SOUL (locked)](https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes) · [Delegation patterns (locked)](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns) · [Agent loop (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop) · [Prompt assembly (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly) · [Adding tools (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools) · [Plugins native (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins) · [Creating skills (locked, priority)](https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills) · [Plugin LLM access (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access) · [Subagent lifecycle (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api) · [Memory provider plugin (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin) · [Skills (dev)](https://hermes-agent.org/docs/developer-guide/skills/) · [MCP (dev)](https://hermes-agent.org/docs/developer-guide/mcp/) · [Hooks (dev)](https://hermes-agent.org/docs/developer-guide/hooks/) · [Tools (dev)](https://hermes-agent.org/docs/developer-guide/tools/) · [Tools runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/) · [Context compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) · [Memory (dev)](https://hermes-agent.org/docs/developer-guide/memory/) · [Memory providers](https://hermes-agent.org/docs/developer-guide/memory-providers/) · [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/) · [Security](https://hermes-agent.org/docs/user-guide/security/) · [Multi-profile gateways](https://hermes-agent.org/docs/user-guide/features/multi-profile-gateways/) · [Honcho × Hermes](https://docs.honcho.dev/v3/guides/agent-frameworks/hermes-agent)
 
 Context7 library: `/nousresearch/hermes-agent`. Honcho: `/plastic-labs/honcho` only for the short memory paragraph.

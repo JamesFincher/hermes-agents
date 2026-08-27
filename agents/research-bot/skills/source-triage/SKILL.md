@@ -22,6 +22,8 @@ The user dumped URLs, search results, or a draft bibliography and needs them ran
 | Step | Tool |
 | --- | --- |
 | See recorded sources | `source_ledger_list` |
+| Open-web search already run | `web_search` |
+| Read a URL you will rank | `web_extract` |
 | Record a page you opened | `source_ledger_add` |
 | Library docs (not raw MCP) | `resolve_library` then `docs_query` |
 | After every claim | `cite_source` |
@@ -31,11 +33,12 @@ Never call raw `mcp_*` tools. The research-bot plugin registers the `resolve_lib
 ## Procedure
 
 1. Call **`source_ledger_list`** first so you do not re-add sources already recorded.
-2. Open each candidate. A snippet is not a retrieve — read the page.
-3. Rank: **Primary** (vendor docs, spec, paper) / **Supporting** / **Skip**.
-4. For every source you actually opened and will use, call **`source_ledger_add`**. If the source is a library docset, resolve and query via **`resolve_library`** / **`docs_query`** instead of raw MCP.
-5. Drop unread or low-quality items. Say what you skipped and why.
-6. After every claim in the ranked set, call **`cite_source`**. Do not write product code.
+2. Rank what `web_search`, `web_extract`, and the ledger already returned. This skill is the recipe. Do not invent a ranker tool.
+3. If a candidate URL was not extracted yet, call **`web_extract`**. A snippet is not a retrieve.
+4. Rank: **Primary** (vendor docs, spec, paper) / **Supporting** / **Skip**.
+5. For every source you actually opened and will use, call **`source_ledger_add`**. If the source is a library docset, resolve and query via **`resolve_library`** / **`docs_query`** instead of raw MCP. Context7 is library docs only.
+6. Drop unread or low-quality items. Say what you skipped and why.
+7. After every claim in the ranked set, call **`cite_source`**. Do not write product code.
 
 ## Pitfalls
 

@@ -8,6 +8,11 @@
 #   https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins
 # mcp_servers + ${env:VAR}:
 #   https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference
+# web.search_backend / web.extract_backend / web.keyless_fallback /
+# web.keyless_rescue:
+#   https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search
+#   https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin
+#   https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
 memory:
   provider: honcho
@@ -17,6 +22,14 @@ memory:
 terminal:
   backend: local
   cwd: "."
+
+# Cited from official web-search + configuration docs.
+# Deploy-host env (never commit): SEARXNG_URL, FIRECRAWL_API_URL.
+web:
+  search_backend: "searxng"
+  extract_backend: "firecrawl"
+  keyless_fallback: false
+  keyless_rescue: false
 
 custom_toolsets:
   research:

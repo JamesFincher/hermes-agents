@@ -1,15 +1,15 @@
 ---
-description: Hermes profiles — playbook is SoT, Context7 first, one independent agent per PR
+description: Hermes Agent Profile Library — playbook is SoT, Context7 first, one independent agent per PR
 alwaysApply: true
 ---
 
-# Hermes independent profiles
+# Hermes Agent Profile Library
 
 **Source of truth:** `docs/PROFILE-PLAYBOOK.md`
 
 Read that playbook before editing. `AGENTS.md` and `docs/WORKFLOW.md` point at it.
 
-The playbook is how to generate one independent specialized Hermes profile. `hermes-agents` is a folder of those profiles. It is not a shared runtime.
+This repo is the Hermes Agent Profile Library. Grow it by adding `agents/<name>/`. Pull with `hermes profile install ./agents/<name>`. Each profile is complete and isolated. The library is the shelf, not a shared process layer.
 
 ## Docs order (mandatory)
 
@@ -26,7 +26,8 @@ Skill, Tool, Plugin, and MCP are four different official objects. See the playbo
 
 - One agent per PR. Isolated `HERMES_HOME`. That profile owns its plugin, toolset, skills, and MCP.
 - Next agent writes its own plugin + skills from scratch if it needs them. Zero imports from `research-bot`.
-- There is no factory-root `plugins/` package.
+- There is no repo-root `plugins/` package.
+- Gather is locked: `web_search` / `web_extract`, SearXNG search, Firecrawl extract, keyless ring off.
 - Honcho is `memory.provider: honcho` (settled). Not `plugins.enabled`.
 - Never invent knobs. Cite Context7 or an official URL.
 - Never commit secrets. Target stock Hermes `~/.hermes`, not Gengar.

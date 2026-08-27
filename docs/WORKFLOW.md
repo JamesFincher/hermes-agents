@@ -1,6 +1,6 @@
 # Workflow
 
-Herbert points Cursor here. One loop, one PR.
+This repo is the **Hermes Agent Profile Library**. Herbert points Cursor here. One loop, one PR.
 
 **Source of truth:** [`PROFILE-PLAYBOOK.md`](PROFILE-PLAYBOOK.md)
 
@@ -9,7 +9,7 @@ The playbook teaches how to generate **one independent specialized Hermes profil
 ## Intake
 
 1. Read the request. Identify **one** unit: one new agent, or one skill recipe, or one change to **that** agent’s plugin / MCP.
-2. Read the playbook — especially the four surfaces and the footprint ladder. Do not start from memory of Hermes knobs.
+2. Read the playbook — especially the four surfaces, the gather layer, and the footprint ladder. Do not start from memory of Hermes knobs.
 3. If the request spans two agents, split it.
 
 ## Context7
@@ -28,7 +28,8 @@ Follow the playbook checklist. Short version:
 
 - New agent: `agents/<name>/` with `distribution.yaml` at that directory’s root. That agent’s own `plugins/<name>/` **only if** it needs process code. `plugins.enabled: [<name>]`. Claim `plugins` in `distribution_owned`.
 - Skills in `agents/<name>/skills/`. Normal index. `requires_toolsets` / `requires_tools` of tools **this** plugin registers. Do not require another profile’s toolset.
-- No factory-root `plugins/` folder. Live process code lives only in `agents/<name>/plugins/<name>/`. Zero imports from another agent’s plugin. Toolset `research-bot` stays on that profile only. The next profile starts empty of `research-bot`’s plugin, tools, and skills.
+- No repo-root `plugins/` folder. Live process code lives only in `agents/<name>/plugins/<name>/`. Zero imports from another agent’s plugin. Toolset `research-bot` stays on that profile only. The next profile starts empty of `research-bot`’s plugin, tools, and skills.
+- Gather stays the official builtins. `web_search` + `web_extract`. Local SearXNG for search. Local Firecrawl for extract. Keyless ring off. Do not register a search tool.
 - Cron / blueprint: suggestion only. Official: distribution cron is not auto-scheduled.
 
 Local doctor (not CI). Official: [Plugins](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins) — `hermes plugins doctor [path-or-id]` runs the same discovery, manifest parse, `register(ctx)`, and registries Hermes uses. `--ci` exits non-zero on error. Doctor is not a sandbox.

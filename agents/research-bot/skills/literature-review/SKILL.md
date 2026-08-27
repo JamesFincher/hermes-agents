@@ -21,6 +21,8 @@ The user wants a survey of what primary docs and papers actually say — not a p
 
 | Step | Tool |
 | --- | --- |
+| Open-web search | `web_search` |
+| Read a URL you will use | `web_extract` |
 | Resolve a library ID | `resolve_library` |
 | Read that library's docs | `docs_query` |
 | Record a web/arXiv page you opened | `source_ledger_add` |
@@ -32,12 +34,15 @@ Never call raw `mcp_*` / `mcp_context7_*` tools. The research-bot plugin registe
 ## Procedure
 
 1. Name the library, paper, or product.
-2. If it is a documented library, call **`resolve_library`**, then **`docs_query`** with the returned library ID. Prefer `/nousresearch/hermes-agent` when the subject is Hermes.
-3. Open official LLM entry points when they exist (Hermes: `https://hermes-agent.nousresearch.com/llms.txt`).
-4. After each non-Context7 page you actually opened, call **`source_ledger_add`** with the URL, title, and a short quote you saw.
-5. Mid-review, call **`source_ledger_list`**.
-6. After every factual claim, call **`cite_source`** and only paste those formatted entries.
-7. If Context7 and the official page disagree, record both and treat the official page as primary.
+2. If it is a documented library, call **`resolve_library`**, then **`docs_query`** with the returned library ID. Prefer `/nousresearch/hermes-agent` when the subject is Hermes. Context7 is library docs only. It is not the open web.
+3. For the open web, call **`web_search`**. Then call **`web_extract`** on each URL you will use. Do not pick a backend. Hermes routes search to local SearXNG and extract to local Firecrawl.
+4. Do not invent a ranker tool. Rank hits with the `source-triage` skill.
+5. Do not install `official/research/searxng-search`. This profile already has the `web` toolset.
+6. Open official LLM entry points when they exist (Hermes: `https://hermes-agent.nousresearch.com/llms.txt`).
+7. After each non-Context7 page you actually opened, call **`source_ledger_add`** with the URL, title, and a short quote you saw.
+8. Mid-review, call **`source_ledger_list`**.
+9. After every factual claim, call **`cite_source`** and only paste those formatted entries.
+10. If Context7 and the official page disagree, record both and treat the official page as primary.
 
 ## Pitfalls
 
