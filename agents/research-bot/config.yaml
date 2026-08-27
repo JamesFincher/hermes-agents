@@ -25,6 +25,10 @@ auxiliary:
     reasoning_effort: "none"
   title_generation:
     enabled: false
+  # Pin /review on the host. Do not invent a model id in git.
+  # model: "<frontier-model>"   # set on the host; empty inherits the primary
+  # provider: "<provider>"
+  review: {}
 
 # ─── context economics ───────────────────────────────────────────────────────
 compression:

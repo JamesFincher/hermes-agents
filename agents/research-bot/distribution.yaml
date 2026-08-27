@@ -32,6 +32,12 @@ env_requires:
   - name: CONTEXT7_API_KEY
     description: "Context7 API key for the remote MCP server. Interpolated as ${env:CONTEXT7_API_KEY}."
     required: false
+  - name: SEARXNG_URL
+    description: "Deploy-host URL for web.search_backend: searxng. Self-hosted search. Never commit the value."
+    required: false
+  - name: FIRECRAWL_API_URL
+    description: "Deploy-host URL for web.extract_backend: firecrawl. Self-hosted extract. Key optional when this URL is set. Never commit the value."
+    required: false
   - name: OPENAI_API_KEY
     description: "Example model-provider key. This distribution does not pin a model."
     required: false
