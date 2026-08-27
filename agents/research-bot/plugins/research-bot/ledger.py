@@ -1,4 +1,13 @@
-"""Durable source ledger in plugin-data/. Thread-safe. Not session-keyed."""
+"""Durable source ledger in plugin-data/. Thread-safe. Not session-keyed.
+
+Agent-loop compression creates a child session lineage id. This file lives
+at <HERMES_HOME>/plugin-data/research-bot/source-ledger.json so it survives
+that rebuild. Do not key writes only to a discarded session id.
+https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop
+
+Concurrent ThreadPoolExecutor is the default for multiple tool_calls.
+All ledger writes take _LOCK.
+"""
 
 from __future__ import annotations
 

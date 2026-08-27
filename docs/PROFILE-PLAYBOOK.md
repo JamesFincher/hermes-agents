@@ -218,39 +218,62 @@ Prefer the Hermes Honcho tool table (`honcho_profile`, `honcho_search`, `honcho_
 
 ## 4. One-turn join (the model must be able to finish)
 
-Official loop: [Agent Loop](https://hermes-agent.org/docs/developer-guide/agent-loop/), [Tools Runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/), [Hooks](https://hermes-agent.org/docs/developer-guide/hooks/), [Prompt Assembly](https://hermes-agent.org/docs/developer-guide/prompt-assembly/), [Context Compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/), [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/).
+Official pages James locked (read these, not training data):
+
+- [Agent Loop Internals](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop)
+- [Prompt Assembly](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly)
+
+Also: [Tools Runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/), [Hooks](https://hermes-agent.org/docs/developer-guide/hooks/), [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/).
+
+A profile that ships a plugin must encode the join in `agents/<name>/INTEGRATION.md` and cite those two URLs. `research-bot` already does.
 
 ### Cached system prompt
 
-Built **once** per session: stable → context → volatile.
+Three tiers, joined **stable → context → volatile** (`agent/system_prompt.py`). Built **once** on the first turn and reused from the session DB. Rebuild only if model, provider, cwd, or platform changes, or compression rebuild. **Not** because `MEMORY.md` or project files changed mid-session. Mid-session memory writes update disk only until rebuild.
 
-| Layer | What belongs | What does not |
+| Tier | Official contents | Do not put here |
 | --- | --- | --- |
-| **Stable** | Tool schemas, skills **index** (names + descriptions), plugin prompt snapshot | Turn-varying ledger text |
-| **Context** | `SOUL.md`, `AGENTS.md` (cwd, only if no `.hermes.md`), memory files | Project paths in SOUL |
-| **Volatile system** | First-turn Honcho `hybrid` block | Later Honcho recall |
+| **Stable** | `SOUL.md` identity, tool/model guidance, skills **index**, env hints, `platform_hints` | Turn-varying ledger digest |
+| **Context** | Caller `system_message` + **one** project file (`.hermes.md`/`HERMES.md` walk-to-git-root, else cwd `AGENTS.md`, else `CLAUDE.md`, else `.cursorrules`). First match wins. | This repo’s root `AGENTS.md` (Cursor workflow; not loaded unless it is the cwd project file and nothing higher-priority exists) |
+| **Volatile** (still cached system) | `MEMORY.md` snapshot, `USER.md` snapshot, first-turn Honcho/external memory-provider block, timestamp/session/model line | Live per-turn ledger text |
 
-Later Honcho recall and `pre_llm_call` text are **user-message** injections at API-call time, not cached-system rebuilds.
+Skills are **stable**. Memory/Honcho snapshots are **volatile** but still in the cached system prompt, not mid-turn overlays.
 
-`pre_llm_call`: return `{context: str}` / `str` / `None`. Injected as a **user** message. 10,000 character cap. Fail-open (exception → `None`). Do not put turn-varying ledger text in SOUL.
+**API-call-time only** (not cached system): `ephemeral_system_prompt`, prefill messages, gateway session overlays, later-turn Honcho/external recall on the **user** message, and `pre_llm_call` plugin context on the **user** message. Multiple plugin contexts concatenate.
+
+`pre_llm_call`: return `{context: str}` / `str` / `None`. User message. 10,000 character cap. Fail-open. Put the research contract + live ledger digest here. Never put turn-varying text in SOUL or `config.yaml` `system_message`.
+
+`skip_context_files` (subagent delegation): SOUL is **not** loaded; `DEFAULT_AGENT_IDENTITY` is used. Workflow must live in the plugin + skills, not SOUL alone. SOUL is `$HERMES_HOME/SOUL.md`, security-scanned, truncated (20k floor). `skip_soul` prevents double injection as a context file.
+
+Customize via SOUL / MEMORY / USER / project context / skills / optional system prompt / ephemeral overlays. Do **not** fork `prompt_builder.py`.
 
 ### Tool path
 
-`handle_function_call` → agent-loop intercept (`todo`, `memory`, `session_search`, `delegate_task`) → `pre_tool_call` → `registry.dispatch` → handler → `post_tool_call`.
+Official agent-loop: agent-level tools `todo`, `memory`, `session_search`, `delegate_task` are intercepted **before** `handle_function_call` / registry. They return synthetic results. **Do not** rely on `pre_tool_call` / `post_tool_call` to police them.
 
-The pool is a concurrent thread pool. Ledger writes must be thread-safe.
+Registry tools: resolve `tools/registry.py` → `pre_tool_call` → `approval.py` if dangerous → handler → `post_tool_call` → append `role=tool`. Multiple `tool_calls` run concurrent `ThreadPoolExecutor`; interactive tools (`clarify`) force sequential; results reinserted in original order. Ledger writes must be thread-safe.
 
-`pre_tool_call` return: `{action: "block"|"approve"|"modify", message: ...}` or `None`. Official docs: builtin + plugin tools. MCP-through-hooks is **UNVERIFIED**. Do not harvest or block raw `mcp_*` until verified. Backup-harvest **facade** tools only.
+`IterationBudget` default 500 (`agent.max_turns`). Subagents get independent budgets capped at `delegation.max_iterations` (default 50).
 
-### Compression
+`pre_tool_call` return: `{action: "block"|"approve"|"modify", message: ...}` or `None`. Official docs cover builtin + plugin tools. MCP-through-hooks is **UNVERIFIED**. Do not harvest or block raw `mcp_*` until verified. Backup-harvest **facade** tools only.
 
-Official compression page: flush memory first; `protect_last_n` default 20; never split tool/result pairs. Agent-loop also mentions child session lineage. The compression page documents `in_place: true` as default — if you cite both, **flag the overlap**. A durable store must not be keyed only to a discarded session id. Use `<HERMES_HOME>/plugin-data/<plugin>/`.
+Interrupt abandons the API thread; no partial response enters history.
+
+### Compression (agent-loop)
+
+Preflight if conversation >50% of the context window. Gateway auto-compression >85% between turns.
+
+Order: flush memory to disk **first**, summarize middle turns, keep `protect_last_n` (default 20), never split tool/result pairs, generate a new session lineage id (child session).
+
+**Overlap flag:** the [context-compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) page also documents `in_place: true` as a default. Agent-loop (the page James locked) says compression creates a **child** session. Do not code a dependency on `in_place`. A durable store must survive child-session lineage: `<HERMES_HOME>/plugin-data/<plugin>/`, not keyed only to a discarded session id.
+
+After each turn: session SQLite persist; `MEMORY.md` / `USER.md` flush. Honcho is `memory.provider` — do not also write a parallel `MEMORY.md` personality from a profile plugin.
 
 ### Delegation
 
-Official: [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/), [Delegation Patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/), [Subagent Lifecycle API](https://hermes-agent.org/docs/developer-guide/subagent-lifecycle-api/).
+Official: [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/), [Delegation Patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/), [Subagent Lifecycle API](https://hermes-agent.org/docs/developer-guide/subagent-lifecycle-api/), plus prompt-assembly `skip_context_files`.
 
-Children skip SOUL. The plugin + skills must carry the contract. Do not put the only copy of "never write product code" in SOUL.
+Children skip SOUL. The plugin + skills must carry the contract.
 
 ### Security
 
@@ -300,7 +323,7 @@ Need a new Hermes core tool?
 | Facade tools | `resolve_library`, `docs_query` | Whatever *it* registers |
 | Ledger tools | `source_ledger_add`, `source_ledger_list`, `source_ledger_cite`, `source_ledger_check` | Only if *it* needs a ledger |
 
-research-bot hooks (this profile only): `on_session_start` inits the ledger; `pre_llm_call` injects the contract + digest on the **user** message; `pre_tool_call` blocks product-code writes and scaffolding terminal; `post_tool_call` backup-harvests facade tools, not `mcp_*`.
+research-bot hooks (this profile only): `on_session_start` inits the ledger; `pre_llm_call` injects the contract + digest on the **user** message; `pre_tool_call` blocks product-code writes and scaffolding terminal (does not police `todo`/`memory`/`session_search`/`delegate_task`); `post_tool_call` backup-harvests facade tools, not `mcp_*`. Ledger path is profile `plugin-data/`, not a session id.
 
 SOUL does not tell the model to query Context7 MCP directly.
 
@@ -322,6 +345,6 @@ CI validates structure. It does not run Hermes.
 
 ## 8. Official pages this playbook used
 
-[Profiles](https://hermes-agent.org/docs/user-guide/profiles/) · [Profile distributions (user)](https://hermes-agent.org/docs/user-guide/features/profile-distributions/) · [Profile distributions (dev)](https://hermes-agent.org/docs/developer-guide/profile-distributions/) · [Which file does what](https://hermes-agent.org/docs/user-guide/which-file-does-what/) · [Configuration](https://hermes-agent.org/docs/user-guide/configuration/) · [Plugins (user)](https://hermes-agent.org/docs/user-guide/features/plugins/) · [Skills (user)](https://hermes-agent.org/docs/user-guide/features/skills/) · [Tools (user)](https://hermes-agent.org/docs/user-guide/features/tools/) · [MCP (user)](https://hermes-agent.org/docs/user-guide/features/mcp/) · [Hooks (user)](https://hermes-agent.org/docs/user-guide/features/hooks/) · [Memory (user)](https://hermes-agent.org/docs/user-guide/features/memory/) · [Personality](https://hermes-agent.org/docs/user-guide/features/personality/) · [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/) · [Built-in plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/) · [Tools reference](https://hermes-agent.org/docs/reference/tools-reference/) · [Toolsets reference](https://hermes-agent.org/docs/reference/toolsets-reference/) · [MCP config reference](https://hermes-agent.org/docs/reference/mcp-config-reference/) · [Profile commands](https://hermes-agent.org/docs/reference/cli/profile/) · [Use MCP](https://hermes-agent.org/docs/user-guide/guides/use-mcp-with-hermes/) · [Work with skills](https://hermes-agent.org/docs/user-guide/guides/work-with-skills/) · [Use SOUL](https://hermes-agent.org/docs/user-guide/guides/use-soul-with-hermes/) · [Delegation patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/) · [Agent loop](https://hermes-agent.org/docs/developer-guide/agent-loop/) · [Prompt assembly](https://hermes-agent.org/docs/developer-guide/prompt-assembly/) · [Adding tools](https://hermes-agent.org/docs/developer-guide/adding-tools/) · [Plugins (dev)](https://hermes-agent.org/docs/developer-guide/plugins/) · [Skills (dev)](https://hermes-agent.org/docs/developer-guide/skills/) · [Creating skills](https://hermes-agent.org/docs/developer-guide/creating-skills/) · [MCP (dev)](https://hermes-agent.org/docs/developer-guide/mcp/) · [Hooks (dev)](https://hermes-agent.org/docs/developer-guide/hooks/) · [Plugin LLM access](https://hermes-agent.org/docs/developer-guide/plugin-llm-access/) · [Tools (dev)](https://hermes-agent.org/docs/developer-guide/tools/) · [Tools runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/) · [Context compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) · [Memory (dev)](https://hermes-agent.org/docs/developer-guide/memory/) · [Memory providers](https://hermes-agent.org/docs/developer-guide/memory-providers/) · [Subagent lifecycle](https://hermes-agent.org/docs/developer-guide/subagent-lifecycle-api/) · [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/) · [Security](https://hermes-agent.org/docs/user-guide/security/) · [Multi-profile gateways](https://hermes-agent.org/docs/user-guide/features/multi-profile-gateways/) · [Honcho × Hermes](https://docs.honcho.dev/v3/guides/agent-frameworks/hermes-agent)
+[Profiles](https://hermes-agent.org/docs/user-guide/profiles/) · [Profile distributions (user)](https://hermes-agent.org/docs/user-guide/features/profile-distributions/) · [Profile distributions (dev)](https://hermes-agent.org/docs/developer-guide/profile-distributions/) · [Which file does what](https://hermes-agent.org/docs/user-guide/which-file-does-what/) · [Configuration](https://hermes-agent.org/docs/user-guide/configuration/) · [Plugins (user)](https://hermes-agent.org/docs/user-guide/features/plugins/) · [Skills (user)](https://hermes-agent.org/docs/user-guide/features/skills/) · [Tools (user)](https://hermes-agent.org/docs/user-guide/features/tools/) · [MCP (user)](https://hermes-agent.org/docs/user-guide/features/mcp/) · [Hooks (user)](https://hermes-agent.org/docs/user-guide/features/hooks/) · [Memory (user)](https://hermes-agent.org/docs/user-guide/features/memory/) · [Personality](https://hermes-agent.org/docs/user-guide/features/personality/) · [Delegation](https://hermes-agent.org/docs/user-guide/features/delegation/) · [Built-in plugins](https://hermes-agent.org/docs/user-guide/features/built-in-plugins/) · [Tools reference](https://hermes-agent.org/docs/reference/tools-reference/) · [Toolsets reference](https://hermes-agent.org/docs/reference/toolsets-reference/) · [MCP config reference](https://hermes-agent.org/docs/reference/mcp-config-reference/) · [Profile commands](https://hermes-agent.org/docs/reference/cli/profile/) · [Use MCP](https://hermes-agent.org/docs/user-guide/guides/use-mcp-with-hermes/) · [Work with skills](https://hermes-agent.org/docs/user-guide/guides/work-with-skills/) · [Use SOUL](https://hermes-agent.org/docs/user-guide/guides/use-soul-with-hermes/) · [Delegation patterns](https://hermes-agent.org/docs/user-guide/guides/delegation-patterns/) · [Agent loop (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop) · [Prompt assembly (locked)](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly) · [Adding tools](https://hermes-agent.org/docs/developer-guide/adding-tools/) · [Plugins (dev)](https://hermes-agent.org/docs/developer-guide/plugins/) · [Skills (dev)](https://hermes-agent.org/docs/developer-guide/skills/) · [Creating skills](https://hermes-agent.org/docs/developer-guide/creating-skills/) · [MCP (dev)](https://hermes-agent.org/docs/developer-guide/mcp/) · [Hooks (dev)](https://hermes-agent.org/docs/developer-guide/hooks/) · [Plugin LLM access](https://hermes-agent.org/docs/developer-guide/plugin-llm-access/) · [Tools (dev)](https://hermes-agent.org/docs/developer-guide/tools/) · [Tools runtime](https://hermes-agent.org/docs/developer-guide/tools-runtime/) · [Context compression](https://hermes-agent.org/docs/developer-guide/context-compression-and-caching/) · [Memory (dev)](https://hermes-agent.org/docs/developer-guide/memory/) · [Memory providers](https://hermes-agent.org/docs/developer-guide/memory-providers/) · [Subagent lifecycle](https://hermes-agent.org/docs/developer-guide/subagent-lifecycle-api/) · [Sessions](https://hermes-agent.org/docs/developer-guide/sessions/) · [Security](https://hermes-agent.org/docs/user-guide/security/) · [Multi-profile gateways](https://hermes-agent.org/docs/user-guide/features/multi-profile-gateways/) · [Honcho × Hermes](https://docs.honcho.dev/v3/guides/agent-frameworks/hermes-agent)
 
 Context7 library: `/nousresearch/hermes-agent`. Honcho: `/plastic-labs/honcho` only for the short memory paragraph.

@@ -44,6 +44,9 @@ _SCAFFOLD = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+# Agent-loop intercepts these BEFORE handle_function_call / registry.
+# pre_tool_call never sees a real dispatch — do not police them.
+# https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop
 _INTERCEPTED = frozenset({"todo", "memory", "session_search", "delegate_task"})
 
 

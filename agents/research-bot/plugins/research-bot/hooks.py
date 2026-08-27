@@ -1,7 +1,13 @@
 """Hooks. Official signatures accept **kwargs.
 
-pre_llm_call injects onto the user message, not the system prompt.
+pre_llm_call is API-call-time only: appended to the current-turn user
+message, not written into the cached system prompt (stable/context/volatile).
+https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly
 https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks
+
+todo/memory/session_search/delegate_task are intercepted before the
+registry — do not police them here.
+https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop
 """
 
 from __future__ import annotations
@@ -11,10 +17,12 @@ from typing import Any
 from . import ledger, policy
 
 CONTRACT = (
-    "RESEARCH CONTRACT (user-message injection; Honcho owns system-prompt memory):\n"
+    "RESEARCH CONTRACT (user-message injection; cached SOUL/system_message "
+    "must not carry turn-varying text):\n"
     "- Use resolve_library and docs_query for Context7. Do not call raw mcp_* tools.\n"
     "- After a non-Context7 retrieve, call source_ledger_add. Before citing, "
     "source_ledger_cite. Before a fact, source_ledger_check.\n"
+    "- Honcho is memory.provider. Do not write a parallel MEMORY.md personality.\n"
     "- Do not invent knobs. Do not write product application code."
 )
 

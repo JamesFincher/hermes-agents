@@ -278,6 +278,11 @@ def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
     config = load_yaml(config_path) if config_path.is_file() else {}
     if not isinstance(config, dict):
         config = {}
+    if agent_dir.name == "research-bot" and config.get("system_message"):
+        fail(
+            f"{agent_dir.name} must not set config system_message "
+            "(cached); turn-varying contract goes in pre_llm_call"
+        )
     plugins_cfg = config.get("plugins") or {}
     if not isinstance(plugins_cfg, dict):
         plugins_cfg = {}
@@ -349,6 +354,17 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
     for required in ("SOUL.md", "config.yaml", "README.md", "INTEGRATION.md", ".gitignore"):
         if not (agent_dir / required).is_file():
             fail(f"{agent_dir.name} missing {required}")
+    integration = agent_dir / "INTEGRATION.md"
+    if integration.is_file() and agent_dir.name == "research-bot":
+        integration_text = integration.read_text(encoding="utf-8")
+        for url in (
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly",
+        ):
+            if url not in integration_text:
+                fail(f"{integration.relative_to(ROOT)} must cite {url}")
+        if "system_message" in integration_text and "pre_llm_call" not in integration_text:
+            fail(f"{integration.relative_to(ROOT)} must lock pre_llm_call for turn-varying text")
     mcp = agent_dir / "mcp.json"
     if mcp.is_file():
         payload = json.loads(mcp.read_text(encoding="utf-8"))

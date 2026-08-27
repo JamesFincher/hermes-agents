@@ -225,6 +225,29 @@ class PluginTests(unittest.TestCase):
         self.hooks.post_tool_call("mcp_context7_query_docs", {"query": "x"}, "hit", "t")
         self.assertEqual(self.ledger.list_sources()["count"], before)
 
+    def test_ledger_survives_child_session_lineage(self) -> None:
+        self.runtime.set_ctx(self.ctx)
+        path = self.ledger.ledger_path()
+        self.assertEqual(path, self.home / "plugin-data" / "research-bot" / "source-ledger.json")
+        self.assertNotIn("s1", str(path))
+        self.assertNotIn("session", path.name)
+
+    def test_does_not_hook_police_intercepted_agent_tools(self) -> None:
+        for name in ("todo", "memory", "session_search", "delegate_task"):
+            self.assertIsNone(
+                self.hooks.pre_tool_call(name, {"text": "x"}, "task"),
+                msg=name,
+            )
+
+    def test_pre_llm_call_is_user_message_contract_not_cached_soul(self) -> None:
+        self.hooks.on_session_start("s1", "model", "cli")
+        injected = self.hooks.pre_llm_call("s1", "Cite the spec.")
+        assert injected is not None
+        self.assertIn("RESEARCH CONTRACT", injected["context"])
+        self.assertIn("LEDGER:", injected["context"])
+        self.assertIn("MEMORY.md personality", injected["context"])
+        self.assertLessEqual(len(injected["context"]), 10000)
+
     def test_tools_return_json_and_never_raise(self) -> None:
         self.ledger.init_ledger()
         added = json.loads(
