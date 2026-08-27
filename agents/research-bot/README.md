@@ -35,8 +35,8 @@ Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`.
 1. Copy env keys from `.env.EXAMPLE` into the profile `.env`. See **env_requires**.
 2. Copy `honcho.json.example` to `honcho.json` (or merge the `hermes.research-bot` host). Never commit `honcho.json`. `pinUserPeer: true` is gateway-only.
 3. `hermes memory setup` if needed. `hermes memory status` should show the provider active.
-4. Confirm `plugins.enabled: [hdr]`. Optional: `hermes plugins doctor ~/.hermes/profiles/research-bot/plugins/hdr --ci`.
-5. `/tools list` should show toolsets `web`, `browser`, `vision`, `file`, `terminal`, `code_execution`, `skills`, `memory`, `session_search`, `todo`, `clarify`, `delegation`, `cronjob`, `hdr`. There is **no `moa` toolset**. MoA is a provider.
+4. Confirm `plugins.enabled: [hdr]`. On Hermes 0.19.0, `hermes plugins` has no `doctor` action (choices: install, update, remove, list, enable, disable). Use `hermes -p research-bot plugins list` and `hermes -p research-bot tools list`.
+5. `hermes -p research-bot tools list` (CLI form of `/tools list`) should show `web`, `browser`, `vision`, `file`, `terminal`, `code_execution`, `skills`, `memory`, `session_search`, `todo`, `clarify`, `delegation`, `cronjob`, `hdr`. There is **no `moa` toolset**. MoA is a provider.
 
 ## Update
 

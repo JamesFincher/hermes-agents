@@ -385,6 +385,12 @@ Version: live docs 2026-08-27.
 
 P1 keeps path install: `hermes profile install ./agents/research-bot`. The root README states the official GitHub-URL limit (one distribution per repo). That removes an invented multi-profile index. It does not add a knob.
 
+**STOP — `hermes plugins doctor`:** spec §4.7 says run `hermes plugins doctor <profile>/plugins/hdr --ci`. Hermes Agent **v0.19.0** CLI:
+
+> `hermes plugins: error: argument plugins_action: invalid choice: 'doctor' (choose from 'install', 'update', 'remove', 'rm', 'uninstall', 'list', 'ls', 'enable', 'disable')`
+
+No official page in §12 documents `plugins doctor`. Do not invent that action. P1 live check uses `hermes profile install` + `hermes tools list` + `hermes plugins list`.
+
 ---
 
 ## 17. Memory (Honcho)
