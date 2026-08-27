@@ -1,2 +1,2 @@
-The fixture paper abstract states the method reached 12% efficiency in 2024 [S1].
-The paywalled PDF had no OA copy. The abstract is cited. Fetch status is paywall [S2].
+We show the method reached 12% efficiency in 2024 under the fixture protocol [S1].
+This paywalled fixture has abstract only; no OA copy was returned by Unpaywall [S2].

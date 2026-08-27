@@ -1,6 +1,6 @@
 """Model-facing handlers. Each returns a json.dumps string."""
 
-from .citation import claim_verify, cite_source, conflict_report
+from .citation import citation_pass, claim_verify, cite_source, conflict_report
 from .evidence import evidence_add, evidence_read, evidence_search, evidence_stats
 from .fanout import worker_brief, worker_harvest
 from .plan import gap_scan, research_plan
@@ -15,6 +15,7 @@ __all__ = [
     "evidence_stats",
     "claim_verify",
     "conflict_report",
+    "citation_pass",
     "cite_source",
     "worker_brief",
     "worker_harvest",

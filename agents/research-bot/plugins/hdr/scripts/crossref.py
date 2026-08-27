@@ -8,6 +8,35 @@ import os
 import sys
 import urllib.parse
 import urllib.request
+from typing import Any
+
+
+def crossref_fields(item: dict[str, Any]) -> dict[str, Any]:
+    authors: list[str] = []
+    for row in item.get("author") or []:
+        if not isinstance(row, dict):
+            continue
+        name = " ".join(
+            part for part in (str(row.get("given") or ""), str(row.get("family") or "")) if part
+        ).strip()
+        if name:
+            authors.append(name)
+    issued = ((item.get("issued") or {}).get("date-parts") or [[]])[0]
+    published = None
+    if isinstance(issued, list) and issued:
+        if len(issued) >= 3:
+            published = f"{int(issued[0]):04d}-{int(issued[1]):02d}-{int(issued[2]):02d}"
+        elif len(issued) >= 2:
+            published = f"{int(issued[0]):04d}-{int(issued[1]):02d}"
+        else:
+            published = str(issued[0])
+    containers = item.get("container-title") or []
+    return {
+        "authors": authors,
+        "published": published,
+        "container": str(containers[0]) if containers else "",
+        "publisher": str(item.get("publisher") or ""),
+    }
 
 
 def main() -> int:
@@ -34,7 +63,15 @@ def main() -> int:
             continue
         title = (item.get("title") or ["Untitled"])[0]
         doi = item.get("DOI") or ""
-        rows.append({"title": title, "doi": doi, "url": f"https://doi.org/{doi}" if doi else ""})
+        meta = crossref_fields(item)
+        rows.append(
+            {
+                "title": title,
+                "doi": doi,
+                "url": f"https://doi.org/{doi}" if doi else "",
+                **meta,
+            }
+        )
     print(json.dumps({"ok": True, "results": rows}, indent=2))
     return 0
 

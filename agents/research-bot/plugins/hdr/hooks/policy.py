@@ -23,6 +23,7 @@ from ..runtime import (
     setting,
 )
 from ..store import bus, ledger, run
+from ..store import spans as span_mod
 from ..tools.citation import claim_verify
 
 _SID_RE = re.compile(r"\[S(\d+)\]")
@@ -366,14 +367,25 @@ def _citation_gate(args: dict[str, Any]) -> dict[str, Any] | None:
         sid = f"S{match.group(1)}"
         if sid not in sources:
             offenders.append(f"unresolvable {sid}")
-    for sentence in re.split(r"(?<=[.!?])\s+|\n+", content):
-        if _STAT_RE.search(sentence) and not _SID_RE.search(sentence):
+    for sentence in span_mod.split_cited_sentences(content):
+        markers = span_mod.claim_markers(sentence)
+        if markers:
+            claim = span_mod.cited_claim_text(sentence)
+            if len(claim) >= 12:
+                raw = claim_verify({"claim": claim, "candidate_sources": markers})
+                try:
+                    payload = json.loads(raw)
+                except json.JSONDecodeError:
+                    payload = {}
+                if (
+                    not payload.get("ok")
+                    or payload.get("error")
+                    or payload.get("status") == "unsupported"
+                ):
+                    offenders.append(f"unsupported cited sentence: {sentence.strip()[:180]}")
+            continue
+        if _STAT_RE.search(sentence) and not span_mod.is_calibration_line(sentence):
             offenders.append(sentence.strip()[:180])
-        cited = [f"S{m.group(1)}" for m in _SID_RE.finditer(sentence)]
-        if cited:
-            unsupported = _unsupported_cited_sentence(sentence, cited)
-            if unsupported:
-                offenders.append(unsupported)
     if offenders:
         return {
             "action": "block",

@@ -102,6 +102,36 @@ def docs_query(args: dict[str, Any], **kwargs: Any) -> str:
         return error(str(exc))
 
 
+def _crossref_fields(item: dict[str, Any]) -> dict[str, Any]:
+    authors: list[str] = []
+    for row in item.get("author") or []:
+        if not isinstance(row, dict):
+            continue
+        name = " ".join(
+            part for part in (str(row.get("given") or ""), str(row.get("family") or "")) if part
+        ).strip()
+        if name:
+            authors.append(name)
+    issued = ((item.get("issued") or {}).get("date-parts") or [[]])[0]
+    published = None
+    if isinstance(issued, list) and issued:
+        year = str(issued[0])
+        if len(issued) >= 3:
+            published = f"{int(issued[0]):04d}-{int(issued[1]):02d}-{int(issued[2]):02d}"
+        elif len(issued) >= 2:
+            published = f"{int(issued[0]):04d}-{int(issued[1]):02d}"
+        else:
+            published = year
+    containers = item.get("container-title") or []
+    container = str(containers[0]) if containers else ""
+    return {
+        "authors": authors,
+        "published": published,
+        "container": container,
+        "publisher": str(item.get("publisher") or ""),
+    }
+
+
 def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
     # Returns cards here. The Evidence Bus hook does not ingest this tool.
     # That keeps Crossref JSON out of the corpus.
@@ -144,13 +174,17 @@ def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
                     oa = best.get("url_for_pdf") or best.get("url")
                 except Exception:
                     oa = None
+            meta = _crossref_fields(item)
             if openable:
                 added = ledger.add_source(
                     {
                         "url": openable,
                         "title": title,
                         "doi": doi or None,
-                        "published": str((item.get("issued") or {}).get("date-parts") or ""),
+                        "authors": meta["authors"],
+                        "published": meta["published"],
+                        "container": meta["container"],
+                        "publisher": meta["publisher"],
                         "origin": "scholar",
                         "kind": "primary",
                         "tier": "A",
@@ -169,7 +203,10 @@ def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
                     "doi": doi,
                     "url": openable,
                     "oa": oa,
-                    "publisher": (item.get("publisher") or ""),
+                    "authors": meta["authors"],
+                    "published": meta["published"],
+                    "container": meta["container"],
+                    "publisher": meta["publisher"],
                 }
             )
         return dump({"ok": True, "count": len(cards), "cards": cards})

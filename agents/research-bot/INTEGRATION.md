@@ -37,7 +37,7 @@ Context7 library this pass: `/nousresearch/hermes-agent` (resolve + query-docs).
 | Plugin | `plugins/hdr/` — host package (`plugin.yaml` + `register(ctx)`). Not a tool. |
 | `plugins.enabled` | `[hdr]` |
 | Toolset | `hdr` (this profile only) |
-| Tools the plugin registers | `research_plan`, `gap_scan`, `evidence_*`, `claim_verify`, `conflict_report`, `cite_source`, `worker_brief`, `worker_harvest`, `resolve_library`, `docs_query`, `scholar_search`, `archive_lookup` |
+| Tools the plugin registers | `research_plan`, `gap_scan`, `evidence_*`, `claim_verify`, `citation_pass`, `conflict_report`, `cite_source`, `worker_brief`, `worker_harvest`, `resolve_library`, `docs_query`, `scholar_search`, `archive_lookup` |
 | MCP backend | server `context7`; `mcp_allowlist: [context7]`; plugin calls via `ctx.call_mcp` |
 | Skills | five disjoint recipes in profile `skills/` |
 | Gather | Builtins `web_search` / `web_extract`. Browser and HTTP scholar/archive are fallbacks. Keyless on. |

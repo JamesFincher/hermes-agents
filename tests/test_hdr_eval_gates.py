@@ -56,7 +56,7 @@ class EvalGateTests(unittest.TestCase):
             scored = score_brief(
                 brief=row["brief"],
                 kind=row["kind"],
-                gate_errors=[],
+                gate_errors=row.get("gate_errors") or [],
             )
             scores.append(scored["mean"])
             self.assertTrue(row["brief"].strip())

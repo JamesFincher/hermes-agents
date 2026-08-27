@@ -20,11 +20,22 @@ def _plain(text: str) -> str:
     return cleaned or "this question"
 
 
+def _cited_line(text: str, sid: str) -> str:
+    """Put [S#] before the period so the sentence and its source stay together."""
+    body = (text or "").strip()
+    marker = f"[{sid}]" if sid else ""
+    if not marker:
+        return body
+    if body[-1:] in ".!?":
+        return f"{body[:-1].rstrip()} {marker}{body[-1]}"
+    return f"{body} {marker}."
+
+
 def _lead_line(lead: dict[str, Any], question: str) -> str:
     sid = str(lead.get("id") or "")
     quote = str(lead.get("quote") or lead.get("title") or "see card").strip()
     if sid:
-        return f"{quote} [{sid}]."
+        return _cited_line(quote, sid)
     return f"I did not find a reliable source for {_plain(question)}."
 
 
@@ -51,17 +62,14 @@ def draft_brief(current: dict[str, Any] | None = None) -> dict[str, Any]:
     for src in sources:
         title = src.get("title") or src.get("canonical_url") or src.get("url")
         quote = src.get("quote") or ""
-        sid = str(src.get("id") or "")
-        bit = f"- {title}"
         if quote:
-            bit += f" — {quote}"
-        if sid:
-            bit += f" [{sid}]"
+            lines.append(f"- {_cited_line(str(quote), str(src.get('id') or ''))}")
+        else:
+            lines.append(f"- {title}")
         if src.get("fetch_status") == "paywall":
-            bit += " (paywall; abstract only)"
+            lines.append("- paywall; abstract only")
         if src.get("archived_url"):
-            bit += f" archived {src.get('archived_url')}"
-        lines.append(bit)
+            lines.append(f"- archived {src.get('archived_url')}")
     if conflicts:
         lines.append("")
         lines.append("Disagreement")

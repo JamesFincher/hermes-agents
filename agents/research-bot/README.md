@@ -77,6 +77,7 @@ The hdr plugin registers tools on toolset `hdr`. It is not a tool. Do not copy i
 | `gap_scan` | After a batch. Returns saturation. |
 | `evidence_add` / `search` / `read` / `stats` | Ledger and corpus. Cards, not pages. |
 | `claim_verify` | Exact span. `source_ledger_check` is gone. |
+| `citation_pass` | Maps claims, then `claim_verify`. Uses official `ctx.llm` when present. |
 | `conflict_report` | Disagreements. Do not average. |
 | `cite_source` | Only sanctioned bibliography. |
 | `worker_brief` / `worker_harvest` | Child contract and counts-only harvest. |

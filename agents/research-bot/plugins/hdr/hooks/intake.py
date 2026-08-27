@@ -279,6 +279,7 @@ def transform_tool_result(
                 "title": meta.get("title") or url,
                 "authors": meta.get("authors") or [],
                 "publisher": meta.get("publisher") or "",
+                "container": meta.get("container") or "",
                 "published": meta.get("published"),
                 "doi": meta.get("doi"),
                 "arxiv": meta.get("arxiv"),

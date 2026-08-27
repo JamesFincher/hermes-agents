@@ -50,6 +50,7 @@ def extract_metadata(html_or_text: str, url: str = "") -> dict[str, Any]:
         "title": "",
         "authors": [],
         "publisher": "",
+        "container": "",
         "published": None,
         "doi": None,
         "arxiv": None,
@@ -77,7 +78,8 @@ def extract_metadata(html_or_text: str, url: str = "") -> dict[str, Any]:
         elif key == "doi" and not meta["doi"]:
             meta["doi"] = value
         elif key == "journal_title":
-            meta["publisher"] = value
+            if not meta.get("container"):
+                meta["container"] = value
     for match in _JSONLD_RE.finditer(text):
         try:
             payload = json.loads(match.group(1))
@@ -156,3 +158,8 @@ def _apply_jsonld(meta: dict[str, Any], payload: Any) -> None:
         pub = node.get("publisher")
         if isinstance(pub, dict) and pub.get("name") and not meta["publisher"]:
             meta["publisher"] = str(pub["name"])
+        part = node.get("isPartOf")
+        if isinstance(part, dict) and part.get("name") and not meta.get("container"):
+            meta["container"] = str(part["name"])
+        elif isinstance(part, str) and not meta.get("container"):
+            meta["container"] = part

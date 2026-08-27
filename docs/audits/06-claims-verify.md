@@ -3,7 +3,7 @@
 **Base:** `main` @ `4019e7cf061c34f6f3d6b74025f66c4f1663aa07`  
 **Slice:** quote-span provenance, `claim_verify`, claim graph, `conflict_report`, `cite_source` v2, verification pass including MoA-as-provider (not a toolset).  
 **Spec sections:** §3.4, §3.5, §5.3 (`source_ledger_check` dies), `claim_verify` schema in §5.4, §7.4, plus HONEST-LIMITS on `claim_verify`.  
-**Mode:** discovery only. No production code was changed. This file is the only deliverable.
+**Mode:** discovery first; implementation of §8 items 1–11 and 13–15 is in this PR. This file stays as the discovery record. Spec and playbook were not edited.
 
 Classification: **MATCH** / **GAP** / **DRIFT** / **EXTRA** / **UNPROVEN**.  
 Severity: **blocker** / **major** / **minor** / **docs**.
