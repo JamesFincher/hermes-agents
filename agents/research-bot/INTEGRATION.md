@@ -65,10 +65,11 @@ https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
 ## 1. Profile identity + skills index
 
+https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes
 https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly
 https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills
 
-**SOUL** (`$HERMES_HOME/SOUL.md`) is identity and tone only. First slot in the cached **stable** system prompt. Not a tool procedure. Not a skill. Not a plugin. Subagents skip SOUL (`skip_context_files` → `DEFAULT_AGENT_IDENTITY`).
+**SOUL** (`$HERMES_HOME/SOUL.md`) is PRIMARY IDENTITY. First slot in the cached **stable** system prompt. It replaces the built-in default identity. Not a tool procedure. Not a skill. Not a plugin. Do not collapse it. Subagents skip SOUL (`skip_context_files` → `DEFAULT_AGENT_IDENTITY`). Paste the contract into `goal` and `context` when you delegate.
 
 **Skills index** is also stable (cached). Description frontmatter is the index text — when-to-use must be unmistakable. Bodies load via `skill_view`. Required sections: When to Use, Quick Reference, Procedure, Pitfalls, Verification. Primary library lives in profile `skills/`. `ctx.register_skill` is hidden `plugin:skill` — do not put the primary library there.
 

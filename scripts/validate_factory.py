@@ -105,6 +105,12 @@ def check_playbook() -> None:
         fail("PROFILE-PLAYBOOK.md must describe generating one independent profile")
     if "HERMES_HOME" not in text:
         fail("PROFILE-PLAYBOOK.md must define isolated HERMES_HOME")
+    if "PRIMARY IDENTITY" not in text:
+        fail("PROFILE-PLAYBOOK.md must lock SOUL.md as PRIMARY IDENTITY")
+    if "SOUL is not a skill" not in text:
+        fail("PROFILE-PLAYBOOK.md must keep SOUL distinct from a skill")
+    if "no model-facing" not in text.lower():
+        fail("PROFILE-PLAYBOOK.md must lock delegate_task has no model-facing toolsets param")
     for url in (
         "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
         "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
@@ -115,6 +121,7 @@ def check_playbook() -> None:
         "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
         "https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes",
         "https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns",
+        "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation",
     ):
         if url not in text:
             fail(f"PROFILE-PLAYBOOK.md must cite {url}")

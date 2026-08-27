@@ -211,17 +211,19 @@ Do this in order. Do not skip to copying another profile's plugin.
 
 ### Step 1 — Identity (`SOUL.md`)
 
-Official: [Use SOUL.md with Hermes](https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes), [Personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality), [Prompt Assembly](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly).
+Official: [Use SOUL.md with Hermes](https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes). Also [Personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality) and [Prompt Assembly](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly).
 
-`SOUL.md` is **primary identity**. It is the first slot in the system prompt. It replaces the built-in default identity. Hermes adds no wrapper language.
+`SOUL.md` is **PRIMARY IDENTITY**. It occupies the first slot in the system prompt. It replaces the built-in default identity. Hermes adds no wrapper language.
 
-It lives at `$HERMES_HOME/SOUL.md` after install. That is the profile home. A repo-local `SOUL.md` is not loaded unless that directory **is** `HERMES_HOME`.
+SOUL is not a skill. SOUL is not a plugin. Do not collapse it into either.
+
+It lives at `$HERMES_HOME/SOUL.md`. After `hermes profile install`, that is the profile home. A repo-local `SOUL.md` is not loaded unless that directory **is** `HERMES_HOME`.
 
 **FOR:** tone, personality, communication style, how direct or warm it is, stylistic avoids, how it relates to uncertainty, disagreement, and ambiguity. Who it is and how it speaks.
 
 **NOT FOR:** repo conventions, file paths, commands, ports, architecture, project workflow, ledger steps, MCP names, or tool procedures.
 
-Project instructions go in the cwd context file. Official first-match: `.hermes.md` / `HERMES.md`, else `AGENTS.md`, else `CLAUDE.md`, else `.cursorrules`. If a rule applies everywhere for this profile, put it in SOUL. If it belongs to one project checkout, put it in that project's `AGENTS.md`.
+Those belong in the cwd project context file. Official first-match: `.hermes.md` / `HERMES.md`, else `AGENTS.md`, else `CLAUDE.md`, else `.cursorrules`. If a rule applies everywhere for this profile, put it in SOUL. If it belongs to one project checkout, put it in that project's `AGENTS.md`.
 
 This repo's root `AGENTS.md` is Cursor workflow. Do not treat it as the Hermes contract.
 
@@ -229,7 +231,7 @@ Suggested structure: Identity / Style / Avoid / Defaults. Four to eight strong l
 
 `/personality` is a temporary overlay. SOUL is the durable baseline.
 
-Subagents skip SOUL (`skip_context_files` → `DEFAULT_AGENT_IDENTITY`). Specialized identity does not ride into children. Paste the contract into `goal` and `context` when you delegate.
+Subagents skip SOUL (`skip_context_files` → `DEFAULT_AGENT_IDENTITY`). Specialized identity does not ride into children.
 
 Do not put ledger, MCP, or tool procedures in `SOUL.md`. `research-bot` SOUL is a research-partner voice only.
 
@@ -430,22 +432,29 @@ Keep **three** things distinct. Do not collapse them.
 
 #### `delegate_task` (model path)
 
+`delegate_task` is a **tool** (toolset `delegation`). Official: [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns) and [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation).
+
 The child is isolated. It gets its own conversation, terminal, and toolset. Only the final summary returns.
 
+This is a Profile Library of independent specialized profiles. Parallel research is an official pattern. It is not a reason to share plugins across profiles.
+
 **WHEN:** reasoning-heavy work, context flood, parallel independent streams, fresh context.
+
 **NOT:** a single tool call, mechanical multi-step work (`execute_code`), user interaction (no `clarify`), quick edits, or durable work (`cronjob` or `terminal` with background + notify).
 
-Children know nothing of the parent conversation. `goal` and `context` must be complete. Include paths, constraints, and the research contract.
+Children know nothing of the parent conversation. `goal` and `context` must be complete. Include paths, constraints, and the research contract. Paste the SOUL-equivalent contract into `context` because SOUL is skipped.
 
-Children inherit the parent's enabled toolsets. `delegate_task` has no model-facing `toolsets` parameter. It cannot grant extra capabilities. Configure the parent's tools first. Hermes strips `clarify`, `memory`, and `send_message` from children. The user-guide also strips `cronjob`.
+Children inherit the parent's enabled toolsets. Official: `delegate_task` has no model-facing `toolsets` parameter. It cannot grant extra capabilities. Configure the parent's tools first.
 
-Leaf is the default. Leaf cannot call `delegate_task`. An orchestrator keeps `delegate_task` only if `delegation.max_spawn_depth` is above 1 (default 1 = flat). `orchestrator_enabled: false` forces every child to leaf.
+Hermes strips `clarify`, `memory`, and `send_message` from children. The user-guide also strips `cronjob`. Children keep `execute_code` except on leaf.
 
-**UNVERIFIED — `execute_code` on leaf.** [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns) says leaf cannot call `execute_code`. [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) says both roles retain `execute_code`. Do not code a dependency on either reading.
+Leaf is the default. Leaf cannot call `delegate_task`, `clarify`, `memory`, or `execute_code`. An orchestrator keeps `delegate_task` only if `delegation.max_spawn_depth` is above 1 (default 1 = flat). `orchestrator_enabled: false` forces every child to leaf.
 
-Defaults: 3 concurrent children, 50 iterations, process-local (not durable). Parallel research is an official pattern. It is not a reason to share plugins across profiles.
+**UNVERIFIED — `execute_code`.** The same [Delegation Patterns](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns) page says children keep `execute_code` and also that leaf cannot call it. [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) says both roles retain `execute_code`. This library follows the leaf block list above. Do not code a dependency on the other readings.
 
-If a specialized profile uses delegation, the parent must already have the toolsets the child needs.
+Defaults: 3 concurrent children, 50 iterations, process-local (not durable).
+
+If a specialized profile uses delegation, the parent must already have the toolsets the child needs. The parent must paste the SOUL-equivalent contract into `goal` and `context`.
 
 #### `ctx.subagent_lifecycle` (plugin path)
 
