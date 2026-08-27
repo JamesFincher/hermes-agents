@@ -109,6 +109,7 @@ class HdrTest(unittest.TestCase):
         self.assertTrue(all(toolset == "hdr" for _, toolset in self.ctx.tools))
         self.assertNotIn("source_ledger_check", names)
         self.assertIn("pre_tool_call", self.ctx.hooks)
+        self.assertIn("on_session_reset", self.ctx.hooks)
         self.assertIn("transform_tool_result", self.ctx.hooks)
         self.assertEqual({name for name, _ in self.ctx.sections}, {"hdr.method", "hdr.effort", "hdr.integrity"})
         total = sum(len(text) for _, text in self.ctx.sections)
@@ -388,6 +389,75 @@ class HdrTest(unittest.TestCase):
             {"path": "briefs/fallback.md", "content": drafted["brief"]},
         )
         self.assertIsNone(blocked_extract)
+
+    def test_amber_named_gap_depth(self) -> None:
+        created = json.loads(
+            self.pkg.tools.research_plan(
+                {
+                    "question": "Compare A and B",
+                    "tier": "standard",
+                    "open_questions": ["Mandate A", "Mandate B"],
+                }
+            )
+        )
+        self.assertTrue(created.get("ok"))
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        current["spend"]["tokens"] = int(current["budget"]["tokens"] * 0.65)
+        current["governor"] = self.pkg.store.run.governor_state(current)
+        current["named_gaps"] = ["Mandate A"]
+        self.pkg.store.run.save_run(current)
+        self.assertEqual(current["governor"], "AMBER")
+        refused = json.loads(
+            self.pkg.tools.worker_brief({"open_question": "Brand new batch topic"})
+        )
+        self.assertTrue(refused.get("error"))
+        allowed = json.loads(self.pkg.tools.worker_brief({"open_question": "Mandate A"}))
+        self.assertTrue(allowed.get("ok"))
+        blocked_batch = self.pkg.hooks.pre_tool_call(
+            "delegate_task",
+            {"goal": "sweep the whole web for anything new"},
+        )
+        self.assertEqual((blocked_batch or {}).get("action"), "block")
+        depth = self.pkg.hooks.pre_tool_call(
+            "delegate_task",
+            {"goal": "Mandate A only"},
+        )
+        self.assertIsNone(depth)
+
+    def test_domain_soft_cap_modifies_search(self) -> None:
+        self.pkg.tools.research_plan({"question": "domains", "tier": "quick"})
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        current["domain_counts"] = {"example.com": 4}
+        self.pkg.store.run.save_run(current)
+        modified = self.pkg.hooks.pre_tool_call(
+            "web_search",
+            {"query": "widget recall 2026"},
+        )
+        self.assertEqual((modified or {}).get("action"), "modify")
+        self.assertIn("-site:example.com", (modified or {}).get("args", {}).get("query", ""))
+
+    def test_fetch_counter_and_index_search(self) -> None:
+        self.pkg.tools.research_plan({"question": "index", "tier": "quick"})
+        self.pkg.hooks.post_tool_call("web_search", {"query": "x"}, "hits", duration_ms=12)
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertGreaterEqual(int((current.get("spend") or {}).get("fetches") or 0), 1)
+        added = json.loads(
+            self.pkg.tools.evidence_add(
+                {
+                    "url": "https://example.com/widget-recall",
+                    "title": "Widget recall 2026",
+                    "text": "The widget recall started in March 2026 after a 12% failure rate.",
+                    "quote": "12% failure rate",
+                }
+            )
+        )
+        self.assertTrue(added.get("ok"))
+        found = json.loads(self.pkg.tools.evidence_search({"query": "widget recall"}))
+        self.assertGreaterEqual(found["count"], 1)
+        self.assertEqual(found["cards"][0]["id"], "S1")
 
     def test_docs_query_requires_openable_url(self) -> None:
         self.ctx.mcp_responses["context7:query-docs"] = {"ok": True, "result": "no url here"}

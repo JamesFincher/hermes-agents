@@ -167,6 +167,9 @@ def add_source(entry: dict[str, Any]) -> dict[str, Any]:
                 if entry.get("needs_backfill") is False:
                     existing["needs_backfill"] = False
                 save_ledger(data)
+                from . import index as inverted
+
+                inverted.update_source(existing)
                 return {"ok": True, "updated": True, "source": existing}
         sid = _next_sid(sources)
         record = {
@@ -201,6 +204,9 @@ def add_source(entry: dict[str, Any]) -> dict[str, Any]:
         if run_id and run_id not in data["run_ids"]:
             data["run_ids"].append(run_id)
         save_ledger(data)
+        from . import index as inverted
+
+        inverted.update_source(record)
         return {"ok": True, "updated": False, "source": record}
 
 

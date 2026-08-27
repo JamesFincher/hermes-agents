@@ -84,6 +84,8 @@ def digest_text() -> str:
         f"thin: {', '.join(str(x) for x in thin) or 'none'}",
         f"last: {' '.join(str(x) for x in last[:8]) or 'none'} ({len(sources)} sources)",
     ]
+    if current.get("governor") == "AMBER":
+        lines.append("AMBER: no new worker batches. Depth on named gaps only.")
     if current.get("governor") in {"RED", "HARD"}:
         lines.append("synthesize now from the ledger. No new fetches.")
     text = "\n".join(lines)

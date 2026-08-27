@@ -38,8 +38,10 @@ browser_screenshots/
 cache/
 mcp-tokens/
 
-# Installer-generated (not authorship domain)
+# Installer-generated empty shells stay ignored. Authored profile templates
+# are tracked (see agents/research-bot/.env.EXAMPLE).
 .env.EXAMPLE
+!agents/research-bot/.env.EXAMPLE
 
 # Infrastructure (safe to exclude if they appear)
 hermes-agent/

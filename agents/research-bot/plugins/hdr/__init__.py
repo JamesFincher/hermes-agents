@@ -64,6 +64,7 @@ def register(ctx: Any) -> None:
     ctx.register_hook("on_session_start", hooks.on_session_start)
     ctx.register_hook("on_session_end", hooks.on_session_end)
     ctx.register_hook("on_session_finalize", hooks.on_session_finalize)
+    ctx.register_hook("on_session_reset", hooks.on_session_reset)
     ctx.register_hook("pre_llm_call", hooks.pre_llm_call)
     ctx.register_hook("pre_tool_call", hooks.pre_tool_call)
     ctx.register_hook("post_tool_call", hooks.post_tool_call)

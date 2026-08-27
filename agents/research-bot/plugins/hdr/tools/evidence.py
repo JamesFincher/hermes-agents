@@ -66,7 +66,16 @@ def evidence_search(args: dict[str, Any], **kwargs: Any) -> str:
     del kwargs
     try:
         query = str((args or {}).get("query") or "")
-        sources = ledger.list_sources(query=query)
+        sources = ledger.list_sources()
+        if query.strip():
+            from ..store import index as inverted
+
+            ranked = inverted.search(query, limit=25)
+            if ranked:
+                by_id = {str(src.get("id")): src for src in sources}
+                sources = [by_id[sid] for sid, _ in ranked if sid in by_id]
+            else:
+                sources = ledger.list_sources(query=query)
         cards = []
         backfill = 0
         for source in sources[:25]:

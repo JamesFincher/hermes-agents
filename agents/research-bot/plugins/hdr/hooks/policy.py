@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from ..runtime import (
     BRIEF_DIRS,
+    DOMAIN_SOFT_CAP,
     INTERCEPTED,
     NETWORK_TOOLS,
     READ_ONLY_WHEN_HARD,
@@ -50,6 +51,10 @@ def pre_tool_call(
             return None
         current = run.load_run()
         governor = (current or {}).get("governor") or "GREEN"
+        if name == "delegate_task":
+            blocked = _delegate_fence(payload, current, governor)
+            if blocked:
+                return blocked
         blocked = _budget_fence(name, governor)
         if blocked:
             return blocked
@@ -90,21 +95,69 @@ def post_tool_call(
             (current or {}).get("run_id") or "",
             {"tool": tool_name, "duration_ms": duration_ms},
         )
-        if tool_name in {"web_extract", "web_search", "browser_navigate", "docs_query", "scholar_search"}:
-            if current:
-                run.add_spend(fetches=0)
+        if tool_name in NETWORK_TOOLS:
+            run.add_spend(fetches=1)
     except Exception:
         return
+
+
+def _named_gaps(current: dict[str, Any] | None) -> list[str]:
+    if not current:
+        return []
+    gaps = list(current.get("named_gaps") or [])
+    if not gaps:
+        gaps = list(current.get("open_questions") or [])
+    return [str(item) for item in gaps if str(item).strip()]
+
+
+def _matches_named_gap(text: str, gaps: list[str]) -> bool:
+    blob = (text or "").lower()
+    if not blob or not gaps:
+        return False
+    for gap in gaps:
+        needle = gap.strip().lower()
+        if not needle:
+            continue
+        if needle in blob or blob[:80] in needle:
+            return True
+        if len(needle) >= 12 and needle[:40] in blob:
+            return True
+    return False
+
+
+def _delegate_fence(
+    args: dict[str, Any],
+    current: dict[str, Any] | None,
+    governor: str,
+) -> dict[str, Any] | None:
+    if governor == "GREEN":
+        return None
+    if governor in {"RED", "HARD"}:
+        return {
+            "action": "block",
+            "message": f"Governor {governor}: no new delegate_task. Synthesize from the ledger.",
+        }
+    goal = str(
+        args.get("goal")
+        or args.get("prompt")
+        or args.get("task")
+        or args.get("instruction")
+        or ""
+    )
+    if _matches_named_gap(goal, _named_gaps(current)):
+        return None
+    return {
+        "action": "block",
+        "message": (
+            "Governor AMBER: no new delegate_task batches. "
+            "Depth on a named gap only."
+        ),
+    }
 
 
 def _budget_fence(tool_name: str, governor: str) -> dict[str, Any] | None:
     if governor == "GREEN":
         return None
-    if tool_name == "delegate_task" and governor in {"AMBER", "RED", "HARD"}:
-        return {
-            "action": "block",
-            "message": f"Governor {governor}: no new delegate_task batches. Depth on named gaps or synthesize.",
-        }
     if governor == "RED" and tool_name in NETWORK_TOOLS:
         return {
             "action": "block",
@@ -175,7 +228,26 @@ def _domain_soft_cap(
         return {"action": "block", "message": f"domain denylist: {host}"}
     if tool_name != "web_search" or not current:
         return None
-    return None
+    counts = current.get("domain_counts") or {}
+    if not isinstance(counts, dict):
+        return None
+    saturated = [
+        str(name)
+        for name, count in counts.items()
+        if isinstance(count, (int, float)) and int(count) >= DOMAIN_SOFT_CAP and str(name)
+    ]
+    if not saturated:
+        return None
+    key = "query" if "query" in args or "q" not in args else "q"
+    query = str(args.get(key) or args.get("query") or args.get("q") or "")
+    extra = [
+        f"-site:{name}"
+        for name in saturated[:8]
+        if f"-site:{name}" not in query
+    ]
+    if not extra:
+        return None
+    return {"action": "modify", "args": {key: (query + " " + " ".join(extra)).strip()}}
 
 
 def _path_allowed(raw: str) -> bool:

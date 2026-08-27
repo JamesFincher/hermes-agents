@@ -103,6 +103,7 @@ def gap_scan(args: dict[str, Any], **kwargs: Any) -> str:
         if current:
             current["saturation"] = saturation
             current["new_source_yield"] = yield_ratio
+            current["named_gaps"] = unanswered
             current["phase"] = "gap"
             run.save_run(current)
         payload: dict[str, Any] = {

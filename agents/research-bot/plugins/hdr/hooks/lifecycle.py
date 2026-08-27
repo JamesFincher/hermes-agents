@@ -35,6 +35,14 @@ def on_session_finalize(session_id: str = "", **kwargs: Any) -> None:
     on_session_end(session_id, **kwargs)
 
 
+def on_session_reset(session_id: str = "", **kwargs: Any) -> None:
+    on_session_end(session_id, **kwargs)
+    try:
+        ledger.init_ledger()
+    except Exception:
+        return
+
+
 def api_request_error(error: str = "", **kwargs: Any) -> None:
     try:
         current = run.load_run()

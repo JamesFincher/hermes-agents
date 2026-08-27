@@ -70,7 +70,7 @@ Do not pin `model.default` in git. Set the frontier planner and the cheap worker
 2. **Breadth.** `worker_brief` then `delegate_task`. One mandate each. Children skip SOUL.
 3. **Evidence Bus.** `transform_tool_result` stores the page, returns a card ≤400 tokens.
 4. **Gap.** `gap_scan` returns saturation. The model does not estimate it.
-5. **Depth.** Targeted workers on named gaps while the governor is GREEN.
+5. **Depth.** Targeted workers on named gaps. AMBER blocks new batches and still allows a named-gap brief.
 6. **Synthesize.** Ledger only. No network.
 7. **Verify.** `claim_verify`, `conflict_report`, `cite_source`. Bibliography is appended by `transform_llm_output`.
 

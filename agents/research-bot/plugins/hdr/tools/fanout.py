@@ -19,14 +19,26 @@ def worker_brief(args: dict[str, Any], **kwargs: Any) -> str:
     del kwargs
     try:
         current = run.load_run()
-        if current and current.get("governor") in {"AMBER", "RED", "HARD"}:
-            return error(
-                f"governor {current.get('governor')}: refuse new worker brief. "
-                "Depth on named gaps only, or synthesize from the ledger."
-            )
         question = str((args or {}).get("open_question") or "").strip()
         if not question:
             return error("open_question is required")
+        governor = (current or {}).get("governor")
+        if governor in {"RED", "HARD"}:
+            return error(
+                f"governor {governor}: refuse new worker brief. Synthesize from the ledger."
+            )
+        if governor == "AMBER":
+            named = list((current or {}).get("named_gaps") or []) or list(
+                (current or {}).get("open_questions") or []
+            )
+            allowed = any(
+                question == str(item) or question[:40] in str(item) or str(item)[:40] in question
+                for item in named
+            )
+            if not allowed:
+                return error(
+                    "governor AMBER: refuse new batch briefs. Depth on a named gap only."
+                )
         siblings = [
             str(item)
             for item in ((current or {}).get("open_questions") or [])

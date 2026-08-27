@@ -60,6 +60,8 @@ READ_ONLY_WHEN_HARD = frozenset(
     }
 )
 
+DOMAIN_SOFT_CAP = 4
+
 TIER_BUDGET = {
     "quick": {"tokens": 40_000, "fetches": 5, "seconds": 90, "workers": 0},
     "standard": {"tokens": 200_000, "fetches": 25, "seconds": 360, "workers": 3},

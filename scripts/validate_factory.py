@@ -521,6 +521,8 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
     for required in ("SOUL.md", "config.yaml", "README.md", "INTEGRATION.md", ".gitignore"):
         if not (agent_dir / required).is_file():
             fail(f"{agent_dir.name} missing {required}")
+    if agent_dir.name == "research-bot" and not (agent_dir / ".env.EXAMPLE").is_file():
+        fail("research-bot missing .env.EXAMPLE (post-install copy source)")
     factory_integration = ROOT / "docs" / "INTEGRATION.md"
     if factory_integration.is_file() and agent_dir.name == "research-bot":
         factory_text = factory_integration.read_text(encoding="utf-8")

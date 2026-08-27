@@ -107,4 +107,4 @@ These limits are also in [`docs/HONEST-LIMITS.md`](../../docs/HONEST-LIMITS.md).
 - Budget numbers in the spec are starting points. P10 fixtures track tokens per tier-A/B source. They are not yet field measurements.
 - Cross-model MoA verification is only as good as the second model's independence. Official MoA is a **provider**, not a toolset. This profile does not invent a `moa` toolset.
 - Official GitHub-URL install copies the repo root as one payload. Path install is the supported path.
-- This CI runner has no Hermes CLI. `hermes profile install` and `/tools list` are deploy-host checks. Offline tests cover the plugin, store, gates, and the 12-question fixture loop.
+- Structure-only CI has no Hermes CLI. Live `hermes profile install` on Hermes 0.19.0 is recorded in [`evals/smoke/P1-LIVE.md`](../../evals/smoke/P1-LIVE.md). Offline tests cover the plugin, store, gates, and the 12-question fixture loop.

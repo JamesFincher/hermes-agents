@@ -46,6 +46,8 @@ Synthesis reads cards via `evidence_search` and slices via `evidence_read`. No `
 
 Verify with `claim_verify` and `conflict_report`. Then `cite_source`. Write the brief. The Citation Gate blocks unresolvable `[S#]` markers and unmarked statistics.
 
+At `deep` or `exhaustive`, ask the operator for a MoA second opinion on the top three load-bearing claims. Official MoA is provider `moa` (`/moa` or `/model … --provider moa`). There is no `moa` toolset and no `mixture_of_agents` tool.
+
 ## Pitfalls
 
 Do not invent citations. Do not average disagreements.

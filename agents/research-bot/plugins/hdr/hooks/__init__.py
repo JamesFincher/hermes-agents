@@ -2,7 +2,13 @@
 
 from .governor import post_api_request, pre_api_request
 from .intake import transform_terminal_output, transform_tool_result
-from .lifecycle import api_request_error, on_session_end, on_session_finalize, on_session_start
+from .lifecycle import (
+    api_request_error,
+    on_session_end,
+    on_session_finalize,
+    on_session_reset,
+    on_session_start,
+)
 from .output import transform_llm_output
 from .policy import post_tool_call, pre_tool_call
 from .prompt import METHOD, EFFORT, INTEGRITY, pre_llm_call, register_sections
@@ -16,6 +22,7 @@ __all__ = [
     "on_session_start",
     "on_session_end",
     "on_session_finalize",
+    "on_session_reset",
     "api_request_error",
     "pre_llm_call",
     "pre_tool_call",

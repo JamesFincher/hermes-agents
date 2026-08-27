@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 from ..runtime import estimate_tokens, first_openable_url
 from ..store import bus, extract, ledger, run, sanitize, score, spans
@@ -152,8 +153,12 @@ def transform_tool_result(
             if estimate_tokens(payload) > 400:
                 payload = payload[:1600]
         _note_batch(current, [source.get("id")])
-        if current:
-            run.add_spend(fetches=1)
+        if current and url:
+            counts = current.setdefault("domain_counts", {})
+            host = (urlparse(url).hostname or "").lower()
+            if host:
+                counts[host] = int(counts.get(host) or 0) + 1
+                run.save_run(current)
         return payload
     except Exception:
         return None
