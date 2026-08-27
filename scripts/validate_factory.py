@@ -111,6 +111,14 @@ def check_playbook() -> None:
         fail("PROFILE-PLAYBOOK.md must keep SOUL distinct from a skill")
     if "no model-facing" not in text.lower():
         fail("PROFILE-PLAYBOOK.md must lock delegate_task has no model-facing toolsets param")
+    if "does not replace `delegate_task`" not in text:
+        fail("PROFILE-PLAYBOOK.md must keep ctx.subagent_lifecycle distinct from delegate_task")
+    if "RECONNECT_UNAVAILABLE" not in text:
+        fail("PROFILE-PLAYBOOK.md must cite RECONNECT_UNAVAILABLE")
+    if "No active Hermes parent session" not in text:
+        fail("PROFILE-PLAYBOOK.md must cite fail-closed parent session")
+    if "child-pool" not in text:
+        fail("PROFILE-PLAYBOOK.md must forbid a shared child-pool")
     for url in (
         "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
         "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",

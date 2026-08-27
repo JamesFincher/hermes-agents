@@ -190,6 +190,8 @@ Later (not now): `complete_structured` + `json_schema` to type a Context7 blob f
 
 https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api
 
-`ctx.subagent_lifecycle.launch` only during an active agent turn. Outside a turn: fail-closed `No active Hermes parent session`. Same child path as `delegate_task`. Children skip SOUL — paste the contract into `goal`/`context`. `allowed_toolsets` **narrows**; unknown or parent-broadening rejected. Do not give a research child write or product toolsets.
+Keep three things distinct. `delegate_task` is the model-facing tool. `ctx.subagent_lifecycle` is the plugin host API. It does not replace `delegate_task`. SOUL is skipped on children. Paste the contract into `goal` and `context`.
+
+This plugin may call the host API from a handler or hook. Do not import `tools.delegate_tool` or `AIAgent`. Launch only during an active agent turn. Outside a turn: fail-closed `No active Hermes parent session`. `allowed_toolsets` **narrows**. Unknown or parent-broadening toolsets are rejected. Per-tool blocks, workdir overrides, and per-launch timeouts are rejected. Do not give a research child write or product toolsets. Do not invent a child-pool shared with another profile.
 
 v1 does not launch children from this plugin. Handles are opaque; after process restart reconnect is `RECONNECT_UNAVAILABLE`. Terminal results 32k, no transcripts.

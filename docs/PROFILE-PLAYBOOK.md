@@ -458,17 +458,25 @@ If a specialized profile uses delegation, the parent must already have the tools
 
 #### `ctx.subagent_lifecycle` (plugin path)
 
-A profile plugin may launch or supervise a child from a tool handler or hook. Do not import `tools.delegate_tool` or `AIAgent`. The host path is the same as `delegate_task` (tool-resolution restore, memory notification, `subagent_stop` hooks, cost rollup). This API does not change the `delegate_task` tool, batch delegation, or gateway/TUI display. The model's path remains `delegate_task`.
+Official: [Subagent Lifecycle API](https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api).
 
-Launch only during an active agent turn (CLI, gateway, `hermes chat -q`, kanban worker). Outside a turn: fail-closed `No active Hermes parent session`.
+This is a **plugin** host API. It is not a tool. It does not replace `delegate_task`. It does not change batch delegation or gateway/TUI display. The model's path remains `delegate_task`.
 
-`SubagentLaunchRequest` fields: `goal`, `context`, `role` (`leaf` / `orchestrator`), `correlation_id`, `allowed_toolsets`. `allowed_toolsets` **narrows** only. Unknown or parent-broadening toolsets are rejected. Per-tool blocks, workdir overrides, and per-launch timeouts are rejected (not supported yet). Do not give a research child write or product toolsets.
+A specialized profile's plugin may call it from a tool handler or hook. Do not import `tools.delegate_tool`, gateway internals, TUI state, or `AIAgent` fields.
 
-The handle is a serializable, versioned, opaque capability. Use `status`, `wait`, `cancel`, `result`, `reconnect`. Persist `handle.to_dict()`. A forged handle returns `UNKNOWN` / `UNKNOWN_HANDLE`.
+Child construction uses the same host-owned path as `delegate_task`. That path restores parent tool-resolution, sends memory notification, runs serialized `subagent_stop` hooks, cleans up resources, and rolls up child cost.
+
+Launch only during an active agent turn. Official surfaces: CLI, gateway, non-interactive (`hermes chat -q`), kanban worker. Outside a turn: fail-closed `No active Hermes parent session`.
+
+`SubagentLaunchRequest` fields: `goal`, `context`, `role` (`leaf` / `orchestrator`), `correlation_id`, `allowed_toolsets`. `allowed_toolsets` **narrows** only. Unknown or parent-broadening toolsets are rejected. Goal, context, and metadata sizes are capped. Per-tool blocks, working-directory overrides, and per-launch timeouts are rejected (not supported yet). Hermes's existing unsafe-tool block stays enforced. Do not give a research child write or product toolsets.
+
+`SubagentHandle` is a serializable, versioned, opaque capability. Pass it to `status`, `wait`, `cancel`, `result`, or `reconnect`. Persist `handle.to_dict()`. A forged or malformed handle returns `UNKNOWN` / `UNKNOWN_HANDLE` and cannot access a child.
 
 States: `PENDING`, `STARTING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `INTERRUPTED`, `CANCEL_REQUESTED`, `CANCELLED`, `UNKNOWN`.
 
-`cancel` is cooperative (`CANCEL_REQUESTED`). Terminal results are immutable, idempotent, 32k, no transcripts or hidden reasoning, and include a stable hash. In-process metadata and results last about one hour. After process restart, `reconnect` is `RECONNECT_UNAVAILABLE` and does not spawn a replacement. Threads die with the process.
+`cancel(handle, reason=...)` is cooperative. It returns `CANCEL_REQUESTED`. It does not claim completion until `wait` or `result` sees a terminal state. Terminal results are immutable, idempotent, bounded to 32k characters, omit transcripts and hidden reasoning, and include a stable hash.
+
+In-process metadata and results last about one hour. After process restart, `reconnect` is `RECONNECT_UNAVAILABLE` and does not spawn a replacement. Threads die with the process. Treat those handles as interrupted.
 
 Do not invent a child-pool shared across profiles.
 
