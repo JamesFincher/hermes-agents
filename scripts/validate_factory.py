@@ -413,6 +413,32 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                 fail(f"{integration.relative_to(ROOT)} must cite {url}")
         if "system_message" in integration_text and "pre_llm_call" not in integration_text:
             fail(f"{integration.relative_to(ROOT)} must lock pre_llm_call for turn-varying text")
+        for heading in (
+            "Settled: memory",
+            "Profile identity + skills index",
+            "Dedicated native plugin",
+            "MCP as a backend",
+            "Agent loop + hooks",
+            "ctx.llm",
+            "Subagent constraints",
+        ):
+            if heading not in integration_text:
+                fail(f"{integration.relative_to(ROOT)} must plan the execution join ({heading})")
+        honcho_hits = len(re.findall(r"honcho", integration_text, re.IGNORECASE))
+        if honcho_hits > 3:
+            fail(
+                f"{integration.relative_to(ROOT)} restates Honcho ({honcho_hits} hits); "
+                "keep one settled block"
+            )
+    soul = agent_dir / "SOUL.md"
+    if soul.is_file() and agent_dir.name == "research-bot":
+        soul_text = soul.read_text(encoding="utf-8")
+        for needle in ("resolve_library", "docs_query", "cite_source", "mcp_*"):
+            if needle in soul_text:
+                fail(
+                    f"{soul.relative_to(ROOT)} is identity only; "
+                    f"do not put {needle} procedures in SOUL"
+                )
     mcp = agent_dir / "mcp.json"
     if mcp.is_file():
         payload = json.loads(mcp.read_text(encoding="utf-8"))

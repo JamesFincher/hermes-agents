@@ -2,13 +2,11 @@
 
 **Source of truth:** [`PROFILE-PLAYBOOK.md`](PROFILE-PLAYBOOK.md)
 
-Each profile’s `agents/<name>/INTEGRATION.md` is that profile’s join map: plugin name, toolset, MCP allowlist, skill `requires_tools`, and any official-page locks that profile must obey.
+Each profile’s `agents/<name>/INTEGRATION.md` is that profile’s **execution join**: identity + skills index, the native plugin and the tools it registers, MCP as a backend the plugin calls, agent-loop hooks, `ctx.llm` uses, subagent constraints.
 
 Copy the playbook’s **method**, not another profile’s plugin, tools, or skills.
 
-`research-bot` locks the official join in [`../agents/research-bot/INTEGRATION.md`](../agents/research-bot/INTEGRATION.md), citing the pages below. Native plugin path only. Skills live in the profile `skills/` index. Do not patch Hermes `tools/` or ship a second memory provider.
-
-## Official pages (cite these, not training data)
+`research-bot` is planned in [`../agents/research-bot/INTEGRATION.md`](../agents/research-bot/INTEGRATION.md). Official pages (do not invent knobs):
 
 - https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop
 - https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly
@@ -19,26 +17,14 @@ Copy the playbook’s **method**, not another profile’s plugin, tools, or skil
 - https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api
 - https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin
 
-## Creating skills (priority)
+## Settled: memory
 
-https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills
+`memory.provider: honcho`. Unique `aiPeer` per profile. `pinUserPeer: true` (gateway-only). Hybrid recall. Not `plugins.enabled`. Do not write a second memory provider. Do not expand these knobs.
 
-Skill = instructions + shell + existing tools. Tool = auth, must-execute-precisely processing, binary, streaming. Primary library is profile `skills/` (indexed). `ctx.register_skill` is hidden `plugin:skill`. Required sections: When to Use, Quick Reference, Procedure, Pitfalls, Verification. Hide if ANY `requires_*` is missing. Missing `required_environment_variables` does **not** hide. Do not put `CONTEXT7_API_KEY` on a skill. Do not enable `inline_shell`. Do not add a blueprint unless a scheduled job was requested.
+## Execution join (every specialized profile)
 
-## Plugin LLM access
-
-https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access
-
-`ctx.llm` is out of band. No tool loop. Does not replace `register_tool`. Do not loop it on every hook. No `allow_*` grants unless needed.
-
-## Subagent lifecycle
-
-https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api
-
-`ctx.subagent_lifecycle.launch` only during an active turn. Same child path as `delegate_task`. Children skip SOUL. `allowed_toolsets` narrows only. Do not give a research child write or product toolsets.
-
-## Memory provider plugin
-
-https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin
-
-Single-select. Honcho is `memory.provider`. Do not write a second memory provider. Memory-provider skills (`provider:skill`) are not the primary library.
+1. **Identity + skills index** — SOUL is tone. Skills in profile `skills/` (indexed). Stable cached tier. https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills
+2. **Dedicated native plugin** — `plugin.yaml` + `register(ctx)`. Do not patch core `tools/`. `ctx.llm` is out of band only.
+3. **MCP as backend** — `ctx.call_mcp`. The model calls facade tools the plugin registered, not raw `mcp_*`.
+4. **Agent loop + hooks** — turn-varying contract on `pre_llm_call` (user message). Do not hook-police intercepted agent tools.
+5. **Skills require that plugin’s toolset** and name those tools in Procedure.

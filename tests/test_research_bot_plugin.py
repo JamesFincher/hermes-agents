@@ -245,7 +245,8 @@ class PluginTests(unittest.TestCase):
         assert injected is not None
         self.assertIn("RESEARCH CONTRACT", injected["context"])
         self.assertIn("LEDGER:", injected["context"])
-        self.assertIn("MEMORY.md personality", injected["context"])
+        self.assertIn("cite_source", injected["context"])
+        self.assertNotIn("Honcho", injected["context"])
         self.assertLessEqual(len(injected["context"]), 10000)
 
     def test_schemas_are_flat_and_say_when_to_call(self) -> None:

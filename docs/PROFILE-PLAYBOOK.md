@@ -206,7 +206,7 @@ If you write `requires_toolsets: [research-bot]` on a different profile's skill,
 
 Do not put `CONTEXT7_API_KEY` in skill env. Do not add a blueprint unless a scheduled job was requested. `research-bot` skills require `resolve_library`, `docs_query`, and `cite_source` by those exact registered names.
 
-### Step 7 — Honcho (one paragraph, then stop)
+### Step 7 — Memory (one paragraph, then stop)
 
 Official: [User Guide — Memory](https://hermes-agent.org/docs/user-guide/features/memory/), [Developer Guide — Memory](https://hermes-agent.org/docs/developer-guide/memory/), [Memory Providers](https://hermes-agent.org/docs/developer-guide/memory-providers/), [honcho.dev Hermes Agent](https://docs.honcho.dev/v3/guides/agent-frameworks/hermes-agent).
 
@@ -225,7 +225,7 @@ Prefer the Hermes Honcho tool table (`honcho_profile`, `honcho_search`, `honcho_
 | `mcp.json` | MCP servers this plugin may call |
 | `SOUL.md` | Identity only |
 | `honcho.json.example` | Template; include `pinUserPeer: true` with a comment that it is gateway-only |
-| `INTEGRATION.md` | This profile's join map; must not contradict this playbook |
+| `INTEGRATION.md` | This profile's execution join (identity + skills, native plugin, MCP backend, hooks, `ctx.llm`, subagents). One settled memory paragraph. Must not contradict this playbook |
 | `LICENSE` | Apache-2.0 |
 
 ---
