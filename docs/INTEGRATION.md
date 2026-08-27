@@ -8,6 +8,8 @@ Each profile’s `agents/<name>/INTEGRATION.md` is that profile’s **execution 
 
 Copy the playbook’s **method**, not another profile’s plugin, tools, or skills.
 
+Each profile is its own `HERMES_HOME`. Repo-root `plugins/` must not exist. Live process code lives only in `agents/<name>/plugins/<name>/`. Toolset `research-bot` stays on that profile only. The next profile writes its own plugin, toolset, and skills. Zero imports from `research-bot`.
+
 `research-bot` is planned in [`../agents/research-bot/INTEGRATION.md`](../agents/research-bot/INTEGRATION.md). Official pages (do not invent knobs):
 
 - https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop

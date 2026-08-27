@@ -51,7 +51,7 @@ hermes profile update research-bot
 One agent per PR. The playbook is the checklist. Short version:
 
 1. Context7 + official docs for every knob.
-2. New directory `agents/<name>/` with `distribution.yaml` at its root. Empty of `research-bot`’s plugin, tools, and skills.
+2. New directory `agents/<name>/` with `distribution.yaml` at its root. Empty of `research-bot`’s plugin, tools, and skills. No repo-root `plugins/`. Zero imports from `research-bot`.
 3. Follow [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md): `SOUL.md`, `config.yaml` (`memory.provider: honcho`), **this** profile’s plugin only if it needs tools (`plugins.enabled: [<name>]`), skill recipes in **this** profile’s `skills/` (`requires_toolsets` of **this** profile’s toolset), MCP only if **this** plugin will `call_mcp` and headers can be `${env:VAR}`.
 4. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
 5. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`

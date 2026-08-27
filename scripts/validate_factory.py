@@ -126,21 +126,38 @@ def check_docs_voice() -> None:
 
 def check_no_repo_root_plugin_package() -> None:
     root_plugins = ROOT / "plugins"
-    if not root_plugins.exists():
-        return
-    if not root_plugins.is_dir():
-        fail("repo-root plugins must not exist; each profile ships its own plugin")
-        return
-    leftovers = [
-        path
-        for path in root_plugins.iterdir()
-        if path.name != "__pycache__" and not path.name.endswith(".pyc")
-    ]
-    if leftovers or list(root_plugins.glob("*/plugin.yaml")):
+    if root_plugins.exists():
         fail(
-            "repo-root plugins/ is not a shared package; each profile ships "
-            "its own plugin under agents/<name>/plugins/<name>/"
+            "repo-root plugins/ must not exist; live process code lives only "
+            "in agents/<name>/plugins/<name>/"
         )
+
+
+def check_no_foreign_research_bot_imports() -> None:
+    skip_roots = {
+        ROOT / "agents" / "research-bot" / "plugins" / "research-bot",
+        ROOT / "tests",
+    }
+    needle = re.compile(
+        r"^\s*(from|import)\s+research_bot_plugin\b",
+        re.MULTILINE,
+    )
+    for path in ROOT.rglob("*.py"):
+        if ".git" in path.parts:
+            continue
+        if path == Path(__file__).resolve():
+            continue
+        if any(skip in path.parents or path.parent == skip for skip in skip_roots):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if needle.search(text):
+            fail(
+                f"{path.relative_to(ROOT)} imports research-bot; "
+                "next profile has zero imports from that plugin"
+            )
 
 
 def check_no_secret_files() -> None:
@@ -396,6 +413,17 @@ def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
                 f"{agent_dir.name} custom_toolsets must include this profile's "
                 f"toolset {name!r}"
             )
+    if agent_dir.name != "research-bot":
+        if "research-bot" in enabled_names:
+            fail(
+                f"{agent_dir.name} must not enable the research-bot plugin; "
+                "next profile writes its own plugin"
+            )
+        if "research-bot" in bundled:
+            fail(
+                f"{agent_dir.name} must not enable toolset research-bot; "
+                "that toolset is research-bot only"
+            )
 
     return enabled_names
 
@@ -570,6 +598,7 @@ def main() -> int:
     check_playbook()
     check_docs_voice()
     check_no_repo_root_plugin_package()
+    check_no_foreign_research_bot_imports()
     check_no_secret_files()
     check_no_literal_keys()
     agent_dirs = sorted(

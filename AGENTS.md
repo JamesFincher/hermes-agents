@@ -20,7 +20,7 @@ Skill, Tool, Plugin, and MCP are **four different official objects**. Definition
 
 - One agent per PR. Isolated `HERMES_HOME`. That profile owns its `SOUL.md`, `config.yaml`, skills, MCP, and — if it needs custom tools — its own plugin and toolset. Nothing leaks to the next profile.
 - Next agent = follow the playbook under `agents/<name>/`. Write **that** profile’s plugin + skills + MCP only if it needs them. Zero imports from `research-bot`. The next profile starts empty of research-bot’s plugin, tools, and skills.
-- There is no factory-root `plugins/` package. Do not copy one profile’s plugin into another.
+- There is no factory-root `plugins/` folder. Live process code lives only in `agents/<name>/plugins/<name>/`. Toolset `research-bot` stays on that profile only. Do not copy one profile’s plugin into another. Zero imports from `research-bot`.
 - Honcho is settled: `memory.provider: honcho`, unique `aiPeer`, `pinUserPeer: true` (gateway-only). Not `plugins.enabled`.
 - If you ship a plugin, claim `plugins` in `distribution_owned` (not in official `DEFAULT_DIST_OWNED`).
 - Primary skills stay in profile `skills/`. Do not `ctx.register_skill` the primary library.

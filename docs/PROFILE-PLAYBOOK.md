@@ -34,6 +34,14 @@ Official default (`DEFAULT_DIST_OWNED` in the developer guide): `SOUL.md`, `conf
 
 If you omit `plugins` from `distribution_owned`, `hermes profile install` will not ship the plugin. The model will only see builtins + MCP-named tools. That is how a specialized profile silently becomes a generic chatbot.
 
+### Isolation — no shared process layer
+
+Each profile is its own `HERMES_HOME`. There is no shared plugin, no shared toolset, and no shared Python package across profiles.
+
+- Repo-root `plugins/` must not exist. Live process code lives only in `agents/<name>/plugins/<name>/`.
+- `research-bot` is the toolset id for that profile only. Do not enable it on any other profile. Do not rename it.
+- The next profile writes its own plugin, its own toolset, and its own skills. Zero imports from `research-bot`.
+
 ### Install path
 
 Official `hermes profile install` accepts a **local path** (`hermes profile install ./agents/<name>`) or a GitHub URL. Official GitHub-URL install looks for **repo-root** `distribution.yaml`. This repo keeps many independent distributions under `agents/<name>/`, so local-path install is the supported path. Do not put a repo-root `distribution.yaml`.
