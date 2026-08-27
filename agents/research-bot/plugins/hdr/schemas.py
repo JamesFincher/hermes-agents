@@ -78,6 +78,14 @@ EVIDENCE_ADD = {
             "quote": {"type": "string"},
             "kind": {"type": "string"},
             "origin": {"type": "string"},
+            "fetch_status": {
+                "type": "string",
+                "description": "ok, paywall, archived, or failed",
+            },
+            "archived_url": {
+                "type": "string",
+                "description": "Wayback or other archived URL",
+            },
         },
         "required": ["url"],
     },
@@ -211,6 +219,11 @@ WORKER_BRIEF = {
             "source_types": {"type": "array", "items": {"type": "string"}},
             "max_fetches": {"type": "integer"},
             "return_format": {"type": "string"},
+            "since": {"type": "string", "description": "Recency floor YYYY-MM-DD"},
+            "subagent_id": {
+                "type": "string",
+                "description": "Optional. Key children by this id when known.",
+            },
         },
         "required": ["open_question"],
     },

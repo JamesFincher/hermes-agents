@@ -61,6 +61,8 @@ def evidence_add(args: dict[str, Any], **kwargs: Any) -> str:
                 "quote": (args or {}).get("quote") or (selected[0]["q"] if selected else ""),
                 "run_id": (current or {}).get("run_id") or "",
                 "needs_backfill": not bool(text),
+                "fetch_status": (args or {}).get("fetch_status") or "ok",
+                "archived_url": (args or {}).get("archived_url") or None,
             }
         )
         if result.get("error"):

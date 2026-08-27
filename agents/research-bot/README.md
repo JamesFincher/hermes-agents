@@ -37,7 +37,7 @@ Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`.
 3. `hermes memory setup` if needed. `hermes memory status` should show the provider active.
 4. Confirm `plugins.enabled: [hdr]`. On Hermes 0.19.0, `hermes plugins` has no `doctor` action (choices: install, update, remove, list, enable, disable). Use `hermes -p research-bot plugins list` and `hermes -p research-bot tools list`.
 5. `hermes -p research-bot tools list` (CLI form of `/tools list`) should show `web`, `browser`, `vision`, `file`, `terminal`, `code_execution`, `skills`, `memory`, `session_search`, `todo`, `clarify`, `delegation`, `cronjob`, `hdr`. There is **no `moa` toolset**. MoA is a provider.
-6. Pin `/review` on the host with `auxiliary.review.model`. This profile does not invent a model id.
+6. Pin `/review` on the host with `auxiliary.review.model`. Set `delegation.model` on the host to a cheap worker. Empty inherits the parent. This profile does not invent a model id.
 
 `mcp.json` and `config.yaml` `mcp_servers` must stay twins. Do not delete either file.
 
@@ -63,7 +63,7 @@ Host env only. Never commit values.
 | `UNPAYWALL_EMAIL` | no | Literature HTTP fallback. Auto-passed into Docker by skill env. |
 | `CROSSREF_MAILTO` | no | Crossref polite pool. |
 | `SEMANTIC_SCHOLAR_API_KEY` | no | Optional scholar HTTP. |
-| Model provider key | deploy host | This profile does not pin `model.default`. Set the frontier planner and cheap worker on the host. Pin `/review` with `auxiliary.review.model` on the host. |
+| Model provider key | deploy host | This profile does not pin `model.default`. Set the frontier planner and cheap worker on the host. Pin `/review` with `auxiliary.review.model`. Also set `delegation.model` on the host. Empty inherits the parent. Do not invent a model id. |
 
 `web.keyless_fallback` and `web.keyless_rescue` are **true**. A dead primary path must degrade.
 
@@ -87,6 +87,8 @@ The hdr plugin registers tools on toolset `hdr`. It is not a tool. Do not copy i
 Hooks: Evidence Bus (`transform_tool_result`), policy (`pre_tool_call`), governor (`pre`/`post_api_request`), digest (`pre_llm_call` ≤1200 chars), bibliography (`transform_llm_output`).
 
 Store: `<HERMES_HOME>/plugin-data/hdr/`.
+
+`plugins/hdr/scripts/timeline.py` sorts dated lines. No skill recipe calls it. It is a helper, not a sixth skill. See `plugins/hdr/README.md`.
 
 ## Skills
 

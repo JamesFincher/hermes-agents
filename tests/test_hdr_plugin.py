@@ -734,6 +734,43 @@ class HdrTest(unittest.TestCase):
         self.assertEqual(verify["evidence"], [])
         self.assertFalse(verify.get("partial_spans"))
 
+    def test_harvest_unions_seen_ids_and_keys_child(self) -> None:
+        self.pkg.tools.research_plan({"question": "harvest", "tier": "quick"})
+        for index in range(2):
+            self.pkg.store.ledger.add_source(
+                {
+                    "url": f"https://example.com/seen-{index}",
+                    "title": f"Seen {index}",
+                }
+            )
+        first = json.loads(self.pkg.tools.worker_harvest({"subagent_id": "sa-keep"}))
+        self.assertEqual(first["count"], 2)
+        second = json.loads(self.pkg.tools.worker_harvest({"subagent_id": "sa-keep"}))
+        self.assertEqual(second["count"], 0)
+        self.assertEqual(second["new_ids"], [])
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertIn("S1", current.get("seen_ids") or [])
+        self.assertIn("sa-keep", current.get("children") or {})
+        self.assertNotIn("harvest", current.get("children") or {})
+
+    def test_evidence_add_accepts_paywall_fields(self) -> None:
+        added = json.loads(
+            self.pkg.tools.evidence_add(
+                {
+                    "url": "https://example.com/paywalled",
+                    "title": "Paywalled paper",
+                    "text": "Abstract only. The method is not in the snippet.",
+                    "fetch_status": "paywall",
+                    "archived_url": "https://web.archive.org/web/2/https://example.com/paywalled",
+                }
+            )
+        )
+        self.assertTrue(added.get("ok"))
+        source = added.get("source") or {}
+        self.assertEqual(source.get("fetch_status"), "paywall")
+        self.assertIn("web.archive.org", str(source.get("archived_url") or ""))
+
     def test_worker_brief_interpolates_must_find_and_since(self) -> None:
         self.pkg.tools.research_plan(
             {
@@ -753,6 +790,36 @@ class HdrTest(unittest.TestCase):
         )
         self.assertIn("must_find: filing date, recall count", brief["brief"])
         self.assertIn("since 2024-01-01", brief["brief"])
+
+    def test_worker_brief_interpolates_contract(self) -> None:
+        self.pkg.tools.research_plan(
+            {
+                "question": "Compare A",
+                "tier": "standard",
+                "open_questions": ["Mandate A"],
+                "constraints": {"since": "2024-01-01"},
+            }
+        )
+        brief = json.loads(
+            self.pkg.tools.worker_brief(
+                {
+                    "open_question": "Mandate A",
+                    "must_find": ["the filing date"],
+                    "subagent_id": "child-9",
+                }
+            )
+        )
+        text = brief["brief"]
+        self.assertIn("the filing date", text)
+        self.assertIn("2024-01-01", text)
+        self.assertIn("SOUL was skipped", text)
+        self.assertIn("scholar_search", text)
+        self.assertIn("derived:true", text)
+        self.assertIn("fetch_page.py", text)
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertIn("child-9", current.get("children") or {})
+        self.assertNotIn("Mandate A", current.get("children") or {})
 
     def test_gap_scan_stale_and_thin(self) -> None:
         created = json.loads(
@@ -1483,6 +1550,34 @@ class HdrTest(unittest.TestCase):
         current = self.pkg.store.run.load_run()
         assert current is not None
         self.assertEqual(int((current.get("spend") or {}).get("tokens") or 0), 15)
+
+    def test_fetch_page_script_is_curl_readability(self) -> None:
+        script = (
+            ROOT
+            / "agents"
+            / "research-bot"
+            / "skills"
+            / "web-fallback-fetch"
+            / "scripts"
+            / "fetch_page.py"
+        )
+        spec = importlib.util.spec_from_file_location("hdr_fetch_page", script)
+        if spec is None or spec.loader is None:
+            self.fail("unable to load fetch_page.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        html = (
+            "<html><nav>Skip menu</nav><article><p>The widget shipped.</p></article>"
+            "<script>void 0</script></html>"
+        )
+        text = module.readable_text(html)
+        self.assertIn("widget shipped", text)
+        self.assertNotIn("Skip menu", text)
+        source = script.read_text(encoding="utf-8")
+        self.assertIn("curl", source)
+        self.assertIn("web.archive.org", source)
+        retrieval = ROOT / "agents" / "research-bot" / "plugins" / "hdr" / "tools" / "retrieval.py"
+        self.assertIn("SEMANTIC_SCHOLAR_API_KEY", retrieval.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
