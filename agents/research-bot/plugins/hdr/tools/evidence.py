@@ -28,6 +28,7 @@ def evidence_add(args: dict[str, Any], **kwargs: Any) -> str:
         content_hash = None
         nbytes = 0
         selected = []
+        created_corpus = False
         if text:
             stored = bus.write_corpus(
                 text,
@@ -36,6 +37,7 @@ def evidence_add(args: dict[str, Any], **kwargs: Any) -> str:
             corpus = stored.get("path")
             content_hash = f"sha256:{stored.get('sha256')}"
             nbytes = int(stored.get("bytes") or 0)
+            created_corpus = bool(stored.get("created"))
             selected = spans.select_spans(text, (current or {}).get("question") or "")
         result = ledger.add_source(
             {
@@ -62,6 +64,13 @@ def evidence_add(args: dict[str, Any], **kwargs: Any) -> str:
         )
         if result.get("error"):
             return error(str(result["error"]))
+        run.note_retrieval(
+            created_corpus=created_corpus,
+            new_row=not bool(result.get("updated")),
+            nbytes=nbytes,
+            filled_bytes=bool(result.get("updated") and created_corpus),
+            reason="evidence_add",
+        )
         return dump(result)
     except Exception as exc:  # noqa: BLE001
         return error(str(exc))

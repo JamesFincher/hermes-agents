@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..store import bus, run
+from .governor import tokens_from_usage, total_tokens
 
 
 def subagent_start(
@@ -58,5 +59,41 @@ def subagent_stop(
                 updated.get("run_id") or "",
                 {"event": "subagent_stop", "id": subagent_id, "error": error},
             )
+        usage = kwargs.get("usage") or kwargs.get("token_usage")
+        if usage is not None:
+            inp = tokens_from_usage(usage, side="input")
+            out = tokens_from_usage(usage, side="output")
+            if inp:
+                run.add_spend(
+                    tokens=inp,
+                    api_request_id=f"child:{child_id}:in",
+                    token_side="input",
+                )
+            if out:
+                run.add_spend(
+                    tokens=out,
+                    api_request_id=f"child:{child_id}:out",
+                    token_side="output",
+                )
+            if not inp and not out:
+                lump = total_tokens(usage)
+                if lump:
+                    run.add_spend(
+                        tokens=lump,
+                        api_request_id=f"child:{child_id}:total",
+                        token_side="total",
+                    )
+        else:
+            raw_tokens = kwargs.get("tokens") or kwargs.get("total_tokens")
+            try:
+                lump = int(raw_tokens or 0)
+            except (TypeError, ValueError):
+                lump = 0
+            if lump:
+                run.add_spend(
+                    tokens=lump,
+                    api_request_id=f"child:{child_id}:stop",
+                    token_side="total",
+                )
     except Exception:
         return

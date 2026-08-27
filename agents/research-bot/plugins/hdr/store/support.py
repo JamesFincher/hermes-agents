@@ -50,11 +50,21 @@ def tokens(text: str) -> set[str]:
 
 
 def source_blob(source: dict[str, Any]) -> str:
-    parts = [str(source.get("title") or ""), str(source.get("quote") or "")]
+    parts = [
+        str(source.get("title") or ""),
+        str(source.get("quote") or ""),
+        str(source.get("url") or ""),
+        str(source.get("canonical_url") or ""),
+    ]
     for span in source.get("spans") or []:
         if isinstance(span, dict):
             parts.append(str(span.get("q") or ""))
     return " ".join(parts)
+
+
+def source_supports_question(source: dict[str, Any], question: str) -> bool:
+    """True when the card text is about this question. Tier is not enough."""
+    return mentions_question(source, question)
 
 
 def mentions_question(source: dict[str, Any], question: str) -> bool:

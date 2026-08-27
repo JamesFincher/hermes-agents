@@ -273,7 +273,7 @@ class HdrTest(unittest.TestCase):
         self.assertEqual(by_q.get("What is the recall rate?"), 0)
         self.assertEqual(by_q.get("What shipped in 2024?"), 1)
 
-    def test_three_worker_batch_parent_stays_small(self) -> None:
+    def test_three_worker_brief_and_harvest_strings_stay_under_4k(self) -> None:
         mandates = ["Mandate A", "Mandate B", "Mandate C"]
         self.pkg.tools.research_plan(
             {
@@ -372,14 +372,6 @@ class HdrTest(unittest.TestCase):
             self.pkg.tools.research_plan({"question": "overspend", "tier": "quick"})
         )
         self.assertTrue(created.get("ok"))
-        current = self.pkg.store.run.load_run()
-        assert current is not None
-        current["spend"]["tokens"] = current["budget"]["tokens"] + 10
-        current["governor"] = self.pkg.store.run.governor_state(current)
-        self.pkg.store.run.save_run(current)
-        self.assertEqual(current["governor"], "HARD")
-        blocked = self.pkg.hooks.pre_tool_call("web_extract", {"url": "https://example.com/z"})
-        self.assertEqual((blocked or {}).get("action"), "block")
         added_prior = json.loads(
             self.pkg.tools.evidence_add(
                 {
@@ -391,14 +383,21 @@ class HdrTest(unittest.TestCase):
             )
         )
         self.assertTrue(added_prior.get("ok") or added_prior.get("source"))
+        updated = self.pkg.store.run.add_spend(tokens=int(created["budget"]["tokens"]) + 10)
+        assert updated is not None
+        self.assertEqual(updated["governor"], "HARD")
+        brief_path = Path(str(updated.get("hard_brief_path") or ""))
+        self.assertTrue(brief_path.is_file())
+        brief_text = brief_path.read_text(encoding="utf-8")
+        self.assertTrue(brief_text.strip())
+        self.assertIn("[S1]", brief_text)
+        blocked = self.pkg.hooks.pre_tool_call("web_extract", {"url": "https://example.com/z"})
+        self.assertEqual((blocked or {}).get("action"), "block")
         search = json.loads(self.pkg.tools.evidence_search({"query": "Prior"}))
         self.assertGreaterEqual(search["count"], 1)
-        drafted = self.pkg.store.draft.draft_brief()
-        self.assertTrue(drafted.get("brief"))
-        self.assertIn("[S1]", drafted["brief"])
         write = self.pkg.hooks.pre_tool_call(
             "write_file",
-            {"path": "briefs/partial.md", "content": drafted["brief"]},
+            {"path": "briefs/partial.md", "content": brief_text},
         )
         self.assertIsNone(write)
 
@@ -426,6 +425,9 @@ class HdrTest(unittest.TestCase):
             )
         )
         self.assertTrue(added.get("ok"))
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertGreaterEqual(int((current.get("spend") or {}).get("fetches") or 0), 1)
         drafted = self.pkg.store.draft.draft_brief()
         self.assertIn("[S1]", drafted["brief"])
         blocked_extract = self.pkg.hooks.pre_tool_call(
@@ -487,7 +489,7 @@ class HdrTest(unittest.TestCase):
         self.pkg.hooks.post_tool_call("web_search", {"query": "x"}, "hits", duration_ms=12)
         current = self.pkg.store.run.load_run()
         assert current is not None
-        self.assertGreaterEqual(int((current.get("spend") or {}).get("fetches") or 0), 1)
+        self.assertEqual(int((current.get("spend") or {}).get("fetches") or 0), 0)
         added = json.loads(
             self.pkg.tools.evidence_add(
                 {
@@ -495,13 +497,25 @@ class HdrTest(unittest.TestCase):
                     "title": "Widget recall 2026",
                     "text": "The widget recall started in March 2026 after a 12% failure rate.",
                     "quote": "12% failure rate",
+                    "origin": "web-fallback-fetch",
                 }
             )
         )
         self.assertTrue(added.get("ok"))
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertGreaterEqual(int((current.get("spend") or {}).get("fetches") or 0), 1)
         found = json.loads(self.pkg.tools.evidence_search({"query": "widget recall"}))
         self.assertGreaterEqual(found["count"], 1)
         self.assertEqual(found["cards"][0]["id"], "S1")
+        deduped = self.pkg.hooks.pre_tool_call(
+            "web_extract",
+            {"url": "https://example.com/widget-recall"},
+        )
+        self.assertEqual((deduped or {}).get("action"), "block")
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(int((current.get("spend") or {}).get("fetches") or 0), 1)
 
     def test_docs_query_requires_openable_url(self) -> None:
         self.ctx.mcp_responses["context7:query-docs"] = {"ok": True, "result": "no url here"}
@@ -1058,11 +1072,11 @@ class HdrTest(unittest.TestCase):
         self.assertIsNone(notes_write)
 
     def test_red_blocks_terminal_and_execute_code(self) -> None:
-        self.pkg.tools.research_plan({"question": "red", "tier": "quick"})
+        created = json.loads(self.pkg.tools.research_plan({"question": "red", "tier": "quick"}))
+        self.pkg.store.run.add_spend(tokens=int(created["budget"]["tokens"] * 0.86))
         current = self.pkg.store.run.load_run()
         assert current is not None
-        current["governor"] = "RED"
-        self.pkg.store.run.save_run(current)
+        self.assertEqual(current.get("governor"), "RED")
         term = self.pkg.hooks.pre_tool_call("terminal", {"command": "curl https://example.com"})
         self.assertEqual((term or {}).get("action"), "block")
         code = self.pkg.hooks.pre_tool_call("execute_code", {"code": "print(1)"})
@@ -1232,6 +1246,135 @@ class HdrTest(unittest.TestCase):
         self.assertLessEqual(len(digest), 1200)
         self.assertIn("primary", digest)
         self.assertIn("thin:", digest)
+
+    def test_usage_normalization_and_dedupe(self) -> None:
+        created = json.loads(self.pkg.tools.research_plan({"question": "tokens", "tier": "quick"}))
+        self.assertTrue(created.get("ok"))
+        self.pkg.hooks.pre_api_request(
+            approx_input_tokens=0,
+            usage={"input_tokens": 40, "output_tokens": 9},
+            api_request_id="req-dict",
+        )
+        self.pkg.hooks.post_api_request(
+            usage={"input_tokens": 40, "output_tokens": 9, "total_tokens": 49},
+            api_request_id="req-dict",
+        )
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(int((current.get("spend") or {}).get("tokens") or 0), 49)
+
+        self.pkg.hooks.post_api_request(
+            usage={"total_tokens": 20},
+            api_request_id="req-total",
+        )
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(int((current.get("spend") or {}).get("tokens") or 0), 69)
+
+        class Usage:
+            input_tokens = 5
+            output_tokens = 7
+
+        self.pkg.hooks.pre_api_request(usage=Usage(), api_request_id="req-ns")
+        self.pkg.hooks.post_api_request(usage=Usage(), api_request_id="req-ns")
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(int((current.get("spend") or {}).get("tokens") or 0), 81)
+        self.pkg.hooks.post_api_request(usage=Usage(), api_request_id="req-ns")
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(int((current.get("spend") or {}).get("tokens") or 0), 81)
+
+    def test_wall_clock_ticks_from_started_at(self) -> None:
+        created = json.loads(self.pkg.tools.research_plan({"question": "clock", "tier": "quick"}))
+        self.assertTrue(created.get("ok"))
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        current["spend"]["started_at"] = "2020-01-01T00:00:00+00:00"
+        self.pkg.store.run.save_run(current)
+        refreshed = self.pkg.store.run.refresh_governor(self.pkg.store.run.load_run() or {})
+        self.assertGreater(float((refreshed.get("spend") or {}).get("seconds") or 0), 90)
+        self.assertEqual(refreshed.get("governor"), "HARD")
+        self.assertTrue(Path(str(refreshed.get("hard_brief_path") or "")).is_file())
+
+    def test_saturation_ignores_offtopic_ab_sources(self) -> None:
+        created = json.loads(
+            self.pkg.tools.research_plan(
+                {
+                    "question": "What did the widget recall change?",
+                    "tier": "standard",
+                    "open_questions": ["What did the widget recall change?"],
+                }
+            )
+        )
+        self.assertTrue(created.get("ok"))
+        self.pkg.store.ledger.add_source(
+            {
+                "url": "https://example.com/alpha",
+                "title": "Unrelated alpha paper",
+                "quote": "alpha methods",
+                "tier": "A",
+                "run_id": created["run_id"],
+            }
+        )
+        self.pkg.store.ledger.add_source(
+            {
+                "url": "https://example.com/beta",
+                "title": "Unrelated beta paper",
+                "quote": "beta methods",
+                "tier": "A",
+                "run_id": created["run_id"],
+            }
+        )
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        current["last_batch_ids"] = ["S1", "S2"]
+        self.pkg.store.run.save_run(current)
+        scan = json.loads(self.pkg.tools.gap_scan({"detail": "summary"}))
+        self.assertIn("What did the widget recall change?", scan.get("unanswered") or [])
+        self.assertEqual(scan.get("new_source_yield"), 1.0)
+        self.assertEqual(scan.get("recommend"), "depth")
+
+    def test_quick_tier_cannot_delegate(self) -> None:
+        json.loads(self.pkg.tools.research_plan({"question": "one fact", "tier": "quick"}))
+        blocked = self.pkg.hooks.pre_tool_call("delegate_task", {"goal": "look it up"})
+        self.assertEqual((blocked or {}).get("action"), "block")
+        self.assertIn("worker cap", (blocked or {}).get("message", ""))
+
+    def test_research_plan_status_only_on_hard(self) -> None:
+        created = json.loads(self.pkg.tools.research_plan({"question": "lock", "tier": "quick"}))
+        self.pkg.store.run.add_spend(tokens=int(created["budget"]["tokens"]) + 1)
+        locked = json.loads(
+            self.pkg.tools.research_plan({"action": "update", "tier": "exhaustive", "question": "nope"})
+        )
+        self.assertTrue(locked.get("ok"))
+        self.assertEqual(locked.get("tier"), "quick")
+        self.assertEqual(locked.get("budget", {}).get("tokens"), 40000)
+        self.assertIn("status only", str(locked.get("note") or ""))
+
+    def test_red_blocks_terminal_egress(self) -> None:
+        created = json.loads(self.pkg.tools.research_plan({"question": "red", "tier": "quick"}))
+        self.pkg.store.run.add_spend(tokens=int(created["budget"]["tokens"] * 0.86))
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(current.get("governor"), "RED")
+        blocked = self.pkg.hooks.pre_tool_call(
+            "terminal",
+            {"command": "curl https://example.com/page"},
+        )
+        self.assertEqual((blocked or {}).get("action"), "block")
+        allowed_add = self.pkg.hooks.pre_tool_call(
+            "evidence_add",
+            {"url": "https://example.com/child", "text": "body from a finished child"},
+        )
+        self.assertIsNone(allowed_add)
+
+    def test_child_stop_folds_usage(self) -> None:
+        json.loads(self.pkg.tools.research_plan({"question": "child", "tier": "standard"}))
+        self.pkg.hooks.subagent_stop("sa-1", usage={"input_tokens": 11, "output_tokens": 4})
+        current = self.pkg.store.run.load_run()
+        assert current is not None
+        self.assertEqual(int((current.get("spend") or {}).get("tokens") or 0), 15)
 
 
 if __name__ == "__main__":

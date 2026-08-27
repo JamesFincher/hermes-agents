@@ -14,6 +14,7 @@ from ..runtime import TIER_BUDGET, TIERS, plugin_data_root, setting
 from . import bus
 
 PHASES = frozenset({"plan", "breadth", "gap", "depth", "synthesis", "verify", "done"})
+ACTIVE_CHILD_STATUSES = frozenset({"running", "briefed"})
 
 
 def child_key(open_question: str) -> str:
@@ -50,7 +51,13 @@ def empty_run(question: str = "", tier: str | None = None) -> dict[str, Any]:
         "falsifiers": [],
         "constraints": {},
         "budget": budget,
-        "spend": {"tokens": 0, "fetches": 0, "seconds": 0, "started_at": _now_iso()},
+        "spend": {
+            "tokens": 0,
+            "fetches": 0,
+            "seconds": 0,
+            "started_at": _now_iso(),
+            "api_requests": {},
+        },
         "saturation": None,
         "new_source_yield": None,
         "governor": "GREEN",
@@ -113,7 +120,74 @@ def clear_run() -> None:
             path.unlink()
 
 
-def governor_state(data: dict[str, Any]) -> str:
+def named_gaps(current: dict[str, Any] | None) -> list[str]:
+    if not current:
+        return []
+    gaps = list(current.get("named_gaps") or [])
+    if not gaps:
+        gaps = list(current.get("open_questions") or [])
+    return [str(item) for item in gaps if str(item).strip()]
+
+
+def matches_named_gap(text: str, gaps: list[str]) -> bool:
+    blob = (text or "").lower()
+    if not blob or not gaps:
+        return False
+    for gap in gaps:
+        needle = gap.strip().lower()
+        if not needle:
+            continue
+        if needle in blob or blob in needle:
+            return True
+        if needle[:40] in blob or blob[:40] in needle:
+            return True
+    return False
+
+
+def active_worker_count(current: dict[str, Any] | None) -> int:
+    if not current:
+        return 0
+    children = current.get("children") or {}
+    if not isinstance(children, dict):
+        return 0
+    count = 0
+    for node in children.values():
+        if isinstance(node, dict) and node.get("status") in ACTIVE_CHILD_STATUSES:
+            count += 1
+    return count
+
+
+def worker_cap(current: dict[str, Any] | None) -> int:
+    if not current:
+        return 0
+    budget = current.get("budget") or {}
+    try:
+        return int(budget.get("workers") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def tick_wall_clock(data: dict[str, Any]) -> float:
+    """Set spend.seconds from started_at. Wall time, not a sum of tool durations."""
+    spend = data.setdefault("spend", {"tokens": 0, "fetches": 0, "seconds": 0})
+    started = spend.get("started_at")
+    if not started:
+        spend["started_at"] = _now_iso()
+        spend["seconds"] = 0.0
+        return 0.0
+    try:
+        raw = str(started).replace("Z", "+00:00")
+        started_at = datetime.fromisoformat(raw)
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+        elapsed = max(0.0, (datetime.now(timezone.utc) - started_at).total_seconds())
+    except (TypeError, ValueError):
+        elapsed = float(spend.get("seconds") or 0)
+    spend["seconds"] = elapsed
+    return elapsed
+
+
+def spend_ratio(data: dict[str, Any]) -> float:
     budget = data.get("budget") or {}
     spend = data.get("spend") or {}
     tokens = float(budget.get("tokens") or 1)
@@ -122,7 +196,12 @@ def governor_state(data: dict[str, Any]) -> str:
     token_ratio = float(spend.get("tokens") or 0) / tokens
     fetch_ratio = float(spend.get("fetches") or 0) / fetches
     second_ratio = float(spend.get("seconds") or 0) / seconds
-    ratio = max(token_ratio, fetch_ratio, second_ratio)
+    return max(token_ratio, fetch_ratio, second_ratio)
+
+
+def governor_state(data: dict[str, Any]) -> str:
+    tick_wall_clock(data)
+    ratio = spend_ratio(data)
     if ratio >= 1.0:
         return "HARD"
     if ratio >= 0.85:
@@ -132,20 +211,127 @@ def governor_state(data: dict[str, Any]) -> str:
     return "GREEN"
 
 
+def emit_hard_brief(data: dict[str, Any]) -> str:
+    """Write a ledger-only brief when the governor first hits HARD."""
+    existing = str(data.get("hard_brief_path") or "")
+    if existing and Path(existing).is_file():
+        return existing
+    from . import draft
+
+    drafted = draft.draft_brief()
+    text = str(drafted.get("brief") or "").strip() + "\n"
+    run_id = str(data.get("run_id") or "unknown")
+    dest = plugin_data_root() / "briefs" / f"{run_id}-partial.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(text, encoding="utf-8")
+    data["hard_brief_path"] = str(dest)
+    bus.append_audit(
+        run_id,
+        {"event": "hard_brief", "path": str(dest), "bytes": len(text.encode("utf-8"))},
+    )
+    return str(dest)
+
+
+def refresh_governor(data: dict[str, Any]) -> dict[str, Any]:
+    prior = str(data.get("governor") or "GREEN")
+    nxt = governor_state(data)
+    data["governor"] = nxt
+    if nxt != prior:
+        bus.append_audit(
+            str(data.get("run_id") or ""),
+            {"event": "governor_transition", "from": prior, "to": nxt, "ratio": spend_ratio(data)},
+        )
+    saved = save_run(data)
+    if nxt == "HARD" and prior != "HARD":
+        emit_hard_brief(saved)
+        saved = save_run(saved)
+    return saved
+
+
+def _request_record(spend: dict[str, Any], api_request_id: str) -> dict[str, Any]:
+    requests = spend.setdefault("api_requests", {})
+    if not isinstance(requests, dict):
+        requests = {}
+        spend["api_requests"] = requests
+    node = requests.get(api_request_id)
+    if not isinstance(node, dict):
+        node = {"input": 0, "output": 0, "total": 0}
+        requests[api_request_id] = node
+    return node
+
+
 def add_spend(
     *,
     tokens: int = 0,
     fetches: int = 0,
     seconds: float = 0,
+    api_request_id: str = "",
+    token_side: str = "",
+    fetch_reason: str = "",
 ) -> dict[str, Any] | None:
     def _apply(data: dict[str, Any]) -> None:
         spend = data.setdefault("spend", {"tokens": 0, "fetches": 0, "seconds": 0})
-        spend["tokens"] = int(spend.get("tokens") or 0) + int(tokens)
-        spend["fetches"] = int(spend.get("fetches") or 0) + int(fetches)
-        spend["seconds"] = float(spend.get("seconds") or 0) + float(seconds)
-        data["governor"] = governor_state(data)
+        add_tokens = int(tokens)
+        if api_request_id and add_tokens:
+            record = _request_record(spend, api_request_id)
+            side = token_side if token_side in {"input", "output", "total"} else "input"
+            if side == "total" and int(record.get("input") or 0):
+                add_tokens = 0
+            elif int(record.get(side) or 0):
+                add_tokens = 0
+            else:
+                record[side] = add_tokens
+        spend["tokens"] = int(spend.get("tokens") or 0) + add_tokens
+        if fetches:
+            spend["fetches"] = int(spend.get("fetches") or 0) + int(fetches)
+        if seconds:
+            spend["seconds"] = float(spend.get("seconds") or 0) + float(seconds)
+        if add_tokens:
+            bus.append_audit(
+                str(data.get("run_id") or ""),
+                {
+                    "event": "token_delta",
+                    "api_request_id": api_request_id or None,
+                    "tokens": add_tokens,
+                    "side": token_side or None,
+                },
+            )
+        if fetches:
+            bus.append_audit(
+                str(data.get("run_id") or ""),
+                {
+                    "event": "fetch_increment",
+                    "reason": fetch_reason or "corpus_admission",
+                    "fetches": int(fetches),
+                },
+            )
+        prior = str(data.get("governor") or "GREEN")
+        nxt = governor_state(data)
+        data["governor"] = nxt
+        if nxt != prior:
+            bus.append_audit(
+                str(data.get("run_id") or ""),
+                {"event": "governor_transition", "from": prior, "to": nxt, "ratio": spend_ratio(data)},
+            )
+        if nxt == "HARD" and prior != "HARD":
+            emit_hard_brief(data)
 
     return mutate_run(_apply)
+
+
+def note_retrieval(
+    *,
+    created_corpus: bool,
+    new_row: bool,
+    nbytes: int,
+    filled_bytes: bool = False,
+    reason: str = "corpus_admission",
+) -> dict[str, Any] | None:
+    """Count a fetch only when a page body is newly stored."""
+    admitted = bool(created_corpus or (nbytes > 0 and new_row) or filled_bytes)
+    if not admitted:
+        return load_run()
+    return add_spend(fetches=1, fetch_reason=reason)
 
 
 def bump_domain(host: str) -> dict[str, Any] | None:

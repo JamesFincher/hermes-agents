@@ -118,9 +118,10 @@ def write_corpus(text: str, meta: dict[str, Any]) -> dict[str, Any]:
         "written_at": _now_iso(),
         **meta,
     }
+    created = False
     with lock():
-        existed = txt_path.exists()
-        if not existed:
+        created = not txt_path.exists()
+        if created:
             atomic_write(txt_path, body)
         if not meta_path.exists():
             atomic_write(meta_path, json.dumps(record, indent=2, ensure_ascii=False) + "\n")
@@ -131,7 +132,8 @@ def write_corpus(text: str, meta: dict[str, Any]) -> dict[str, Any]:
         "abs": str(txt_path),
         "bytes": record["bytes"],
         "chars": record["chars"],
-        "existed": existed,
+        "created": created,
+        "existed": not created,
     }
 
 
