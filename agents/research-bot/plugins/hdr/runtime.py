@@ -27,6 +27,8 @@ TIERS = frozenset({"quick", "standard", "deep", "exhaustive"})
 BRIEF_DIRS = frozenset(
     {"notes", "research", "briefs", "findings", "citations", "sources", "data"}
 )
+# Citation Gate applies to brief-class paths only. Analysis artifacts stay writable.
+CITATION_GATE_DIRS = frozenset({"briefs", "research", "findings"})
 INTERCEPTED = frozenset({"todo", "memory", "session_search", "delegate_task"})
 NETWORK_TOOLS = frozenset(
     {
@@ -43,6 +45,8 @@ NETWORK_TOOLS = frozenset(
 )
 WRITE_TOOLS = frozenset({"write_file", "patch"})
 TERMINAL_TOOLS = frozenset({"terminal", "execute_code"})
+# RED blocks fetch tools and shell/code egress. Fetch counter stays on NETWORK_TOOLS.
+RED_EGRESS_TOOLS = NETWORK_TOOLS | TERMINAL_TOOLS
 READ_ONLY_WHEN_HARD = frozenset(
     {
         "read_file",

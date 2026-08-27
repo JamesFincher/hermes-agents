@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -60,7 +61,7 @@ def empty_run(question: str = "", tier: str | None = None) -> dict[str, Any]:
     }
 
 
-def load_run() -> dict[str, Any] | None:
+def _load_unlocked() -> dict[str, Any] | None:
     path = run_path()
     if not path.is_file():
         return None
@@ -71,11 +72,30 @@ def load_run() -> dict[str, Any] | None:
     return raw if isinstance(raw, dict) else None
 
 
-def save_run(data: dict[str, Any]) -> dict[str, Any]:
+def _save_unlocked(data: dict[str, Any]) -> dict[str, Any]:
     data["updated_at"] = _now_iso()
-    with bus.lock():
-        bus.atomic_write(run_path(), json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    bus.atomic_write(run_path(), json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     return data
+
+
+def load_run() -> dict[str, Any] | None:
+    with bus.lock():
+        return _load_unlocked()
+
+
+def save_run(data: dict[str, Any]) -> dict[str, Any]:
+    with bus.lock():
+        return _save_unlocked(data)
+
+
+def mutate_run(mutator: Callable[[dict[str, Any]], None]) -> dict[str, Any] | None:
+    """Load, change, and write run.json in one lock. Returns None if no run exists."""
+    with bus.lock():
+        data = _load_unlocked()
+        if not data:
+            return None
+        mutator(data)
+        return _save_unlocked(data)
 
 
 def archive_run(data: dict[str, Any]) -> None:
@@ -83,6 +103,14 @@ def archive_run(data: dict[str, Any]) -> None:
     path = runs_dir() / f"{run_id}.json"
     with bus.lock():
         bus.atomic_write(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+
+def clear_run() -> None:
+    """Remove the active run.json after archive. Next digest reports no active run."""
+    path = run_path()
+    with bus.lock():
+        if path.is_file():
+            path.unlink()
 
 
 def governor_state(data: dict[str, Any]) -> str:
@@ -110,12 +138,79 @@ def add_spend(
     fetches: int = 0,
     seconds: float = 0,
 ) -> dict[str, Any] | None:
-    data = load_run()
-    if not data:
+    def _apply(data: dict[str, Any]) -> None:
+        spend = data.setdefault("spend", {"tokens": 0, "fetches": 0, "seconds": 0})
+        spend["tokens"] = int(spend.get("tokens") or 0) + int(tokens)
+        spend["fetches"] = int(spend.get("fetches") or 0) + int(fetches)
+        spend["seconds"] = float(spend.get("seconds") or 0) + float(seconds)
+        data["governor"] = governor_state(data)
+
+    return mutate_run(_apply)
+
+
+def bump_domain(host: str) -> dict[str, Any] | None:
+    name = (host or "").strip().lower()
+    if not name:
         return None
-    spend = data.setdefault("spend", {"tokens": 0, "fetches": 0, "seconds": 0})
-    spend["tokens"] = int(spend.get("tokens") or 0) + int(tokens)
-    spend["fetches"] = int(spend.get("fetches") or 0) + int(fetches)
-    spend["seconds"] = float(spend.get("seconds") or 0) + float(seconds)
-    data["governor"] = governor_state(data)
-    return save_run(data)
+
+    def _apply(data: dict[str, Any]) -> None:
+        counts = data.setdefault("domain_counts", {})
+        if not isinstance(counts, dict):
+            counts = {}
+            data["domain_counts"] = counts
+        counts[name] = int(counts.get(name) or 0) + 1
+
+    return mutate_run(_apply)
+
+
+def append_last_batch(ids: list[Any]) -> dict[str, Any] | None:
+    def _apply(data: dict[str, Any]) -> None:
+        batch = list(data.get("last_batch_ids") or [])
+        for item in ids:
+            if item and str(item) not in batch:
+                batch.append(str(item))
+        data["last_batch_ids"] = batch
+
+    return mutate_run(_apply)
+
+
+def record_query_hash(key: str, now: float, window_s: float) -> bool:
+    """Record a search hash. Returns True when the same hash is still inside the window."""
+    duplicate = False
+
+    def _apply(data: dict[str, Any]) -> None:
+        nonlocal duplicate
+        seen = data.setdefault("query_hashes", {})
+        if not isinstance(seen, dict):
+            seen = {}
+            data["query_hashes"] = seen
+        prior = seen.get(key)
+        if isinstance(prior, (int, float)) and now - float(prior) < window_s:
+            duplicate = True
+            return
+        seen[key] = now
+
+    if mutate_run(_apply) is None:
+        return False
+    return duplicate
+
+
+def mark_mandate(open_question: str, status: str) -> dict[str, Any] | None:
+    question = (open_question or "").strip()
+    if not question:
+        return None
+    if status not in {"answered", "failed"}:
+        status = "failed"
+
+    def _apply(data: dict[str, Any]) -> None:
+        mandates = data.setdefault("mandate_status", {})
+        if not isinstance(mandates, dict):
+            mandates = {}
+            data["mandate_status"] = mandates
+        mandates[question] = status
+        if status == "answered":
+            data["open_questions"] = [
+                item for item in list(data.get("open_questions") or []) if str(item) != question
+            ]
+
+    return mutate_run(_apply)

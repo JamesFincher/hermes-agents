@@ -15,10 +15,17 @@ _STAT_RE = re.compile(
 )
 
 
-def transform_llm_output(text: str, **kwargs: Any) -> str | None:
-    del kwargs
+def transform_llm_output(
+    response_text: str = "",
+    session_id: str = "",
+    model: str = "",
+    platform: str = "",
+    text: str = "",
+    **kwargs: Any,
+) -> str | None:
+    del session_id, model, platform, kwargs
     try:
-        body = text or ""
+        body = response_text or text or ""
         ids = [f"S{m.group(1)}" for m in _SID_RE.finditer(body)]
         if not ids:
             flagged = _flag_uncited(body)
@@ -46,7 +53,8 @@ def _flag_uncited(body: str) -> str:
     if not notes:
         return body
     banner = (
-        "\n\n[HDR] Uncited statistic or date in chat (Citation Gate only fires on brief writes):\n- "
+        "\n\n[HDR] Uncited statistic or date in chat "
+        "(Citation Gate fires on briefs/, research/, and findings/ writes):\n- "
         + "\n- ".join(notes[:5])
     )
     if banner in body:

@@ -35,6 +35,32 @@ def scan(text: str) -> dict[str, Any]:
     return {"suppressed": suppressed, "untrusted": True}
 
 
+def strip_injections(text: str) -> dict[str, Any]:
+    """Remove common injection shapes. Return cleaned text and a suppressed list."""
+    body = text or ""
+    suppressed: list[str] = []
+    cleaned = body
+    for pattern in (_FENCE_INST,):
+        for match in pattern.finditer(cleaned):
+            suppressed.append(match.group(0)[:200])
+        cleaned = pattern.sub("[suppressed-instruction-block]", cleaned)
+    if _IGNORE.search(cleaned):
+        suppressed.append("ignore-previous")
+        cleaned = re.sub(
+            r"[^.!?\n]*ignore (all )?(previous|prior) (instructions|prompts)[^.!?\n]*",
+            "[suppressed-ignore-previous]",
+            cleaned,
+            flags=re.I,
+        )
+    if _ASSISTANT.search(cleaned):
+        suppressed.append("role-header")
+        cleaned = _ASSISTANT.sub("\n[suppressed-role]\n", cleaned)
+    if _HIDDEN.search(cleaned):
+        suppressed.append("hidden-text")
+        cleaned = _HIDDEN.sub("", cleaned)
+    return {"text": cleaned, "suppressed": suppressed}
+
+
 def wrap(text: str) -> dict[str, Any]:
     scanned = scan(text)
     envelope = (
