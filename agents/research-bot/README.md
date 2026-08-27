@@ -96,4 +96,15 @@ Five disjoint skills. Frontmatter keys sit under `metadata.hermes`. Scripts use 
 
 ## Honest limits
 
-`pre_verify` does not fire on markdown-only turns. `claim_verify` proves a span exists, not that the document is right. Source tiers are heuristics. See [`docs/HONEST-LIMITS.md`](../../docs/HONEST-LIMITS.md).
+These limits are also in [`docs/HONEST-LIMITS.md`](../../docs/HONEST-LIMITS.md).
+
+- `pre_verify` does not fire for markdown-only turns. The Citation Gate is a `pre_tool_call` block on the brief write. A user who reads the answer in chat without a file write bypasses it. Mitigation: `transform_llm_output` flags uncited statistics inline.
+- `claim_verify` proves a span exists in a retrieved document. It does not prove the document is right, or that the span means what the claim says. It moves the failure mode from fabrication to misreading.
+- Source tiering is a heuristic over domains and metadata. It will misclassify a good preprint and flatter a bad institutional blog.
+- The Evidence Bus can only distil what the extractor returned. A page that renders its substance in canvas or images degrades to `vision_analyze`, which is lossy and costs tokens.
+- Prompt-injection handling is defence in depth, not a proof. The Docker backend is the boundary that matters. The sanitizer only reduces frequency.
+- Children write to the shared profile-home ledger. Official pages document `plugin-data/` under `HERMES_HOME` and live transcripts under `<hermes_home>/cache/delegation/live/…`. The transcript-grep backstop stays.
+- Budget numbers in the spec are starting points. P10 fixtures track tokens per tier-A/B source. They are not yet field measurements.
+- Cross-model MoA verification is only as good as the second model's independence. Official MoA is a **provider**, not a toolset. This profile does not invent a `moa` toolset.
+- Official GitHub-URL install copies the repo root as one payload. Path install is the supported path.
+- This CI runner has no Hermes CLI. `hermes profile install` and `/tools list` are deploy-host checks. Offline tests cover the plugin, store, gates, and the 12-question fixture loop.

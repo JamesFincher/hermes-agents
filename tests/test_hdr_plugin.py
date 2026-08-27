@@ -261,25 +261,46 @@ class HdrTest(unittest.TestCase):
         self.assertIn("saturation", scan)
         self.assertIsInstance(scan["saturation"], float)
 
-    def test_worker_brief_no_raw_page(self) -> None:
+    def test_three_worker_batch_parent_stays_small(self) -> None:
+        mandates = ["Mandate A", "Mandate B", "Mandate C"]
         self.pkg.tools.research_plan(
             {
-                "question": "Compare A and B",
-                "open_questions": ["Mandate A", "Mandate B"],
+                "question": "Compare three entities",
+                "open_questions": mandates,
                 "tier": "standard",
             }
         )
-        brief = json.loads(
-            self.pkg.tools.worker_brief(
-                {"open_question": "Mandate A", "boundary": "Do not cover Mandate B"}
+        parent_blobs: list[str] = []
+        live = Path(os.environ["HERMES_HOME"]) / "cache" / "delegation" / "live" / "batch-1"
+        live.mkdir(parents=True, exist_ok=True)
+        for index, mandate in enumerate(mandates, start=1):
+            brief = json.loads(
+                self.pkg.tools.worker_brief(
+                    {
+                        "open_question": mandate,
+                        "boundary": "Do not cover the other mandates",
+                    }
+                )
             )
-        )
-        self.assertIn("GOAL:", brief["brief"])
-        self.assertIn("OUTPUT CONTRACT:", brief["brief"])
-        harvest = json.loads(self.pkg.tools.worker_harvest({}))
-        dumped = json.dumps(harvest)
-        self.assertNotIn("<html", dumped)
-        self.assertLess(len(dumped), 4000)
+            parent_blobs.append(brief["brief"])
+            page = f"<html>secret page body for {mandate} " + ("RAW" * 200) + "</html>"
+            log = live / f"task-{index}.log"
+            log.write_text(
+                f"FINDING: short note for {mandate}\nCARDS: S{index}\nhttps://example.com/w{index}\n",
+                encoding="utf-8",
+            )
+            harvest = json.loads(
+                self.pkg.tools.worker_harvest(
+                    {"subagent_id": f"sa-{index}", "transcript_path": str(log)}
+                )
+            )
+            parent_blobs.append(json.dumps(harvest))
+            self.assertNotIn("RAW", json.dumps(harvest))
+            self.assertNotIn(page, json.dumps(harvest))
+        parent_text = "\n".join(parent_blobs)
+        tokens = max(1, (len(parent_text) + 3) // 4)
+        self.assertLess(tokens, 4000)
+        self.assertNotIn("secret page body", parent_text)
 
     def test_claim_verify_and_conflicts(self) -> None:
         text = "The device reached 12% efficiency in 2024 at NIST."
@@ -327,11 +348,46 @@ class HdrTest(unittest.TestCase):
         )
         search = json.loads(self.pkg.tools.evidence_search({}))
         self.assertGreaterEqual(search["count"], 1)
+        drafted = self.pkg.store.draft.draft_brief()
+        self.assertTrue(drafted.get("brief"))
+        self.assertIn("[S1]", drafted["brief"])
         write = self.pkg.hooks.pre_tool_call(
             "write_file",
-            {"path": "briefs/partial.md", "content": "supported finding [S1]."},
+            {"path": "briefs/partial.md", "content": drafted["brief"]},
         )
         self.assertIsNone(write)
+
+    def test_web_fallback_completes_without_web_extract(self) -> None:
+        script = (
+            ROOT
+            / "agents"
+            / "research-bot"
+            / "skills"
+            / "web-fallback-fetch"
+            / "SKILL.md"
+        )
+        front = script.read_text(encoding="utf-8")
+        self.assertIn("fallback_for_tools: [web_extract]", front)
+        self.pkg.tools.research_plan({"question": "fallback", "tier": "quick"})
+        fetched = "Fallback body. The product launched in March after a quiet beta."
+        added = json.loads(
+            self.pkg.tools.evidence_add(
+                {
+                    "url": "https://example.com/fallback",
+                    "title": "Fallback",
+                    "text": fetched,
+                    "origin": "web-fallback-fetch",
+                }
+            )
+        )
+        self.assertTrue(added.get("ok"))
+        drafted = self.pkg.store.draft.draft_brief()
+        self.assertIn("[S1]", drafted["brief"])
+        blocked_extract = self.pkg.hooks.pre_tool_call(
+            "write_file",
+            {"path": "briefs/fallback.md", "content": drafted["brief"]},
+        )
+        self.assertIsNone(blocked_extract)
 
     def test_docs_query_requires_openable_url(self) -> None:
         self.ctx.mcp_responses["context7:query-docs"] = {"ok": True, "result": "no url here"}
