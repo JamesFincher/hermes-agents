@@ -8,6 +8,8 @@ This file is the join map for **this profile only**. Extracted from the official
 | --- | --- |
 | Agent Loop Internals | https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop |
 | Prompt Assembly | https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly |
+| Adding Tools | https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools |
+| Plugins (native) | https://hermes-agent.nousresearch.com/docs/developer-guide/plugins |
 
 | Layer | This profile |
 | --- | --- |
@@ -66,4 +68,54 @@ https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly
 6. Subagents lose SOUL. If this profile ever delegates, the plugin + skills must carry the workflow, not SOUL alone.
 7. This repo’s root `AGENTS.md` is Cursor workflow, not Hermes runtime, unless the agent cwd actually has that file (and no `.hermes.md` / `HERMES.md`). Do not rely on it at runtime.
 8. Ledger lives in `<HERMES_HOME>/plugin-data/research-bot/source-ledger.json`. It must survive compression child-session lineage. Do not key it only to a discarded session id without a fallback.
-9. These locks cite both official URLs above. Do not invent knobs from training data.
+9. These locks cite the official URLs above. Do not invent knobs from training data.
+
+---
+
+## Source C — Adding Tools (built-in core only)
+
+https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools
+
+- **Warning on the page:** this guide is for **built-in** core tools in `tools/` + `toolsets.py` only. Custom / personal / project tools **must** use the plugin route. Do not add research-bot tools to Hermes core.
+- Skill vs tool: skill = instructions + shell + existing tools (arXiv, git, Docker, PDF). Tool = API keys, custom processing, binary, streaming.
+- Handler rules (danger box): MUST return `json.dumps` string, never a dict. Errors MUST be `{"error": "..."}`, never raise. `handler(args: dict, **kwargs)`. `check_fn` False = silently excluded from tool definitions.
+- Schema example is **flat**: `{name, description, parameters:{type:object, properties, required}}`. Use that, not the CONTRIBUTING `{type:function,function:{...}}` wrapper unless Context7 shows plugins accept both.
+- `is_async=True` if the handler is async; never `asyncio.run` yourself.
+- Per-session state: `task_id = kwargs.get("task_id")`.
+- Agent-loop intercepted tools (`todo`, `memory`, `session_search`, `delegate_task`): schemas live in the registry but `dispatch()` returns a fallback error if intercept is bypassed. Do not hook-police them.
+
+---
+
+## Source D — Native plugins
+
+https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
+
+- Native plugin = `plugin.yaml` + `__init__.py` `register(ctx)`. Discovery: `~/.hermes/plugins/`, `./.hermes/plugins/`, pip entry points. Layout: flat `~/.hermes/plugins/<name>/` or **one** category level. Deeper ignored. Missing `__init__.py` or not in `plugins.enabled` = skip.
+- Memory providers are `kind: exclusive` via `memory.provider`, **not** `plugins.enabled`. Do not write a second memory plugin.
+- `register()` once at startup. Crash disables only that plugin.
+- `ctx.register_tool` / `register_hook` / `register_middleware` / `register_command` / `register_cli_command` / `dispatch_tool` / `call_mcp` / `get_config` / `set_config` / `ctx.state` / `ctx.profile_name` / `has_capability` / `register_skill`.
+- Settings: `plugins.entries.<id>.settings` via `ctx.get_config` (plugin-relative only). Runtime: `ctx.state` (atomic, concurrent-safe, 10 MiB) and `plugin_data_dir("research-bot")` / `plugin_db` (WAL). **Never** write state into the plugin install tree.
+- Manifest v2 optional: `config_schema`, `requires_plugins` (advisory, load-order only), `python_dependencies` (never auto-installed).
+- Capabilities (`tools.override`, `llm.*_override`) are consent, not a sandbox. This profile does **not** override builtins.
+- Plugin-bundled skills via `ctx.register_skill` are read-only, namespaced `plugin:skill`, **not** in `<available_skills>`. Primary research skills stay in profile `skills/`.
+- `pre_llm_call` injects onto the **user** message; 10k char spill to `hook_outputs`. Multiple plugins concatenate, discovery order alphabetical by directory name. Keep research contract + ledger digest under the cap.
+- `post_tool_call` fires for **all** tools, not just ours.
+- Middleware `tool_request` rewrites args **before** hooks/guardrails/approvals. Return `None` if no change.
+- Thread pool: use `plugins.plugin_utils.lazy_singleton` / `SingletonSlot`. Do not hand-roll a global `_client`.
+- `ctx._cli_ref` is `None` in gateway, `hermes chat -q`, and kanban workers. Use `ctx.profile_name` and `ctx.dispatch_tool`.
+- `check_fn` hides a tool from the model.
+- Doctor: `hermes plugins doctor <path> --ci` (local, not CI).
+- Portable Agent Plugins v1 (`plugin.json` + skills + `mcp.json`) is a compatibility subset, **not** this profile’s path.
+
+---
+
+## Locked consequences (native plugin path)
+
+1. research-bot is a **native general** plugin (`plugin.yaml` + `register(ctx)`). Never a core `tools/` patch. Never a memory-provider plugin.
+2. Required files: `plugin.yaml`, `__init__.py`, `schemas.py`, `tools.py`. Schema descriptions must say **when to call** `resolve_library` / `docs_query` / `source_ledger_cite` (cite).
+3. Handlers: JSON string, `**kwargs`, never raise, `task_id` from kwargs, thread-safe ledger via `plugin_data_dir` or `ctx.state`.
+4. `plugins.enabled: [research-bot]`. Honcho stays `memory.provider`.
+5. `distribution_owned` includes `plugins/` so profile install copies into the profile `HERMES_HOME` plugins tree (flat name `research-bot`).
+6. Do not `register_skill` the primary library. Optional companions only.
+7. `pre_llm_call` under 10k. Ledger survives compression lineage.
+8. Cite the official URLs in this file. Do not invent knobs from training data.

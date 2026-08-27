@@ -110,8 +110,9 @@ SOURCE_LEDGER_LIST = {
 SOURCE_LEDGER_CITE = {
     "name": "source_ledger_cite",
     "description": (
-        "When to call: when delivering a brief or citing a claim. Never invent "
-        "bibliography entries — only IDs that exist in the ledger."
+        "When to call (cite_source): before citing a claim or delivering a "
+        "brief. Use only this formatted text. Never invent bibliography "
+        "entries — only IDs that exist in the ledger."
     ),
     "parameters": {
         "type": "object",

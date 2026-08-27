@@ -1,7 +1,6 @@
-# Native plugin manifest. Official fields:
+# Native general plugin (plugin.yaml + register(ctx)). Not portable plugin.json.
+# Not a memory-provider (kind: exclusive / memory.provider).
 # https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
-# name, version, description, provides_tools, provides_hooks,
-# config_schema (keys under plugins.entries.<id>.settings)
 
 name: research-bot
 version: 0.2.0

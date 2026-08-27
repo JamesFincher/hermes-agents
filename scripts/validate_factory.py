@@ -238,8 +238,20 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
             "ship tools and/or hooks, or do not ship the directory"
         )
     plugin_dir = plugin_yaml.parent
+    if (plugin_dir / "plugin.json").is_file():
+        fail(
+            f"{plugin_dir.relative_to(ROOT)} ships plugin.json — "
+            "Portable Agent Plugins v1 is not this factory's path"
+        )
+    if manifest.get("kind") in {"exclusive", "memory-provider", "memory"}:
+        fail(
+            f"{plugin_yaml.relative_to(ROOT)} must be a general plugin; "
+            "Honcho is memory.provider"
+        )
+    for required_py in ("__init__.py", "schemas.py", "tools.py"):
+        if not (plugin_dir / required_py).is_file():
+            fail(f"{plugin_dir.relative_to(ROOT)} missing {required_py}")
     if not (plugin_dir / "__init__.py").is_file():
-        fail(f"{plugin_dir.relative_to(ROOT)} missing __init__.py")
         return
     init_text = (plugin_dir / "__init__.py").read_text(encoding="utf-8")
     if "def register(" not in init_text:
@@ -254,6 +266,17 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
             f"{plugin_dir.relative_to(ROOT)} ships plugin-bundled skills; "
             "keep recipes in agents/<name>/skills/"
         )
+    schemas_path = plugin_dir / "schemas.py"
+    if schemas_path.is_file():
+        schemas_text = schemas_path.read_text(encoding="utf-8")
+        if '"type": "function"' in schemas_text or "'type': 'function'" in schemas_text:
+            fail(
+                f"{schemas_path.relative_to(ROOT)} must use the flat schema "
+                "{name, description, parameters}"
+            )
+        for needle in ("When to call", "resolve_library", "docs_query", "source_ledger_cite"):
+            if needle not in schemas_text:
+                fail(f"{schemas_path.relative_to(ROOT)} must describe when to call {needle}")
     for path in plugin_dir.rglob("*"):
         if not path.is_file() or path.suffix in {".pyc"}:
             continue
@@ -360,6 +383,8 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
         for url in (
             "https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop",
             "https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools",
+            "https://hermes-agent.nousresearch.com/docs/developer-guide/plugins",
         ):
             if url not in integration_text:
                 fail(f"{integration.relative_to(ROOT)} must cite {url}")

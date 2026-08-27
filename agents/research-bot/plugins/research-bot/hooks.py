@@ -77,7 +77,7 @@ def post_tool_call(
     duration_ms: int = 0,
     **kwargs: Any,
 ) -> None:
-    """Backup-harvest facade tools only. Do not harvest mcp_* (UNVERIFIED path)."""
+    """Official: post_tool_call fires for ALL tools. Harvest facade only."""
     del task_id, duration_ms, kwargs
     if tool_name not in {"resolve_library", "docs_query"}:
         return

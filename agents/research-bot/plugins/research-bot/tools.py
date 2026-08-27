@@ -1,4 +1,10 @@
-"""Tools the research-bot plugin registers. Handlers never raise."""
+"""Tools this native plugin registers.
+
+Official adding-tools danger box: return json.dumps string, never a dict;
+errors are {"error": "..."}, never raise; handler(args: dict, **kwargs);
+task_id = kwargs.get("task_id").
+https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools
+"""
 
 from __future__ import annotations
 
@@ -29,7 +35,7 @@ def _normalize_envelope(envelope: Any) -> dict[str, Any]:
 
 
 def resolve_library(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    kwargs.get("task_id")  # official per-call id; ledger is profile-scoped
     try:
         query = str(args.get("query") or "").strip()
         if not query:
@@ -54,7 +60,7 @@ def resolve_library(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def docs_query(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    kwargs.get("task_id")  # official per-call id; ledger is profile-scoped
     try:
         library_id = str(args.get("library_id") or "").strip()
         query = str(args.get("query") or "").strip()
@@ -83,7 +89,7 @@ def docs_query(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def source_ledger_add(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    kwargs.get("task_id")  # official per-call id; ledger is profile-scoped
     try:
         url = str(args.get("url") or "").strip()
         if not url:
@@ -102,7 +108,7 @@ def source_ledger_add(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def source_ledger_list(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    kwargs.get("task_id")  # official per-call id; ledger is profile-scoped
     try:
         return _dumps(ledger.list_sources(query=str(args.get("query") or "")))
     except Exception as exc:  # noqa: BLE001
@@ -110,7 +116,7 @@ def source_ledger_list(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def source_ledger_cite(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    kwargs.get("task_id")  # official per-call id; ledger is profile-scoped
     try:
         ids_raw = args.get("ids")
         ids: list[int] | None = None
@@ -131,7 +137,7 @@ def source_ledger_cite(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def source_ledger_check(args: dict[str, Any], **kwargs: Any) -> str:
-    del kwargs
+    kwargs.get("task_id")  # official per-call id; ledger is profile-scoped
     try:
         claim = str(args.get("claim") or "").strip()
         if not claim:

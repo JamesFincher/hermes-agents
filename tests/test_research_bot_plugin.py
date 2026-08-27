@@ -248,6 +248,32 @@ class PluginTests(unittest.TestCase):
         self.assertIn("MEMORY.md personality", injected["context"])
         self.assertLessEqual(len(injected["context"]), 10000)
 
+    def test_schemas_are_flat_and_say_when_to_call(self) -> None:
+        schemas = sys.modules[f"{PKG_NAME}.schemas"]
+        for schema in (
+            schemas.RESOLVE_LIBRARY,
+            schemas.DOCS_QUERY,
+            schemas.SOURCE_LEDGER_CITE,
+        ):
+            self.assertNotIn("function", schema)
+            self.assertIn("name", schema)
+            self.assertIn("parameters", schema)
+            self.assertEqual(schema["parameters"]["type"], "object")
+            self.assertIn("When to call", schema["description"])
+        self.assertIn("cite_source", schemas.SOURCE_LEDGER_CITE["description"])
+
+    def test_handlers_return_json_string_not_dict(self) -> None:
+        self.ledger.init_ledger()
+        raw = self.tools.source_ledger_add(
+            {"url": "https://b.example/y"}, task_id="task-1"
+        )
+        self.assertIsInstance(raw, str)
+        payload = json.loads(raw)
+        self.assertTrue(payload.get("ok"))
+        missing = self.tools.resolve_library({}, task_id="task-1")
+        self.assertIsInstance(missing, str)
+        self.assertIn("error", json.loads(missing))
+
     def test_tools_return_json_and_never_raise(self) -> None:
         self.ledger.init_ledger()
         added = json.loads(

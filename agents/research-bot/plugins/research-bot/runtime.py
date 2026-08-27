@@ -1,10 +1,24 @@
-"""Closed-over plugin context. No install-tree writes."""
+"""Closed-over plugin context. No install-tree writes.
+
+Official durable home is plugin_data_dir("research-bot") / ctx.state.
+https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
+
+No host HTTP client. If one is ever needed, use
+plugins.plugin_utils.lazy_singleton / SingletonSlot — do not hand-roll
+a global _client. ctx._cli_ref is None in gateway, hermes chat -q, and
+kanban workers; do not use it.
+"""
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+try:
+    from plugins.plugin_storage import plugin_data_dir as official_plugin_data_dir
+except ImportError:
+    official_plugin_data_dir = None
 
 PLUGIN_ID = "research-bot"
 TOOLSET = "research-bot"
@@ -39,6 +53,16 @@ def citation_style() -> str:
 
 
 def plugin_data_root() -> Path:
+    official: Callable[..., Any] | None = official_plugin_data_dir
+    if callable(official):
+        try:
+            raw = official(PLUGIN_ID)
+            if raw:
+                path = Path(str(raw))
+                path.mkdir(parents=True, exist_ok=True)
+                return path
+        except Exception:
+            pass
     ctx = _ctx
     if ctx is not None:
         getter = getattr(ctx, "get_plugin_data_dir", None)

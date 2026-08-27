@@ -31,7 +31,7 @@ Follow the playbook checklist. Short version:
 - No factory-root plugin package. Zero imports from another agent’s plugin. The next profile starts empty of `research-bot`’s plugin, tools, and skills.
 - Cron / blueprint: suggestion only. Official: distribution cron is not auto-scheduled.
 
-Local doctor (not CI):
+Local doctor (not CI). Official: [Plugins](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins) — `hermes plugins doctor [path-or-id]` runs the same discovery, manifest parse, `register(ctx)`, and registries Hermes uses. `--ci` exits non-zero on error. Doctor is not a sandbox.
 
 ```bash
 hermes plugins doctor ~/.hermes/profiles/<name>/plugins/<name> --ci
