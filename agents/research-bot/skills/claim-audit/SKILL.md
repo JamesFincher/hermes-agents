@@ -7,7 +7,7 @@ metadata:
     tags: [Research, Verification, Audit]
     requires_toolsets: [hdr]
     requires_tools: [claim_verify, conflict_report, cite_source, citation_pass]
-    related_skills: [deep-research-run, source-triage]
+    related_skills: [deep-research-run, source-triage, literature-sweep]
 ---
 
 # Claim audit

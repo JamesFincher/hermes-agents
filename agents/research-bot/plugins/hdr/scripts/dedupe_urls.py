@@ -6,12 +6,53 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-_PLUGIN = Path(__file__).resolve().parents[1]
-if str(_PLUGIN) not in sys.path:
-    sys.path.insert(0, str(_PLUGIN))
+_TRACKING = frozenset(
+    {
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "fbclid",
+        "gclid",
+        "mc_cid",
+        "mc_eid",
+    }
+)
 
-from store.urls import canonicalize  # noqa: E402
+
+def canonicalize(url: str) -> str:
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    if "://" not in raw and raw.startswith("www."):
+        raw = "https://" + raw
+    parsed = urlparse(raw)
+    if not parsed.scheme:
+        return raw.rstrip("/")
+    host = (parsed.hostname or "").lower()
+    if host.startswith("m."):
+        host = host[2:]
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() not in _TRACKING
+    ]
+    path = parsed.path or ""
+    if path.endswith("/") and path != "/":
+        path = path.rstrip("/")
+    return urlunparse(
+        (
+            parsed.scheme.lower(),
+            host + (f":{parsed.port}" if parsed.port else ""),
+            path,
+            "",
+            urlencode(query, doseq=True),
+            "",
+        )
+    )
 
 
 def main() -> int:

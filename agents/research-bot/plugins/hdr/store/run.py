@@ -62,6 +62,7 @@ def empty_run(question: str = "", tier: str | None = None) -> dict[str, Any]:
         "new_source_yield": None,
         "governor": "GREEN",
         "children": {},
+        "pending_briefs": {},
         "last_batch_ids": [],
         "seen_ids": [],
         "updated_at": _now_iso(),

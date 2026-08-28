@@ -697,6 +697,12 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                         "gap_scan",
                         "cite_source",
                         "delegate_task",
+                        "worker_brief",
+                        "worker_harvest",
+                        "claim_verify",
+                        "conflict_report",
+                        "evidence_search",
+                        "evidence_read",
                     ],
                     "source-triage": ["evidence_add", "evidence_search"],
                     "claim-audit": ["claim_verify", "cite_source"],
@@ -736,6 +742,111 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                         f"{skill_md.relative_to(ROOT)} must state that "
                         "source_ledger_check is gone"
                     )
+                if skill_name == "literature-sweep":
+                    _check_literature_sweep_env(skill_md, front, hermes)
+                    if "vision_analyze" not in body:
+                        fail(
+                            f"{skill_md.relative_to(ROOT)} must name the "
+                            "scanned-PDF path (rasterize + vision_analyze)"
+                        )
+                    if "deep-research-run" not in body.lower() and "deep-research-run" not in body:
+                        fail(
+                            f"{skill_md.relative_to(ROOT)} must send academic "
+                            "surveys to deep-research-run"
+                        )
+                if skill_name == "deep-research-run":
+                    if '"action":"steer"' not in body and '{"action":"steer"' not in body:
+                        fail(f"{skill_md.relative_to(ROOT)} must teach steer")
+                    if "delegation.model" not in body:
+                        fail(
+                            f"{skill_md.relative_to(ROOT)} must remind the "
+                            "operator to set delegation.model on the host"
+                        )
+                    if "scholar_search" not in body or "vision_analyze" not in body:
+                        fail(
+                            f"{skill_md.relative_to(ROOT)} must write the "
+                            "§9 retrieval ladders into Procedure"
+                        )
+                if skill_name == "web-fallback-fetch":
+                    fetch_script = skill_md.parent / "scripts" / "fetch_page.py"
+                    if not fetch_script.is_file():
+                        fail(f"{fetch_script.relative_to(ROOT)} missing")
+                    else:
+                        fetch_text = fetch_script.read_text(encoding="utf-8")
+                        if "curl" not in fetch_text or "readable" not in fetch_text.lower():
+                            fail(
+                                f"{fetch_script.relative_to(ROOT)} must use "
+                                "curl and a readability pass"
+                            )
+                        if "web.archive.org" not in fetch_text:
+                            fail(
+                                f"{fetch_script.relative_to(ROOT)} must try Wayback"
+                            )
+    _check_hdr_script_twins(agent_dir)
+
+
+def _check_literature_sweep_env(skill_md: Path, front: dict, hermes: dict) -> None:
+    if hermes.get("required_environment_variables") is not None:
+        fail(
+            f"{skill_md.relative_to(ROOT)} must not nest "
+            "required_environment_variables under metadata.hermes"
+        )
+    env_list = front.get("required_environment_variables")
+    if not isinstance(env_list, list) or not env_list:
+        fail(
+            f"{skill_md.relative_to(ROOT)} must declare top-level "
+            "required_environment_variables as official objects"
+        )
+        return
+    names: set[str] = set()
+    for item in env_list:
+        if not isinstance(item, dict) or not item.get("name"):
+            fail(
+                f"{skill_md.relative_to(ROOT)} each env entry must be an "
+                "object with name, prompt, help, required_for"
+            )
+            continue
+        names.add(str(item["name"]))
+        for key in ("prompt", "help", "required_for"):
+            if not item.get(key):
+                fail(
+                    f"{skill_md.relative_to(ROOT)} {item['name']} missing {key}"
+                )
+    if "CONTEXT7_API_KEY" in names:
+        fail(
+            f"{skill_md.relative_to(ROOT)} must not declare CONTEXT7_API_KEY"
+        )
+    for needed in ("CROSSREF_MAILTO", "UNPAYWALL_EMAIL"):
+        if needed not in names:
+            fail(
+                f"{skill_md.relative_to(ROOT)} required_environment_variables "
+                f"must include {needed}"
+            )
+
+
+def _check_hdr_script_twins(agent_dir: Path) -> None:
+    if agent_dir.name != "research-bot":
+        return
+    twins = (
+        ("plugins/hdr/scripts/dedupe_urls.py", "skills/source-triage/scripts/dedupe_urls.py"),
+        ("plugins/hdr/scripts/crossref.py", "skills/literature-sweep/scripts/crossref.py"),
+        ("plugins/hdr/scripts/unpaywall.py", "skills/literature-sweep/scripts/unpaywall.py"),
+        ("plugins/hdr/scripts/pdf_text.py", "skills/literature-sweep/scripts/pdf_text.py"),
+    )
+    for plugin_rel, skill_rel in twins:
+        plugin_path = agent_dir / Path(plugin_rel)
+        skill_path = agent_dir / Path(skill_rel)
+        if not plugin_path.is_file() or not skill_path.is_file():
+            fail(
+                f"{agent_dir.name} missing script twin "
+                f"{plugin_rel} / {skill_rel}"
+            )
+            continue
+        if plugin_path.read_bytes() != skill_path.read_bytes():
+            fail(
+                f"{agent_dir.name} script drift: {plugin_rel} != {skill_rel}. "
+                "Keep the copies byte-identical or delete one home."
+            )
 
 
 def main() -> int:

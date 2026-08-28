@@ -7,7 +7,7 @@ metadata:
     tags: [Research, Sources, Triage]
     requires_toolsets: [hdr]
     requires_tools: [evidence_add, evidence_search]
-    related_skills: [deep-research-run, literature-sweep]
+    related_skills: [deep-research-run, literature-sweep, web-fallback-fetch]
 ---
 
 # Source triage

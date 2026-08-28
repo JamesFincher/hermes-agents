@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Sort dated lines. Input: YYYY-MM-DD<TAB>event."""
+"""Sort dated lines. Input: YYYY-MM-DD<TAB>event.
+
+No skill recipe calls this helper. See plugins/hdr/README.md.
+"""
 
 from __future__ import annotations
 

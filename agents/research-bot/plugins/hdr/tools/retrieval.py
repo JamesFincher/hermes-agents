@@ -21,16 +21,58 @@ from ..runtime import (
 from ..store import ledger, run
 
 
-def _http_json(url: str, timeout: int = 20) -> Any:
-    request = urllib.request.Request(
-        url,
-        headers={"User-Agent": "hdr-research-bot/2.0 (https://github.com/JamesFincher/hermes-agents)"},
-    )
+def _http_json(url: str, timeout: int = 20, headers: dict[str, str] | None = None) -> Any:
+    merged = {
+        "User-Agent": "hdr-research-bot/2.0 (https://github.com/JamesFincher/hermes-agents)",
+    }
+    if headers:
+        merged.update(headers)
+    request = urllib.request.Request(url, headers=merged)
     with urllib.request.urlopen(request, timeout=timeout) as response:
         raw = response.read().decode("utf-8", errors="replace")
     if not raw:
         return None
     return json.loads(raw)
+
+
+def _semantic_scholar_cards(query: str, limit: int) -> list[dict[str, Any]]:
+    key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or ""
+    if not key:
+        return []
+    url = "https://api.semanticscholar.org/graph/v1/paper/search?" + urllib.parse.urlencode(
+        {
+            "query": query,
+            "limit": str(max(1, min(limit, 20))),
+            "fields": "title,externalIds,url,openAccessPdf,year,venue",
+        }
+    )
+    try:
+        payload = _http_json(url, headers={"x-api-key": key})
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return []
+    rows = []
+    for item in (payload or {}).get("data") or []:
+        if not isinstance(item, dict):
+            continue
+        ids = item.get("externalIds") if isinstance(item.get("externalIds"), dict) else {}
+        doi = str((ids or {}).get("DOI") or "")
+        pdf = item.get("openAccessPdf") if isinstance(item.get("openAccessPdf"), dict) else {}
+        openable = str((pdf or {}).get("url") or item.get("url") or "")
+        if doi and not openable:
+            openable = f"https://doi.org/{doi}"
+        title = str(item.get("title") or doi or openable)
+        if not openable:
+            continue
+        rows.append(
+            {
+                "title": title,
+                "doi": doi,
+                "url": openable,
+                "oa": (pdf or {}).get("url") or None,
+                "publisher": str(item.get("venue") or ""),
+            }
+        )
+    return rows
 
 
 def resolve_library(args: dict[str, Any], **kwargs: Any) -> str:
@@ -147,13 +189,23 @@ def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
         if mailto:
             params["mailto"] = mailto
         url = "https://api.crossref.org/works?" + urllib.parse.urlencode(params)
+        items: list[Any] = []
+        crossref_error = ""
         try:
             payload = _http_json(url)
+            items = (((payload or {}).get("message") or {}).get("items")) or []
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
-            return dump({"ok": False, "error": f"crossref unavailable: {exc}", "cards": []})
-        items = (((payload or {}).get("message") or {}).get("items")) or []
+            crossref_error = str(exc)
+        extra = _semantic_scholar_cards(query, limit)
+        if not items and not extra:
+            if crossref_error:
+                return dump(
+                    {"ok": False, "error": f"crossref unavailable: {crossref_error}", "cards": []}
+                )
+            return dump({"ok": True, "count": 0, "cards": []})
         cards = []
         current = run.load_run()
+        seen_doi: set[str] = set()
         for item in items[:limit]:
             if not isinstance(item, dict):
                 continue
@@ -196,6 +248,8 @@ def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
                 sid = (added.get("source") or {}).get("id")
             else:
                 sid = None
+            if doi:
+                seen_doi.add(doi.lower())
             cards.append(
                 {
                     "id": sid,
@@ -209,7 +263,40 @@ def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
                     "publisher": meta["publisher"],
                 }
             )
-        return dump({"ok": True, "count": len(cards), "cards": cards})
+        for row in extra:
+            doi = str(row.get("doi") or "")
+            if doi and doi.lower() in seen_doi:
+                continue
+            openable = str(row.get("url") or "")
+            if not openable:
+                continue
+            added = ledger.add_source(
+                {
+                    "url": openable,
+                    "title": row.get("title") or openable,
+                    "doi": doi or None,
+                    "origin": "scholar",
+                    "kind": "primary",
+                    "tier": "A",
+                    "tier_reason": "peer-reviewed",
+                    "run_id": (current or {}).get("run_id") or "",
+                    "needs_backfill": True,
+                }
+            )
+            sid = (added.get("source") or {}).get("id")
+            if doi:
+                seen_doi.add(doi.lower())
+            cards.append(
+                {
+                    "id": sid,
+                    "title": row.get("title") or openable,
+                    "doi": doi,
+                    "url": openable,
+                    "oa": row.get("oa"),
+                    "publisher": row.get("publisher") or "",
+                }
+            )
+        return dump({"ok": True, "count": len(cards), "cards": cards[:limit]})
     except Exception as exc:  # noqa: BLE001
         return error(str(exc))
 
