@@ -8,7 +8,7 @@
     "calibration",
     "concision"
   ],
-  "judge_scale": "0-3 end-state; nightly, not per commit",
+  "judge_scale": "0-3 end-state; mechanical unless a host sets HDR_JUDGE_MODEL",
   "questions": [
     {
       "id": "Q01",
@@ -44,7 +44,7 @@
       "id": "Q06",
       "tier": "deep",
       "kind": "pdf",
-      "prompt": "Extract the abstract claim from the fixture PDF paper and cite the span."
+      "prompt": "Extract the abstract claim from the recorded fixture extract (not a live PDF byte stream) and cite the span."
     },
     {
       "id": "Q07",
@@ -74,7 +74,7 @@
       "id": "Q11",
       "tier": "exhaustive",
       "kind": "due-diligence",
-      "prompt": "Map every HDR gap G01–G25 to the shipped mechanism and remaining honest limit."
+      "prompt": "Map HDR gaps G01 and G05 (the two recorded fixture pages) to the shipped mechanism and remaining honest limit. This is not a G01–G25 map."
     },
     {
       "id": "Q12",

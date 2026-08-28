@@ -1,0 +1,7 @@
+{
+  "fetches": ["https://example.com/ok"],
+  "tokens": 1000,
+  "tier_ab_sources": 1,
+  "wall_seconds": 5,
+  "tier_budget_seconds": 90
+}

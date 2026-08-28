@@ -47,16 +47,44 @@ class EvalGateTests(unittest.TestCase):
             means.append(scored["mean"])
         self.assertGreaterEqual(sum(means) / len(means), 2.4)
 
+    def test_negative_unresolvable_fails(self) -> None:
+        errors = check_run(EVALS / "fixtures" / "negatives" / "unresolvable")
+        self.assertTrue(errors, msg="negative fixture must turn the gate red")
+        self.assertTrue(
+            any("unresolvable" in item for item in errors),
+            msg=errors,
+        )
+
     def test_twelve_questions_complete_offline(self) -> None:
         payload = run_all()
         self.assertEqual(payload["total"], 12)
         self.assertEqual(payload["completed"], 12)
         scores = []
+        expected_tier = {
+            "Q01": "standard",
+            "Q02": "standard",
+            "Q03": "standard",
+            "Q04": "standard",
+            "Q05": "deep",
+            "Q06": "deep",
+            "Q07": "deep",
+            "Q08": "deep",
+            "Q09": "deep",
+            "Q10": "deep",
+            "Q11": "exhaustive",
+            "Q12": "exhaustive",
+        }
         for row in payload["results"]:
+            self.assertEqual(
+                row["gate_errors"],
+                [],
+                msg=f"{row['id']}: {row['gate_errors']}\n{row['brief']}",
+            )
+            self.assertEqual(row["tier"], expected_tier[row["id"]], msg=row["id"])
             scored = score_brief(
                 brief=row["brief"],
                 kind=row["kind"],
-                gate_errors=row.get("gate_errors") or [],
+                gate_errors=row["gate_errors"],
             )
             scores.append(scored["mean"])
             self.assertTrue(row["brief"].strip())

@@ -133,6 +133,21 @@ def check_playbook() -> None:
     ):
         if url not in text:
             fail(f"PROFILE-PLAYBOOK.md must cite {url}")
+    leftovers = (
+        "source_ledger_add",
+        "source_ledger_list",
+        "source_ledger_check",
+        "source_ledger_*",
+        "plugins/research-bot/",
+        "requires_toolsets: [research-bot]",
+        "plugins.enabled: [research-bot]",
+    )
+    for needle in leftovers:
+        if needle in text:
+            fail(
+                f"PROFILE-PLAYBOOK.md still names {needle!r} as current. "
+                "HDR v2 uses evidence_* / claim_verify and agents/<name>/plugins/<plugin-id>/"
+            )
 
 
 def check_docs_voice() -> None:
@@ -168,7 +183,7 @@ def check_no_repo_root_plugin_package() -> None:
     if root_plugins.exists():
         fail(
             "repo-root plugins/ must not exist; live process code lives only "
-            "in agents/<name>/plugins/<name>/"
+            "in agents/<name>/plugins/<plugin-id>/"
         )
 
 

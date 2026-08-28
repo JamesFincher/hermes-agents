@@ -8,6 +8,8 @@ Official `hermes profile install github.com/owner/repo` only reads a **repo-root
 
 **How to generate the next profile:** [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md)
 
+**Honest limits** of the shipped research-bot profile: [`docs/HONEST-LIMITS.md`](docs/HONEST-LIMITS.md)
+
 ## Context7 rule
 
 Every Hermes / Honcho / library question starts at Context7, then official LLM entry points. Never invent config knobs from training data.
@@ -44,16 +46,16 @@ hermes profile update research-bot
 
 | Profile | Path | Role |
 | --- | --- | --- |
-| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships **its own** `research-bot` plugin and toolset. |
+| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships **its own** `hdr` plugin and toolset at `plugins/hdr/`. |
 
 ## Add the next profile
 
 One agent per PR. The playbook is the checklist. Short version:
 
 1. Context7 + official docs for every knob.
-2. New directory `agents/<name>/` with `distribution.yaml` at its root. Empty of `research-bot`’s plugin, tools, and skills. No repo-root `plugins/`. Zero imports from `research-bot`.
-3. Follow [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md): `SOUL.md`, `config.yaml` (`memory.provider: honcho`), **this** profile’s plugin only if it needs tools (`plugins.enabled: [<name>]`), skill recipes in **this** profile’s `skills/` (`requires_toolsets` of **this** profile’s toolset), MCP only if **this** plugin will `call_mcp` and headers can be `${env:VAR}`.
-4. If the profile uses the web, keep the locked gather block: `web.search_backend: searxng`, `web.extract_backend: firecrawl`, keyless ring off. Do not add a search tool.
+2. New directory `agents/<name>/` with `distribution.yaml` at its root. Empty of `research-bot`’s plugin, tools, and skills. No repo-root `plugins/`. Zero imports from `hdr`.
+3. Follow [`docs/PROFILE-PLAYBOOK.md`](docs/PROFILE-PLAYBOOK.md): `SOUL.md`, `config.yaml` (`memory.provider: honcho`), **this** profile’s plugin only if it needs tools (`plugins.enabled: [<plugin-id>]`; the id may differ from the profile name), skill recipes in **this** profile’s `skills/` (`metadata.hermes.requires_toolsets` of **this** profile’s toolset), MCP only if **this** plugin will `call_mcp` and headers can be `${env:VAR}`.
+4. If the profile uses the web, keep the locked gather block: `web.search_backend: searxng`, `web.extract_backend: firecrawl`, `keyless_fallback` and `keyless_rescue` **true** (degrade, do not die). Do not add a search tool.
 5. Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`. Do not collide with ouroboros plugin names (`echo`, `archive`, `seatbelt`, `council`, `autopilot`, `forge`).
 6. Smoke locally: `hermes profile install ./agents/<name> --name <name>-test --alias`
 

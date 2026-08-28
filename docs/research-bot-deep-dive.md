@@ -120,7 +120,13 @@ Scripts run via `${HERMES_SKILL_DIR}`. `skills.inline_shell: false`.
 
 ## 10. Eval
 
-`evals/` holds 12 frozen questions and three fixture runs. CI runs deterministic gates: no unresolvable `[S#]`, no unmarked statistics, no unsupported cited claims, no duplicate fetches, no orphan corpus files, tokens per A/B source ≤ 8k on fixtures. The LLM judge is nightly, not per commit.
+`evals/` holds 12 frozen questions and three happy fixture runs. CI runs deterministic gates on those fixtures: no unresolvable `[S#]`, no unmarked statistics, no `claim_verify` unsupported cited claims, no duplicate fetches, no orphan corpus files, tokens per A/B source ≤ 8k on the recorded fixture, wall clock within that fixture's recorded tier budget.
+
+**UNPROVEN — P10 live.** Offline FakeCtx 12/12 is not a live Hermes run. It is not live P10. Do not treat the unit-test loop as 12/12 on Hermes 0.19.0. The LLM judge was not recorded at merge.
+
+**UNPROVEN — P9 live.** A live skill index with `web_extract` disabled is not recorded. See [`evals/smoke/P9-LIVE.md`](../evals/smoke/P9-LIVE.md). Do not invent CLI output.
+
+`evals/nightly_judge.py` is an on-demand mechanical rubric. A host cron may set `HDR_JUDGE_MODEL`. This repo does not invent a model id or a GitHub Actions secret for it.
 
 ---
 

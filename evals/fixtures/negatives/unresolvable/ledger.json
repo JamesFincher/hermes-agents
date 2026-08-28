@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://example.com/ok",
+      "canonical_url": "https://example.com/ok",
+      "title": "Ok",
+      "tier": "A",
+      "corpus": "corpus/s1.txt",
+      "quote": "a supported span"
+    }
+  ]
+}
