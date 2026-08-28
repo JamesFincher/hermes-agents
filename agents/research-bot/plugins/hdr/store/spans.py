@@ -60,35 +60,54 @@ def select_spans(text: str, question: str = "", limit: int | None = None) -> lis
 def verify_claim(claim: str, corpus_text: str) -> dict[str, Any]:
     text = corpus_text or ""
     needle = (claim or "").strip()
+    empty = {
+        "exact": False,
+        "off": None,
+        "len": 0,
+        "span": "",
+        "partial_span": "",
+        "partial_off": None,
+        "numeric_match": False,
+        "entity_match": False,
+    }
     if not needle:
-        return {"exact": False, "off": None, "len": 0, "numeric_match": False, "entity_match": False}
+        return empty
     off = text.find(needle)
     exact = off >= 0
+    partial_span = ""
+    partial_off: int | None = None
     if not exact:
-        # try a long contiguous substring of 8+ words
         words = needle.split()
         for size in range(min(len(words), 12), 7, -1):
+            found = False
             for start in range(0, len(words) - size + 1):
                 chunk = " ".join(words[start : start + size])
                 pos = text.find(chunk)
                 if pos >= 0:
-                    off = pos
-                    needle = chunk
+                    partial_span = chunk
+                    partial_off = pos
+                    found = True
                     break
-            if off is not None and off >= 0 and text.find(needle) >= 0 and len(needle.split()) >= 8:
+            if found:
                 break
-        exact = off is not None and off >= 0 and needle in text
+    span_text = needle if exact else partial_span
+    span_off = off if exact else (partial_off if partial_off is not None else -1)
     claim_nums = set(_NUM_RE.findall(claim or ""))
-    span_nums = set(_NUM_RE.findall(text[off : off + len(needle)] if off is not None and off >= 0 else ""))
+    window = text[span_off : span_off + len(span_text)] if span_off >= 0 and span_text else ""
+    span_nums = set(_NUM_RE.findall(window))
     numeric = (not claim_nums) or bool(claim_nums & span_nums)
     entities = {t.lower() for t in _WORD_RE.findall(claim or "") if t[:1].isupper() and len(t) > 2}
-    blob = (text[off : off + max(len(needle), 200)] if off is not None and off >= 0 else text[:400]).lower()
+    blob = (
+        text[span_off : span_off + max(len(span_text), 200)] if span_off >= 0 else text[:400]
+    ).lower()
     entity = (not entities) or any(name.lower() in blob for name in entities)
     return {
         "exact": bool(exact),
         "off": off if exact else None,
         "len": len(needle) if exact else 0,
         "span": needle if exact else "",
+        "partial_span": partial_span,
+        "partial_off": partial_off,
         "numeric_match": numeric,
         "entity_match": entity,
     }

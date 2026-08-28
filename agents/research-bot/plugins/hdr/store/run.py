@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
@@ -12,6 +13,12 @@ from ..runtime import TIER_BUDGET, TIERS, plugin_data_root, setting
 from . import bus
 
 PHASES = frozenset({"plan", "breadth", "gap", "depth", "synthesis", "verify", "done"})
+
+
+def child_key(open_question: str) -> str:
+    text = (open_question or "").strip()
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:10]
+    return f"b-{digest}"
 
 
 def _now_iso() -> str:
@@ -28,7 +35,7 @@ def runs_dir() -> Path:
     return path
 
 
-def empty_run(question: str = "", tier: str = "standard") -> dict[str, Any]:
+def empty_run(question: str = "", tier: str | None = None) -> dict[str, Any]:
     chosen = tier if tier in TIERS else str(setting("default_tier", "standard"))
     if chosen not in TIERS:
         chosen = "standard"
@@ -48,6 +55,7 @@ def empty_run(question: str = "", tier: str = "standard") -> dict[str, Any]:
         "governor": "GREEN",
         "children": {},
         "last_batch_ids": [],
+        "seen_ids": [],
         "updated_at": _now_iso(),
     }
 

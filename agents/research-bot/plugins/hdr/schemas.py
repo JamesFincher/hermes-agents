@@ -16,11 +16,13 @@ RESEARCH_PLAN = {
         "properties": {
             "action": {
                 "type": "string",
+                "enum": ["create", "update", "status"],
                 "description": "create, update, or status",
             },
             "question": {"type": "string", "description": "Research question"},
             "tier": {
                 "type": "string",
+                "enum": ["quick", "standard", "deep", "exhaustive"],
                 "description": "quick, standard, deep, or exhaustive",
             },
             "open_questions": {
@@ -53,6 +55,7 @@ GAP_SCAN = {
         "properties": {
             "detail": {
                 "type": "string",
+                "enum": ["summary", "full"],
                 "description": "summary or full",
             }
         },
@@ -91,7 +94,7 @@ EVIDENCE_SEARCH = {
         "properties": {
             "query": {"type": "string", "description": "Search string"},
         },
-        "required": [],
+        "required": ["query"],
     },
 }
 
@@ -162,7 +165,11 @@ CITE_SOURCE = {
                 "items": {"type": "string"},
                 "description": "Ledger ids such as S17. Omit to cite the run.",
             },
-            "style": {"type": "string", "description": "apa, ieee, or chicago"},
+            "style": {
+                "type": "string",
+                "enum": ["apa", "ieee", "chicago"],
+                "description": "apa, ieee, or chicago",
+            },
         },
         "required": [],
     },
@@ -199,6 +206,8 @@ WORKER_HARVEST = {
         "properties": {
             "subagent_id": {"type": "string"},
             "transcript_path": {"type": "string"},
+            "brief_id": {"type": "string"},
+            "open_question": {"type": "string"},
         },
         "required": [],
     },
@@ -242,7 +251,7 @@ DOCS_QUERY = {
 SCHOLAR_SEARCH = {
     "name": "scholar_search",
     "description": (
-        "When to call: academic sweep. HTTP fallback (Crossref / OpenAlex-style). "
+        "When to call: academic sweep. HTTP fallback (Crossref). "
         "Returns cards with DOI + OA link. No invented MCP server required."
     ),
     "parameters": {
