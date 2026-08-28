@@ -1,0 +1,16 @@
+{
+  "workspace": "hermes",
+  "hosts": {
+    "hermes.counsel-bot": {
+      "enabled": true,
+      "aiPeer": "counsel-bot",
+      "workspace": "hermes",
+      "recallMode": "hybrid",
+      "writeFrequency": "async",
+      "sessionStrategy": "per-directory",
+      "pinUserPeer": true
+    }
+  },
+  "_policy": "Memory holds the user's practice context: their jurisdictions, their citation style, their forms preferences, their standing instructions. Memory NEVER holds matter facts, client information, authorities, or findings — those live in plugin-data/lex/ where they are structured, sourced, and gated. memory.write_approval is true in config.yaml for this reason. pinUserPeer is gateway-only and a no-op on the CLI.",
+  "_warning": "Never commit a real honcho.json containing an API key."
+}

@@ -1,0 +1,850 @@
+{
+  "US-AK": {
+    "binding_note": "Only Alaska appellate authority binds Alaska courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Alaska",
+    "primary_sources": [
+      "Alaska statutes/codes",
+      "Alaska administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-AL": {
+    "binding_note": "Only Alabama appellate authority binds Alabama courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Alabama",
+    "primary_sources": [
+      "Alabama statutes/codes",
+      "Alabama administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-AR": {
+    "binding_note": "Only Arkansas appellate authority binds Arkansas courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Arkansas",
+    "primary_sources": [
+      "Arkansas statutes/codes",
+      "Arkansas administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-AZ": {
+    "binding_note": "Only Arizona appellate authority binds Arizona courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Arizona",
+    "primary_sources": [
+      "Arizona statutes/codes",
+      "Arizona administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-CA": {
+    "binding_note": "Only California appellate authority binds California courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "California",
+    "primary_sources": [
+      "California statutes/codes",
+      "California administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-CO": {
+    "binding_note": "Only Colorado appellate authority binds Colorado courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Colorado",
+    "primary_sources": [
+      "Colorado statutes/codes",
+      "Colorado administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-CT": {
+    "binding_note": "Only Connecticut appellate authority binds Connecticut courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Connecticut",
+    "primary_sources": [
+      "Connecticut statutes/codes",
+      "Connecticut administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-DC": {
+    "binding_note": "Only District of Columbia appellate authority binds District of Columbia courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "District of Columbia",
+    "primary_sources": [
+      "District of Columbia statutes/codes",
+      "District of Columbia administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-DE": {
+    "binding_note": "Only Delaware appellate authority binds Delaware courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Delaware",
+    "primary_sources": [
+      "Delaware statutes/codes",
+      "Delaware administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-FED": {
+    "binding_note": "Circuit precedent binds district courts within that circuit only. Sister-circuit authority is persuasive.",
+    "court_system": "District -> Circuit -> Supreme Court",
+    "name": "United States (federal)",
+    "primary_sources": [
+      "U.S. Code (govinfo)",
+      "C.F.R. (eCFR)",
+      "Federal Register",
+      "CourtListener",
+      "FRCP/FRE/FRAP"
+    ],
+    "verify": [
+      "local rules of the specific district",
+      "the judge's standing order"
+    ]
+  },
+  "US-FL": {
+    "binding_note": "Only Florida appellate authority binds Florida courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Florida",
+    "primary_sources": [
+      "Florida statutes/codes",
+      "Florida administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-GA": {
+    "binding_note": "Only Georgia appellate authority binds Georgia courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Georgia",
+    "primary_sources": [
+      "Georgia statutes/codes",
+      "Georgia administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-HI": {
+    "binding_note": "Only Hawaii appellate authority binds Hawaii courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Hawaii",
+    "primary_sources": [
+      "Hawaii statutes/codes",
+      "Hawaii administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-IA": {
+    "binding_note": "Only Iowa appellate authority binds Iowa courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Iowa",
+    "primary_sources": [
+      "Iowa statutes/codes",
+      "Iowa administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-ID": {
+    "binding_note": "Only Idaho appellate authority binds Idaho courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Idaho",
+    "primary_sources": [
+      "Idaho statutes/codes",
+      "Idaho administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-IL": {
+    "binding_note": "Only Illinois appellate authority binds Illinois courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Illinois",
+    "primary_sources": [
+      "Illinois statutes/codes",
+      "Illinois administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-IN": {
+    "binding_note": "Only Indiana appellate authority binds Indiana courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Indiana",
+    "primary_sources": [
+      "Indiana statutes/codes",
+      "Indiana administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-KS": {
+    "binding_note": "Only Kansas appellate authority binds Kansas courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Kansas",
+    "primary_sources": [
+      "Kansas statutes/codes",
+      "Kansas administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-KY": {
+    "binding_note": "Only Kentucky appellate authority binds Kentucky courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Kentucky",
+    "primary_sources": [
+      "Kentucky statutes/codes",
+      "Kentucky administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-LA": {
+    "binding_note": "Only Louisiana appellate authority binds Louisiana courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Louisiana",
+    "primary_sources": [
+      "Louisiana statutes/codes",
+      "Louisiana administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-MA": {
+    "binding_note": "Only Massachusetts appellate authority binds Massachusetts courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Massachusetts",
+    "primary_sources": [
+      "Massachusetts statutes/codes",
+      "Massachusetts administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-MD": {
+    "binding_note": "Only Maryland appellate authority binds Maryland courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Maryland",
+    "primary_sources": [
+      "Maryland statutes/codes",
+      "Maryland administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-ME": {
+    "binding_note": "Only Maine appellate authority binds Maine courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Maine",
+    "primary_sources": [
+      "Maine statutes/codes",
+      "Maine administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-MI": {
+    "binding_note": "Only Michigan appellate authority binds Michigan courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Michigan",
+    "primary_sources": [
+      "Michigan statutes/codes",
+      "Michigan administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-MN": {
+    "binding_note": "Only Minnesota appellate authority binds Minnesota courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Minnesota",
+    "primary_sources": [
+      "Minnesota statutes/codes",
+      "Minnesota administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-MO": {
+    "binding_note": "Only Missouri appellate authority binds Missouri courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Missouri",
+    "primary_sources": [
+      "Missouri statutes/codes",
+      "Missouri administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-MS": {
+    "binding_note": "Only Mississippi appellate authority binds Mississippi courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Mississippi",
+    "primary_sources": [
+      "Mississippi statutes/codes",
+      "Mississippi administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-MT": {
+    "binding_note": "Only Montana appellate authority binds Montana courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Montana",
+    "primary_sources": [
+      "Montana statutes/codes",
+      "Montana administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-NC": {
+    "binding_note": "Only North Carolina appellate authority binds North Carolina courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "North Carolina",
+    "primary_sources": [
+      "North Carolina statutes/codes",
+      "North Carolina administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-ND": {
+    "binding_note": "Only North Dakota appellate authority binds North Dakota courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "North Dakota",
+    "primary_sources": [
+      "North Dakota statutes/codes",
+      "North Dakota administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-NE": {
+    "binding_note": "Only Nebraska appellate authority binds Nebraska courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Nebraska",
+    "primary_sources": [
+      "Nebraska statutes/codes",
+      "Nebraska administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-NH": {
+    "binding_note": "Only New Hampshire appellate authority binds New Hampshire courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "New Hampshire",
+    "primary_sources": [
+      "New Hampshire statutes/codes",
+      "New Hampshire administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-NJ": {
+    "binding_note": "Only New Jersey appellate authority binds New Jersey courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "New Jersey",
+    "primary_sources": [
+      "New Jersey statutes/codes",
+      "New Jersey administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-NM": {
+    "binding_note": "Only New Mexico appellate authority binds New Mexico courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "New Mexico",
+    "primary_sources": [
+      "New Mexico statutes/codes",
+      "New Mexico administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-NV": {
+    "binding_note": "Only Nevada appellate authority binds Nevada courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Nevada",
+    "primary_sources": [
+      "Nevada statutes/codes",
+      "Nevada administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-NY": {
+    "binding_note": "Only New York appellate authority binds New York courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "New York",
+    "primary_sources": [
+      "New York statutes/codes",
+      "New York administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-OH": {
+    "binding_note": "Only Ohio appellate authority binds Ohio courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Ohio",
+    "primary_sources": [
+      "Ohio statutes/codes",
+      "Ohio administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-OK": {
+    "binding_note": "Only Oklahoma appellate authority binds Oklahoma courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Oklahoma",
+    "primary_sources": [
+      "Oklahoma statutes/codes",
+      "Oklahoma administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-OR": {
+    "binding_note": "Only Oregon appellate authority binds Oregon courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Oregon",
+    "primary_sources": [
+      "Oregon statutes/codes",
+      "Oregon administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-PA": {
+    "binding_note": "Only Pennsylvania appellate authority binds Pennsylvania courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Pennsylvania",
+    "primary_sources": [
+      "Pennsylvania statutes/codes",
+      "Pennsylvania administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-PR": {
+    "binding_note": "Only Puerto Rico appellate authority binds Puerto Rico courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Puerto Rico",
+    "primary_sources": [
+      "Puerto Rico statutes/codes",
+      "Puerto Rico administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-RI": {
+    "binding_note": "Only Rhode Island appellate authority binds Rhode Island courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Rhode Island",
+    "primary_sources": [
+      "Rhode Island statutes/codes",
+      "Rhode Island administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-SC": {
+    "binding_note": "Only South Carolina appellate authority binds South Carolina courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "South Carolina",
+    "primary_sources": [
+      "South Carolina statutes/codes",
+      "South Carolina administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-SD": {
+    "binding_note": "Only South Dakota appellate authority binds South Dakota courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "South Dakota",
+    "primary_sources": [
+      "South Dakota statutes/codes",
+      "South Dakota administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-TN": {
+    "binding_note": "Only Tennessee appellate authority binds Tennessee courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Tennessee",
+    "primary_sources": [
+      "Tennessee statutes/codes",
+      "Tennessee administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-TX": {
+    "binding_note": "Only Texas appellate authority binds Texas courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Texas",
+    "primary_sources": [
+      "Texas statutes/codes",
+      "Texas administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-UT": {
+    "binding_note": "Only Utah appellate authority binds Utah courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Utah",
+    "primary_sources": [
+      "Utah statutes/codes",
+      "Utah administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-VA": {
+    "binding_note": "Only Virginia appellate authority binds Virginia courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Virginia",
+    "primary_sources": [
+      "Virginia statutes/codes",
+      "Virginia administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-VT": {
+    "binding_note": "Only Vermont appellate authority binds Vermont courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Vermont",
+    "primary_sources": [
+      "Vermont statutes/codes",
+      "Vermont administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-WA": {
+    "binding_note": "Only Washington appellate authority binds Washington courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Washington",
+    "primary_sources": [
+      "Washington statutes/codes",
+      "Washington administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-WI": {
+    "binding_note": "Only Wisconsin appellate authority binds Wisconsin courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Wisconsin",
+    "primary_sources": [
+      "Wisconsin statutes/codes",
+      "Wisconsin administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-WV": {
+    "binding_note": "Only West Virginia appellate authority binds West Virginia courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "West Virginia",
+    "primary_sources": [
+      "West Virginia statutes/codes",
+      "West Virginia administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  },
+  "US-WY": {
+    "binding_note": "Only Wyoming appellate authority binds Wyoming courts. Federal authority binds on federal questions only.",
+    "court_system": "trial -> intermediate appellate (most states) -> state high court",
+    "name": "Wyoming",
+    "primary_sources": [
+      "Wyoming statutes/codes",
+      "Wyoming administrative code",
+      "CourtListener state coverage",
+      "state judicial branch rules and forms"
+    ],
+    "verify": [
+      "county/local court rules",
+      "current form editions",
+      "whether the code section has been amended this session"
+    ]
+  }
+}

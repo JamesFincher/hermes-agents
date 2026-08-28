@@ -1,0 +1,38 @@
+name: lex
+version: 1.0.0
+description: >
+  Authority ledger, citation gate, fact fence, and document assembly for the
+  counsel-bot profile. Registers the `lex` toolset.
+author: "James Fincher"
+license: "Apache-2.0"
+
+provides_tools:
+  - matter_open
+  - matter_fact
+  - set_hat
+  - authority_search
+  - authority_add
+  - authority_read
+  - authority_status
+  - cite_check
+  - cite_format
+  - draft_scaffold
+  - draft_check
+  - deadline_compute
+  - conflict_report
+  - issue_plan
+  - worker_brief
+
+provides_hooks:
+  - on_session_start
+  - on_session_end
+  - pre_llm_call
+  - pre_tool_call
+  - post_tool_call
+  - transform_tool_result
+  - transform_terminal_output
+  - transform_llm_output
+  - pre_api_request
+  - post_api_request
+  - subagent_start
+  - subagent_stop
