@@ -332,3 +332,14 @@ def transform_terminal_output(output: str, **kwargs: Any) -> str | None:
         return None
 
 
+def _note_batch(current: dict[str, Any] | None, ids: list[Any]) -> None:
+    run.append_last_batch(ids)
+    if not current:
+        return
+    batch = list(current.get("last_batch_ids") or [])
+    for item in ids:
+        if item and str(item) not in batch:
+            batch.append(str(item))
+    current["last_batch_ids"] = batch
+
+

@@ -61,13 +61,13 @@ def pre_tool_call(
     try:
         result = _evaluate(name, payload)
         if result and result.get("action") in {"block", "modify"}:
-            _log_policy(name, result)
+            _log_policy(name, result, payload)
         return result
     except Exception:
         if name in _FAIL_CLOSED:
             blocked = {"action": "block", "message": "HDR policy error"}
             try:
-                _log_policy(name, blocked)
+                _log_policy(name, blocked, payload)
             except Exception:
                 pass
             return blocked
@@ -110,36 +110,46 @@ def _evaluate(name: str, payload: dict[str, Any]) -> dict[str, Any] | None:
         return {
             "action": "block",
             "message": "Phase SYNTHESIS: no network. Read the Evidence Bus.",
+            "reason": "phase-synthesis",
         }
     if name == "delegate_task":
         blocked = _delegate_fence(payload, current, governor)
         if blocked:
-            return blocked
+            return {**blocked, "reason": "delegate-fence"}
     blocked = _budget_fence(name, governor)
     if blocked:
-        return blocked
+        return {**blocked, "reason": "budget-fence"}
     blocked = _dedupe_fence(name, payload)
     if blocked:
-        return blocked
+        return {**blocked, "reason": "dedupe-fence"}
     blocked = _domain_soft_cap(name, payload, current)
     if blocked:
-        return blocked
+        return {**blocked, "reason": "domain-cap"}
     if name in WRITE_TOOLS:
         blocked = _write_allowlist(payload)
         if blocked:
-            return blocked
+            return {**blocked, "reason": "write-allowlist"}
         blocked = _citation_gate(payload)
         if blocked:
-            return blocked
+            return {**blocked, "reason": "citation-gate"}
     if name in TERMINAL_TOOLS:
         blocked = _terminal_effect(payload)
         if blocked:
-            return blocked
+            return {**blocked, "reason": "terminal-effect"}
     return None
 
 
-def _log_policy(tool_name: str, result: dict[str, Any]) -> None:
+def _log_policy(
+    tool_name: str,
+    result: dict[str, Any],
+    args: dict[str, Any] | None = None,
+) -> None:
     current = run.load_run()
+    blocked = result.get("action") == "block"
+    try:
+        tokens_in = estimate_tokens(json.dumps(args or {}, ensure_ascii=False))
+    except TypeError:
+        tokens_in = estimate_tokens(str(args or ""))
     bus.append_audit(
         (current or {}).get("run_id") or "",
         {
@@ -147,6 +157,10 @@ def _log_policy(tool_name: str, result: dict[str, Any]) -> None:
             "action": result.get("action"),
             "tool": tool_name,
             "message": str(result.get("message") or result.get("args") or "")[:400],
+            "tokens_in": tokens_in,
+            "tokens_out": estimate_tokens(str(result.get("message") or "")),
+            "blocked": blocked,
+            "reason": result.get("reason") or "policy-block",
         },
     )
 
