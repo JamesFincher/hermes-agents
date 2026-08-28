@@ -35,7 +35,7 @@ def register(ctx):
 
     for name, handler in _TOOLS.items():
         ctx.register_tool(name=name, description=schemas.DESCRIPTIONS[name],
-                          parameters=schemas.SCHEMAS[name], handler=handler, toolset="fin")
+                          schema=schemas.SCHEMAS[name], handler=handler, toolset="fin")
 
     ctx.register_system_prompt_section("fin.gates", prompt.section_gates,
                                        position="after_memory", max_chars=2400)
