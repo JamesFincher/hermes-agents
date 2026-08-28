@@ -43,15 +43,21 @@ Official GitHub-URL install copies the **repo root** as one payload. There is no
 | --- | --- |
 | `docs_resolve` | Before a new knob. Context7 library id. Openable URL or no card. |
 | `docs_ask` | After resolve. One official topic. |
-| `probe_knob` | Record accept / reject / default plus `[DOC]` / `[INF]` / `[UNV]`. |
-| `scaffold_profile` | Write `agents/<name>/` after the canvas exists. |
+| `probe_knob` | Record accept / reject / default plus `[DOC]` / `[INF]` / `[UNV]`. Optional `name` attaches the row to a plan. |
+| `plan_start` | Open the plan ledger. Job, incumbent, axis, target name. |
+| `investigate_surface` | One row on tool, skill, mcp, plugin, hook, or config. |
+| `write_canvas` | Write all 12 playbook §6 sections. Refuses empty sections. |
+| `write_spec` | Write a counsel-depth spec. Fails if the canvas is missing. |
+| `check_plan` | JSON gaps. `ok` is the scaffold gate. |
+| `scaffold_profile` | Write `agents/<name>/` only after `check_plan` is ok. |
 | `check_profile` | Run factory validator rules. Returns JSON gaps. |
 
 ## Skills
 
-1. `author-profile` — playbook steps 0-4 (docs), then 5-10 (code).
-2. `probe-knob` — one knob question.
-3. `review-profile` — §10 heuristics plus `check_profile`.
+1. `plan-profile` — playbook steps 0-4. Ends at `check_plan` ok. Does not scaffold.
+2. `author-profile` — steps 5-10 after the gate. Stops if `check_plan` is not ok.
+3. `probe-knob` — one knob question.
+4. `review-profile` — score the plan first, then the tree.
 
 ## Token / cost (fixture, 3 tasks)
 
@@ -60,7 +66,7 @@ Live Hermes is UNPROVEN. These numbers are handler output sizes from CI fixtures
 | Task | Output chars | Est. tokens | Cost |
 | --- | --- | --- | --- |
 | T03 probe documented knob | 220 | 55 | $0 fixture |
-| T01 scaffold valid name | 900 | 225 | $0 fixture |
+| T13 counsel-shaped plan | 1200 | 300 | $0 fixture |
 | T06 check valid skeleton | 180 | 45 | $0 fixture |
 
 ## env_requires

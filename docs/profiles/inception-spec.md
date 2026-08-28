@@ -1,6 +1,6 @@
 # inception spec
 
-**Verdict.** Ship a second shelf item that authors isolated profiles by running `docs/PROFILE-PLAYBOOK.md`. It is a factory, not a shared runtime.
+**Verdict.** Ship a factory that **plans** a profile at counsel and HDR depth, then authors `agents/<name>/` only after `check_plan` is ok. Scaffold is not the product. Prompted "docs first" is not a gate. [INF]
 
 **Canvas:** [`inception-canvas.md`](inception-canvas.md)
 
@@ -22,10 +22,13 @@ See canvas §3. Custom work is the probe ledger, the scaffold writer, and the is
 
 ## Load-bearing inventions
 
-1. Factory ledger in `plugin-data/inception/` (not memory).
-2. Deterministic scaffold that `validate_factory.py` accepts.
-3. Policy fence on reserved names and secret files.
-4. Docs facades that refuse a card without an openable URL.
+1. Plan ledger in `plugin-data/inception/factory.json` `version: 2` (not memory).
+2. Shared `evaluate_plan` used by `check_plan` and the fence.
+3. Four investigation tracks: tool, skill, mcp, plugin.
+4. Canvas and spec writers that refuse empty sections and stubs.
+5. Deterministic scaffold that `validate_factory.py` accepts, only after the gate.
+6. Policy fence on reserved names, secret files, and unplanned `agents/<name>/` writes.
+7. Docs facades that refuse a card without an openable URL. [DOC] https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 
 ## Surface-by-surface
 
@@ -43,15 +46,15 @@ See `agents/inception/config.yaml`. Bundle `factory`. Locked gather. Local termi
 
 ### Plugin
 
-`agents/inception/plugins/inception/`. `register(ctx)` registers five tools and seven hooks.
+`agents/inception/plugins/inception/`. `register(ctx)` registers ten tools and seven hooks. [DOC] https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 
 ### Tools
 
-Exact names: `docs_resolve`, `docs_ask`, `probe_knob`, `scaffold_profile`, `check_profile`. Flat schemas in `schemas.py`.
+Exact names: `docs_resolve`, `docs_ask`, `probe_knob`, `plan_start`, `investigate_surface`, `write_canvas`, `write_spec`, `check_plan`, `scaffold_profile`, `check_profile`. Flat schemas in `schemas.py`. Not hdr names. [DOC] https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools
 
 ### Skills
 
-`author-profile` (steps 0-4 then 5-10), `probe-knob`, `review-profile` (§10). Nested `metadata.hermes`. No `CONTEXT7_API_KEY` on a skill.
+`plan-profile` (steps 0-4, ends at `check_plan` ok), `author-profile` (steps 5-10 after the gate), `probe-knob`, `review-profile` (plan first, then tree). Nested `metadata.hermes`. No `CONTEXT7_API_KEY` on a skill. [DOC] https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills
 
 ### Delegation
 
@@ -63,7 +66,7 @@ Settled paragraph in `INTEGRATION.md`. `aiPeer: hermes.inception`.
 
 ### Distribution + eval
 
-`hermes_requires: ">=0.13.0"`. Path install. Ten frozen tasks. Unit tests are the CI gates.
+`hermes_requires: ">=0.13.0"`. Path install. Thirteen frozen tasks. Unit tests are the CI gates. [INF]
 
 ## Knob sweep
 
@@ -150,7 +153,7 @@ Settled paragraph in `INTEGRATION.md`. `aiPeer: hermes.inception`.
 
 ## Data schema
 
-`factory.json` `version: 1`. Lists: `probes`, `cards`, `scaffolds`, `checks`, `audit`. Object: `governor`.
+`factory.json` `version: 2`. Lists: `probes`, `cards`, `scaffolds`, `checks`, `audit`. Object: `governor`. Object map: `plans` keyed by target name. Migration from version 1 adds `plans: {}`. [INF]
 
 ## Delegation topology
 
@@ -166,11 +169,19 @@ Canvas §10. Fixture: Context7 down → `docs_ask` returns `{"error":…}` and s
 
 ## Eval
 
-`agents/inception/evals/`. Ten tasks. Two adversarial. CI: `python -m unittest discover -s tests -v`.
+`agents/inception/evals/`. Thirteen tasks. Adversarial cases include copy `hdr`, reserved names, and scaffold from a job line. CI: `python -m unittest discover -s tests -v`.
+
+## Plugin file map
+
+`plugin.yaml` · `__init__.py` · `runtime.py` · `schemas.py` · `store/ledger.py` · `store/plan.py` · `tools/docs.py` · `tools/probe.py` · `tools/plan.py` · `tools/scaffold.py` · `tools/check.py` · `hooks/fence.py` · `hooks/distill.py` · `hooks/digest.py` · `hooks/footer.py` · `hooks/governor.py`.
+
+## Full tool schemas
+
+See `agents/inception/plugins/inception/schemas.py`. Lean objects. `plan_start` needs name, job, incumbent, axis. `investigate_surface` needs kind plus evidence and tag. `write_canvas` / `write_spec` take markdown. `check_plan` takes name.
 
 ## Phased build
 
-P1 package files. P2 store. P3 hooks. P4 tools + section. P5 skills. P6 eval + docs.
+P1 package files. P2 store v2 + plan ledger. P3 hooks (plan fence). P4 tools + section. P5 `plan-profile` then `author-profile`. P6 eval + docs. P7–P10 keep isolation, honest limits, deep-dive from shipped files, and CI green.
 
 ## Sources
 

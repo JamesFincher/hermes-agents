@@ -15,6 +15,7 @@ from ..runtime import (
     find_repo_root,
 )
 from ..store import ledger
+from ..store import plan as plan_store
 
 _NAME_RE = re.compile(r"^[a-z][a-z0-9-]{1,47}$")
 
@@ -179,8 +180,10 @@ def scaffold_profile(args: dict[str, Any], **kwargs: Any) -> str:
         problem = _validate_name(name)
         if problem:
             return error(problem)
-        if any(token in job.lower() for token in ("product app", "shared runtime")):
-            pass
+        gate = plan_store.evaluate_plan(name)
+        if not gate.get("ok"):
+            first = (gate.get("gaps") or ["plan incomplete"])[0]
+            return error(f"check_plan is not ok for {name}: {first}")
         root = find_repo_root()
         if root is None:
             return error("library root not found (docs/PROFILE-PLAYBOOK.md missing)")

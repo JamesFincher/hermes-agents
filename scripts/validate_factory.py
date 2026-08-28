@@ -672,7 +672,7 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                 fail(f"{agent_dir.name} unexpected skills: {sorted(extra)}")
         if agent_dir.name == "inception":
             present = {path.parent.name for path in skill_files}
-            expected = {"author-profile", "probe-knob", "review-profile"}
+            expected = {"author-profile", "plan-profile", "probe-knob", "review-profile"}
             missing = expected - present
             extra = present - expected
             if missing:
@@ -868,12 +868,26 @@ def _check_inception_join(agent_dir: Path) -> None:
                 fail(f"{integration.relative_to(ROOT)} must plan the join ({heading})")
         if "docs_resolve" not in text or "scaffold_profile" not in text:
             fail(f"{integration.relative_to(ROOT)} must list the tools the inception plugin registers")
+        if "plan_start" not in text or "check_plan" not in text:
+            fail(f"{integration.relative_to(ROOT)} must list the plan tools the inception plugin registers")
+        if "version: 2" not in text and "version 2" not in text.lower():
+            fail(f"{integration.relative_to(ROOT)} must record factory.json version 2")
         if "hdr" in text and "must not" not in text.lower():
             fail(f"{integration.relative_to(ROOT)} must not enable hdr")
     soul = agent_dir / "SOUL.md"
     if soul.is_file():
         soul_text = soul.read_text(encoding="utf-8")
-        for needle in ("docs_resolve", "docs_ask", "scaffold_profile", "mcp_*"):
+        for needle in (
+            "docs_resolve",
+            "docs_ask",
+            "scaffold_profile",
+            "plan_start",
+            "investigate_surface",
+            "write_canvas",
+            "write_spec",
+            "check_plan",
+            "mcp_*",
+        ):
             if needle in soul_text:
                 fail(
                     f"{soul.relative_to(ROOT)} is identity only; "
@@ -921,15 +935,23 @@ def _check_inception_join(agent_dir: Path) -> None:
             fail("inception plugins.enabled must be [inception]")
     skills = agent_dir / "skills"
     required_by_skill = {
-        "author-profile": [
+        "plan-profile": [
             "docs_resolve",
             "docs_ask",
             "probe_knob",
+            "plan_start",
+            "investigate_surface",
+            "write_canvas",
+            "write_spec",
+            "check_plan",
+        ],
+        "author-profile": [
+            "check_plan",
             "scaffold_profile",
             "check_profile",
         ],
         "probe-knob": ["docs_resolve", "docs_ask", "probe_knob"],
-        "review-profile": ["check_profile"],
+        "review-profile": ["check_plan", "check_profile"],
     }
     for skill_name, needed_tools in required_by_skill.items():
         skill_md = skills / skill_name / "SKILL.md"
@@ -938,11 +960,21 @@ def _check_inception_join(agent_dir: Path) -> None:
         body = skill_md.read_text(encoding="utf-8")
         if "mcp_*" not in body:
             fail(f"{skill_md.relative_to(ROOT)} must tell the model not to call raw mcp_* tools")
+        if skill_name == "plan-profile":
+            if "Step 0" not in body or "check_plan" not in body:
+                fail(f"{skill_md.relative_to(ROOT)} must map playbook steps 0-4 and end at check_plan")
+            if "investigate_surface" not in body:
+                fail(f"{skill_md.relative_to(ROOT)} must walk investigate_surface")
         if skill_name == "author-profile":
-            if "Step 0" not in body or "Step 5" not in body:
-                fail(f"{skill_md.relative_to(ROOT)} must map playbook steps 0-4 then 5-10")
-        if skill_name == "review-profile" and "What is in context on turn 40" not in body:
-            fail(f"{skill_md.relative_to(ROOT)} must walk the §10 heuristics")
+            if "check_plan" not in body or "Step 5" not in body:
+                fail(f"{skill_md.relative_to(ROOT)} must start after check_plan and map steps 5-10")
+            if "plan-profile" not in body:
+                fail(f"{skill_md.relative_to(ROOT)} must send incomplete plans to plan-profile")
+        if skill_name == "review-profile":
+            if "What is in context on turn 40" not in body:
+                fail(f"{skill_md.relative_to(ROOT)} must walk the §10 heuristics")
+            if "prompted" not in body.lower() or "enforced" not in body.lower():
+                fail(f"{skill_md.relative_to(ROOT)} must score prompted versus enforced on the plan")
         front_end = body.find("\n---", 3)
         front = yaml.safe_load(body[4:front_end]) if front_end > 0 else {}
         hermes = ((front or {}).get("metadata") or {}).get("hermes") or {}

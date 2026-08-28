@@ -13,12 +13,28 @@ from __future__ import annotations
 from typing import Any
 
 from . import hooks, runtime, schemas
-from .tools import check_profile, docs_ask, docs_resolve, probe_knob, scaffold_profile
+from .tools import (
+    check_plan,
+    check_profile,
+    docs_ask,
+    docs_resolve,
+    investigate_surface,
+    plan_start,
+    probe_knob,
+    scaffold_profile,
+    write_canvas,
+    write_spec,
+)
 
 _HANDLERS = {
     "docs_resolve": docs_resolve,
     "docs_ask": docs_ask,
     "probe_knob": probe_knob,
+    "plan_start": plan_start,
+    "investigate_surface": investigate_surface,
+    "write_canvas": write_canvas,
+    "write_spec": write_spec,
+    "check_plan": check_plan,
     "scaffold_profile": scaffold_profile,
     "check_profile": check_profile,
 }

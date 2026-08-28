@@ -9,7 +9,7 @@ from typing import Any
 
 from ..runtime import plugin_data
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 STORE_NAME = "factory.json"
 _LOCK = threading.Lock()
 _COUNTER_LOCK = threading.Lock()
@@ -25,6 +25,7 @@ def _empty() -> dict[str, Any]:
         "checks": [],
         "audit": [],
         "governor": {"requests": 0, "input_tokens": 0, "state": "OK"},
+        "plans": {},
     }
 
 
@@ -40,6 +41,8 @@ def migrate(payload: dict[str, Any] | None) -> dict[str, Any]:
     for key in ("probes", "cards", "scaffolds", "checks", "audit"):
         if not isinstance(data.get(key), list):
             data[key] = []
+    if not isinstance(data.get("plans"), dict):
+        data["plans"] = {}
     gov = data.get("governor")
     if not isinstance(gov, dict):
         data["governor"] = {"requests": 0, "input_tokens": 0, "state": "OK"}
@@ -130,6 +133,7 @@ def digest_payload(max_chars: int) -> str:
         f"cards={len(data.get('cards') or [])}",
         f"scaffolds={len(data.get('scaffolds') or [])}",
         f"checks={len(data.get('checks') or [])}",
+        f"plans={len(data.get('plans') or {})}",
         f"governor={gov.get('state', 'OK')} req={gov.get('requests', 0)}",
     ]
     last_probe = (data.get("probes") or [{}])[-1] if data.get("probes") else {}

@@ -1,5 +1,6 @@
 """Durable factory ledger. Not a memory provider."""
 
+from . import ledger  # noqa: F401
 from .ledger import (  # noqa: F401
     SCHEMA_VERSION,
     add_audit,
@@ -12,3 +13,4 @@ from .ledger import (  # noqa: F401
     migrate,
     save_store,
 )
+from . import plan  # noqa: F401

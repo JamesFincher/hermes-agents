@@ -13,7 +13,8 @@ FACTORY_SECTION = (
     "claim [DOC], [INF], or [UNV]. Code never depends on [UNV]. SOUL is "
     "identity only. A skill is a recipe. A tool is a schema plus handler. "
     "A plugin is the host package that registers tools. MCP is a backend. "
-    "Call facade names, not raw MCP names. Write HONEST-LIMITS.md. Ship an eval."
+    "Call facade names, not raw MCP names. Plan first. Scaffold only after "
+    "check_plan is ok. Write HONEST-LIMITS.md. Ship an eval."
 )
 
 

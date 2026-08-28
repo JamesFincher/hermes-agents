@@ -109,6 +109,11 @@ class InceptionPluginTests(unittest.TestCase):
                 "docs_resolve",
                 "docs_ask",
                 "probe_knob",
+                "plan_start",
+                "investigate_surface",
+                "write_canvas",
+                "write_spec",
+                "check_plan",
                 "scaffold_profile",
                 "check_profile",
             },
@@ -194,6 +199,11 @@ class InceptionPluginTests(unittest.TestCase):
             self.pkg.tools.docs_resolve,
             self.pkg.tools.docs_ask,
             self.pkg.tools.probe_knob,
+            self.pkg.tools.plan_start,
+            self.pkg.tools.investigate_surface,
+            self.pkg.tools.write_canvas,
+            self.pkg.tools.write_spec,
+            self.pkg.tools.check_plan,
             self.pkg.tools.scaffold_profile,
             self.pkg.tools.check_profile,
         ):
@@ -209,9 +219,75 @@ class InceptionPluginTests(unittest.TestCase):
         os.environ["INCEPTION_LIBRARY_ROOT"] = str(tmp)
         return tmp
 
+    def _fixture_mod(self) -> Any:
+        path = ROOT / "agents" / "inception" / "evals" / "fixtures" / "build_plan.py"
+        spec = importlib.util.spec_from_file_location("inception_build_plan", path)
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def _complete_plan(self, name: str) -> dict[str, Any]:
+        fixture = self._fixture_mod()
+        meta = fixture.load_meta()
+        started = json.loads(
+            self.pkg.tools.plan_start(
+                {
+                    "name": name,
+                    "job": meta["job"],
+                    "incumbent": meta["incumbent"],
+                    "axis": meta["axis"],
+                }
+            )
+        )
+        self.assertTrue(started.get("ok"), started)
+        for row in meta["investigations"]:
+            payload = dict(row)
+            payload["name"] = name
+            got = json.loads(self.pkg.tools.investigate_surface(payload))
+            self.assertTrue(got.get("ok"), got)
+        for knob in self.pkg.store.plan.CONTEXT_ECONOMICS_KNOBS:
+            probed = json.loads(
+                self.pkg.tools.probe_knob(
+                    {
+                        "knob": knob,
+                        "decision": "accept",
+                        "tag": "DOC",
+                        "url": "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
+                        "reason": "Playbook section 5 context-economics block.",
+                        "name": name,
+                    }
+                )
+            )
+            self.assertTrue(probed.get("ok"), probed)
+        canvas = json.loads(
+            self.pkg.tools.write_canvas(
+                {
+                    "name": name,
+                    "markdown": fixture.canvas_markdown(
+                        name, meta["job"], meta["incumbent"], meta["axis"]
+                    ),
+                }
+            )
+        )
+        self.assertTrue(canvas.get("ok"), canvas)
+        spec_row = json.loads(
+            self.pkg.tools.write_spec(
+                {
+                    "name": name,
+                    "markdown": fixture.spec_markdown(name, meta["axis"]),
+                }
+            )
+        )
+        self.assertTrue(spec_row.get("ok"), spec_row)
+        checked = json.loads(self.pkg.tools.check_plan({"name": name}))
+        self.assertTrue(checked.get("ok"), checked)
+        return checked
+
     def test_scaffold_and_check(self) -> None:
         library = self._library_root()
         self.addCleanup(lambda: shutil.rmtree(library, ignore_errors=True))
+        self._complete_plan("shelf-note")
         built = json.loads(
             self.pkg.tools.scaffold_profile(
                 {
@@ -289,9 +365,10 @@ class InceptionPluginTests(unittest.TestCase):
         path.write_text(json.dumps({"probes": [{"knob": "a"}]}), encoding="utf-8")
         first = self.pkg.store.migrate(json.loads(path.read_text(encoding="utf-8")))
         second = self.pkg.store.migrate(first)
-        self.assertEqual(first["version"], 1)
-        self.assertEqual(second["version"], 1)
+        self.assertEqual(first["version"], 2)
+        self.assertEqual(second["version"], 2)
         self.assertEqual(first["probes"][0]["knob"], "a")
+        self.assertEqual(first["plans"], {})
 
     def test_concurrent_writes(self) -> None:
         errors: list[str] = []
@@ -349,6 +426,157 @@ class InceptionPluginTests(unittest.TestCase):
         spec.loader.exec_module(mod)
         self.assertEqual(mod.main(["reserved_names.py", "hermes"]), 1)
         self.assertEqual(mod.main(["reserved_names.py", "ok-agent"]), 0)
+
+    def test_scaffold_without_plan_fails(self) -> None:
+        library = self._library_root()
+        self.addCleanup(lambda: shutil.rmtree(library, ignore_errors=True))
+        built = json.loads(
+            self.pkg.tools.scaffold_profile(
+                {
+                    "name": "shelf-note",
+                    "job": "Files meeting notes. Does not write product apps.",
+                }
+            )
+        )
+        self.assertIn("error", built)
+        self.assertIn("check_plan", built["error"])
+        blocked = self.pkg.hooks.pre_tool_call(
+            "scaffold_profile",
+            {"name": "shelf-note", "job": "Files meeting notes."},
+        )
+        self.assertEqual(blocked["action"], "block")
+        self.assertIn("check_plan", blocked["message"])
+
+    def test_write_under_agents_without_plan_fails(self) -> None:
+        blocked = self.pkg.hooks.pre_tool_call(
+            "write_file",
+            {"path": "agents/shelf-note/SOUL.md", "content": "x"},
+        )
+        self.assertEqual(blocked["action"], "block")
+        self.assertIn("check_plan", blocked["message"])
+        own = self.pkg.hooks.pre_tool_call(
+            "write_file",
+            {"path": "agents/inception/README.md", "content": "x"},
+        )
+        self.assertIsNone(own)
+
+    def test_investigate_without_plan_fails(self) -> None:
+        payload = json.loads(
+            self.pkg.tools.investigate_surface(
+                {
+                    "name": "shelf-note",
+                    "kind": "tool",
+                    "question": "Need a custom tool?",
+                    "evidence": "none",
+                    "tag": "INF",
+                    "mapping": "TOOL",
+                    "q1": "a",
+                    "q2": "b",
+                    "q3": "c",
+                }
+            )
+        )
+        self.assertIn("error", payload)
+        self.assertIn("plan_start", payload["error"])
+        blocked = self.pkg.hooks.pre_tool_call(
+            "investigate_surface",
+            {"name": "shelf-note", "kind": "tool"},
+        )
+        self.assertEqual(blocked["action"], "block")
+
+    def test_write_spec_without_canvas_fails(self) -> None:
+        library = self._library_root()
+        self.addCleanup(lambda: shutil.rmtree(library, ignore_errors=True))
+        started = json.loads(
+            self.pkg.tools.plan_start(
+                {
+                    "name": "shelf-note",
+                    "job": "Notes.",
+                    "incumbent": "Memory.",
+                    "axis": "honesty",
+                }
+            )
+        )
+        self.assertTrue(started.get("ok"), started)
+        payload = json.loads(
+            self.pkg.tools.write_spec(
+                {"name": "shelf-note", "markdown": "# stub\n\n## Verdict\nshort\n"}
+            )
+        )
+        self.assertIn("error", payload)
+        self.assertIn("canvas", payload["error"])
+
+    def test_spec_missing_surfaces_refused(self) -> None:
+        library = self._library_root()
+        self.addCleanup(lambda: shutil.rmtree(library, ignore_errors=True))
+        started = json.loads(
+            self.pkg.tools.plan_start(
+                {
+                    "name": "shelf-note",
+                    "job": "Notes.",
+                    "incumbent": "Memory.",
+                    "axis": "honesty",
+                }
+            )
+        )
+        self.assertTrue(started.get("ok"), started)
+        fixture = self._fixture_mod()
+        meta = fixture.load_meta()
+        canvas = json.loads(
+            self.pkg.tools.write_canvas(
+                {
+                    "name": "shelf-note",
+                    "markdown": fixture.canvas_markdown(
+                        "shelf-note", meta["job"], meta["incumbent"], meta["axis"]
+                    ),
+                }
+            )
+        )
+        self.assertTrue(canvas.get("ok"), canvas)
+        stub = json.loads(
+            self.pkg.tools.write_spec(
+                {
+                    "name": "shelf-note",
+                    "markdown": "# Profile spec: shelf-note\n\n## Verdict\nToo thin to be a spec.\n",
+                }
+            )
+        )
+        self.assertIn("error", stub)
+        self.assertIn("spec refused", stub["error"])
+
+    def test_counsel_shaped_plan_ok(self) -> None:
+        library = self._library_root()
+        self.addCleanup(lambda: shutil.rmtree(library, ignore_errors=True))
+        checked = self._complete_plan("brief-clerk")
+        self.assertTrue(checked["ok"], checked)
+        self.assertGreaterEqual(checked["tracks"]["tool"], 1)
+        self.assertGreaterEqual(checked["tracks"]["skill"], 1)
+        self.assertGreaterEqual(checked["tracks"]["mcp"], 1)
+        self.assertGreaterEqual(checked["tracks"]["plugin"], 1)
+        self.assertGreaterEqual(len(checked["patterns"]), 3)
+        self.assertTrue((library / "docs" / "profiles" / "brief-clerk-canvas.md").is_file())
+        self.assertTrue((library / "docs" / "profiles" / "brief-clerk-spec.md").is_file())
+
+    def test_check_plan_incomplete_without_tracks(self) -> None:
+        library = self._library_root()
+        self.addCleanup(lambda: shutil.rmtree(library, ignore_errors=True))
+        json.loads(
+            self.pkg.tools.plan_start(
+                {
+                    "name": "shelf-note",
+                    "job": "Notes.",
+                    "incumbent": "Memory.",
+                    "axis": "honesty",
+                }
+            )
+        )
+        checked = json.loads(self.pkg.tools.check_plan({"name": "shelf-note"}))
+        self.assertFalse(checked.get("ok"))
+        joined = " ".join(checked.get("gaps") or [])
+        self.assertIn("tool", joined)
+        self.assertIn("skill", joined)
+        self.assertIn("mcp", joined)
+        self.assertIn("plugin", joined)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 Read this before you treat a scaffold as a finished agent.
 
 - Live `hermes profile install` is UNPROVEN in CI. This VM may have no `hermes` CLI. Definition of done uses `validate_factory.py` and unit tests. Official 0.19.0 has no `hermes plugins doctor`.
+- `scaffold_profile` refuses a one-line job. `check_plan` must be ok first. A prompted "docs first" line is not the gate.
 - `scaffold_profile` writes a skill-only skeleton. It is not the specialist described in the job sentence. Steps 6-10 still belong to the author.
 - Probe tags are only as good as the cited URL. A `[DOC]` row with a wrong page is a clean lie.
 - Context7 can be down, slow, or empty. The facade returns `{"error":…}`. The run continues. It does not invent the knob.

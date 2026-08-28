@@ -6,6 +6,7 @@ from typing import Any
 
 from ..runtime import dump, error
 from ..store import ledger
+from ..store import plan as plan_store
 
 _DECISIONS = frozenset({"accept", "reject", "default"})
 _TAGS = frozenset({"DOC", "INF", "UNV"})
@@ -21,6 +22,7 @@ def probe_knob(args: dict[str, Any], **kwargs: Any) -> str:
         reason = str(payload.get("reason") or "").strip()
         url = str(payload.get("url") or "").strip()
         code_depends = bool(payload.get("code_depends") or False)
+        plan_name = str(payload.get("name") or "").strip().lower()
         if not knob or not decision or not tag or not reason:
             return error("knob, decision, tag, and reason are required")
         if decision not in _DECISIONS:
@@ -39,8 +41,11 @@ def probe_knob(args: dict[str, Any], **kwargs: Any) -> str:
                 "url": url,
                 "reason": reason,
                 "code_depends": code_depends,
+                "plan": plan_name,
             }
         )
+        if plan_name:
+            plan_store.attach_knob(plan_name, row)
         return dump({"ok": True, "probe": row})
     except Exception as exc:  # noqa: BLE001
         return error(str(exc))

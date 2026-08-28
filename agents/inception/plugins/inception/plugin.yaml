@@ -3,7 +3,7 @@
 # https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
 
 name: inception
-version: 1.0.0
+version: 1.1.0
 manifest_version: 2
 api_version: 1
 description: "Host package that registers factory tools and playbook hooks (toolset inception)."
@@ -14,6 +14,11 @@ provides_tools:
   - docs_resolve
   - docs_ask
   - probe_knob
+  - plan_start
+  - investigate_surface
+  - write_canvas
+  - write_spec
+  - check_plan
   - scaffold_profile
   - check_profile
 provides_hooks:
