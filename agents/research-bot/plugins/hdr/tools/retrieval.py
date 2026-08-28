@@ -103,6 +103,8 @@ def docs_query(args: dict[str, Any], **kwargs: Any) -> str:
 
 
 def scholar_search(args: dict[str, Any], **kwargs: Any) -> str:
+    # Returns cards here. The Evidence Bus hook does not ingest this tool.
+    # That keeps Crossref JSON out of the corpus.
     task_id = kwargs.get("task_id")
     del task_id
     try:

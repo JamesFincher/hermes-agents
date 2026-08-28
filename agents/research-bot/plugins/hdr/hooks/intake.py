@@ -7,12 +7,19 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
-from ..runtime import estimate_tokens, first_openable_url
+from ..runtime import estimate_tokens, first_openable_url, setting
 from ..store import bus, extract, ledger, run, sanitize, score, spans
 
-INTAKE_TOOLS = frozenset(
-    {"web_extract", "web_search", "docs_query", "browser_snapshot", "x_search"}
-)
+# docs_query and scholar_search stay off this list. Those tools write cards
+# themselves. Storing their JSON envelopes would fence out a later extract.
+INTAKE_TOOLS = frozenset({"web_extract", "web_search", "browser_snapshot", "x_search"})
+_STATUS_WORDS = {
+    "paywall": "paywall",
+    "subscribe to continue": "paywall",
+    "forbidden": "403",
+    "too many requests": "429",
+    "rate limit": "429",
+}
 
 
 def _as_text(result: Any) -> str:
@@ -26,22 +33,43 @@ def _as_text(result: Any) -> str:
         return str(result)
 
 
-def _parse_result(tool_name: str, result: Any) -> tuple[str, str, list[dict[str, Any]]]:
-    text = _as_text(result)
+def _coerce_result(result: Any) -> Any:
+    if not isinstance(result, str):
+        return result
+    stripped = result.strip()
+    if not stripped or stripped[0] not in "{[":
+        return result
+    try:
+        loaded = json.loads(stripped)
+    except json.JSONDecodeError:
+        return result
+    if isinstance(loaded, dict):
+        return loaded
+    if isinstance(loaded, list):
+        hits = [item for item in loaded if isinstance(item, dict)]
+        if hits:
+            return {"results": hits}
+    return result
+
+
+def _parse_result(tool_name: str, result: Any) -> tuple[str, str, list[dict[str, Any]], Any]:
+    parsed = _coerce_result(result)
+    text = _as_text(parsed if isinstance(parsed, dict) else result)
     url = ""
     extras: list[dict[str, Any]] = []
-    if isinstance(result, dict):
+    if isinstance(parsed, dict):
         url = str(
-            result.get("url")
-            or result.get("canonical")
-            or result.get("source")
-            or result.get("link")
+            parsed.get("url")
+            or parsed.get("canonical")
+            or parsed.get("source")
+            or parsed.get("link")
             or ""
         )
-        body = result.get("content") or result.get("text") or result.get("markdown") or result.get("html")
-        if isinstance(body, str) and body.strip():
-            text = body
-        hits = result.get("results") or result.get("organic") or result.get("items")
+        for key in ("content", "text", "markdown", "html"):
+            if key in parsed and isinstance(parsed[key], str):
+                text = parsed[key]
+                break
+        hits = parsed.get("results") or parsed.get("organic") or parsed.get("items")
         if isinstance(hits, list):
             for hit in hits[:12]:
                 if isinstance(hit, dict):
@@ -49,7 +77,39 @@ def _parse_result(tool_name: str, result: Any) -> tuple[str, str, list[dict[str,
     if not url:
         url = first_openable_url(text)
     del tool_name
-    return url, text, extras
+    return url, text, extras, parsed
+
+
+def detect_fetch_status(parsed: Any, text: str) -> str:
+    if isinstance(parsed, dict):
+        explicit = parsed.get("fetch_status")
+        if explicit in {"ok", "paywall", "403", "429", "archived", "pdf-ocr"}:
+            return str(explicit)
+        status = parsed.get("status") or parsed.get("status_code") or parsed.get("code")
+        try:
+            code = int(status)
+        except (TypeError, ValueError):
+            code = None
+        if code == 403:
+            return "403"
+        if code == 429:
+            return "429"
+        if code in {401, 402} or parsed.get("paywall") is True:
+            return "paywall"
+        err = str(parsed.get("error") or parsed.get("message") or "").lower()
+        if "paywall" in err:
+            return "paywall"
+        if "403" in err or "forbidden" in err:
+            return "403"
+        if "429" in err or "rate limit" in err:
+            return "429"
+    blob = (text or "").lower()
+    for needle, status in _STATUS_WORDS.items():
+        if needle in blob:
+            return status
+    if not (text or "").strip():
+        return "empty"
+    return "ok"
 
 
 def _card_for_source(source: dict[str, Any], corpus_path: str, chars: int) -> dict[str, Any]:
@@ -67,7 +127,70 @@ def _card_for_source(source: dict[str, Any], corpus_path: str, chars: int) -> di
         "full": f"{corpus_path} ({chars} chars)" if corpus_path else None,
         "read_more": f"evidence_read src={source.get('id')}" if corpus_path else None,
         "untrusted": True,
+        "fetch_status": source.get("fetch_status") or "ok",
     }
+
+
+def _dump_json(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _fit_card(card: dict[str, Any]) -> str:
+    payload = _dump_json({"ok": True, **card})
+    if estimate_tokens(payload) <= 400:
+        return payload
+    slim = dict(card)
+    slim["spans"] = list(slim.get("spans") or [])[:1]
+    payload = _dump_json({"ok": True, **slim})
+    if estimate_tokens(payload) <= 400:
+        return payload
+    slim["spans"] = []
+    slim["title"] = ""
+    payload = _dump_json({"ok": True, **slim})
+    if estimate_tokens(payload) <= 400:
+        return payload
+    stub = {
+        "ok": True,
+        "card": card.get("card"),
+        "canonical": card.get("canonical"),
+        "read_more": card.get("read_more"),
+        "untrusted": True,
+        "note": "card trimmed",
+    }
+    return _dump_json(stub)
+
+
+def _fit_cards(cards: list[dict[str, Any]]) -> str:
+    note = "search hits; extract to fill corpus"
+    kept = list(cards)
+    payload = _dump_json({"ok": True, "cards": kept, "note": note})
+    while estimate_tokens(payload) > 400 and kept:
+        kept = kept[:-1]
+        payload = _dump_json({"ok": True, "cards": kept, "note": note, "trimmed": True})
+    if estimate_tokens(payload) > 400:
+        return _dump_json({"ok": True, "cards": [], "note": note, "trimmed": True})
+    return payload
+
+
+def _audit(
+    current: dict[str, Any] | None,
+    *,
+    tool: str,
+    tokens_in: int,
+    tokens_out: int,
+    blocked: bool,
+    reason: str,
+) -> None:
+    bus.append_audit(
+        (current or {}).get("run_id") or "",
+        {
+            "tool": tool,
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
+            "blocked": blocked,
+            "reason": reason,
+        },
+    )
 
 
 def transform_tool_result(
@@ -80,7 +203,8 @@ def transform_tool_result(
     try:
         if tool_name not in INTAKE_TOOLS:
             return None
-        url, text, extras = _parse_result(tool_name, result)
+        tokens_in = estimate_tokens(_as_text(result))
+        url, text, extras, parsed = _parse_result(tool_name, result)
         current = run.load_run()
         cards: list[dict[str, Any]] = []
         if extras and tool_name in {"web_search", "x_search"}:
@@ -102,23 +226,40 @@ def transform_tool_result(
                 )
                 source = added.get("source") or {}
                 cards.append(_card_for_source(source, "", 0))
-            payload = json.dumps({"ok": True, "cards": cards, "note": "search hits; extract to fill corpus"}, ensure_ascii=False)
-            if estimate_tokens(payload) > 400:
-                payload = payload[:1600]
+            payload = _fit_cards(cards)
             _note_batch(current, [c.get("card") for c in cards if c.get("card")])
+            _audit(
+                current,
+                tool=tool_name,
+                tokens_in=tokens_in,
+                tokens_out=estimate_tokens(payload),
+                blocked=False,
+                reason="search-cards",
+            )
             return payload
         if not url and not text:
             return None
         if not url:
             url = str((args or {}).get("url") or (args or {}).get("query") or "urn:hdr:inline")
-        wrapped = sanitize.wrap(text)
-        meta = extract.extract_metadata(wrapped["text"], url)
+        fetch_status = detect_fetch_status(parsed, text)
+        if setting("untrusted_content_wrapping", True):
+            scanned = sanitize.scan(text)
+            if scanned.get("suppressed"):
+                bus.append_audit(
+                    (current or {}).get("run_id") or "",
+                    {"suppressed": scanned["suppressed"], "url": url},
+                )
+        meta = extract.extract_metadata(text, url)
         scored = score.score_source(bus.canonicalize(url) or url, meta)
-        stored = bus.write_corpus(
-            text,
-            {"url": url, "canonical": bus.canonicalize(url), "title": meta.get("title") or ""},
-        )
-        selected = spans.select_spans(text, (current or {}).get("question") or "")
+        stored: dict[str, Any] = {}
+        selected: list[dict[str, Any]] = []
+        useful = bool(text.strip()) and fetch_status != "empty"
+        if useful:
+            stored = bus.write_corpus(
+                text,
+                {"url": url, "canonical": bus.canonicalize(url), "title": meta.get("title") or ""},
+            )
+            selected = spans.select_spans(text, (current or {}).get("question") or "")
         added = ledger.add_source(
             {
                 "url": url,
@@ -134,24 +275,18 @@ def transform_tool_result(
                 "tier_reason": scored["tier_reason"],
                 "corpus": stored.get("path"),
                 "bytes": stored.get("bytes"),
-                "content_hash": f"sha256:{stored.get('sha256')}",
+                "content_hash": f"sha256:{stored.get('sha256')}" if stored.get("sha256") else None,
                 "spans": selected,
                 "origin": tool_name,
                 "quote": selected[0]["q"] if selected else "",
                 "run_id": (current or {}).get("run_id") or "",
-                "needs_backfill": False,
+                "needs_backfill": not useful,
+                "fetch_status": fetch_status,
             }
         )
         source = added.get("source") or {}
         card = _card_for_source(source, str(stored.get("path") or ""), int(stored.get("chars") or 0))
-        if wrapped.get("suppressed"):
-            bus.append_audit((current or {}).get("run_id") or "", {"suppressed": wrapped["suppressed"], "url": url})
-        payload = json.dumps({"ok": True, **card}, ensure_ascii=False)
-        if estimate_tokens(payload) > 400:
-            card["spans"] = card.get("spans")[:1]
-            payload = json.dumps({"ok": True, **card}, ensure_ascii=False)
-            if estimate_tokens(payload) > 400:
-                payload = payload[:1600]
+        payload = _fit_card(card)
         _note_batch(current, [source.get("id")])
         if current and url:
             counts = current.setdefault("domain_counts", {})
@@ -159,6 +294,14 @@ def transform_tool_result(
             if host:
                 counts[host] = int(counts.get(host) or 0) + 1
                 run.save_run(current)
+        _audit(
+            current,
+            tool=tool_name,
+            tokens_in=tokens_in,
+            tokens_out=estimate_tokens(payload),
+            blocked=False,
+            reason="card",
+        )
         return payload
     except Exception:
         return None

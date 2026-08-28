@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..runtime import setting
-from ..store import bus, ledger, run
+from ..store import bus, index as inverted, ledger, run
 
 
 def on_session_start(session_id: str = "", model: str = "", platform: str = "", **kwargs: Any) -> None:
@@ -13,11 +13,33 @@ def on_session_start(session_id: str = "", model: str = "", platform: str = "", 
     try:
         ledger.init_ledger()
         days = int(setting("corpus_retention_days", 30) or 30)
+        data = ledger.load_ledger()
         removed = bus.prune_corpus(days)
         for digest in removed:
-            ledger.mark_corpus_gone(digest)
+            archived = _archive_for_digest(data, digest)
+            ledger.mark_corpus_gone(digest, archived_url=archived)
+        inverted.rebuild()
     except Exception:
         return
+
+
+def _archive_for_digest(data: dict[str, Any], digest: str) -> str:
+    needle = bus.hash_key(digest)
+    for source in data.get("sources") or []:
+        if not isinstance(source, dict):
+            continue
+        corpus = str(source.get("corpus") or "")
+        hashed = bus.hash_key(source.get("content_hash"))
+        if needle not in corpus and hashed != needle:
+            continue
+        existing = str(source.get("archived_url") or "").strip()
+        if existing:
+            return existing
+        url = str(source.get("canonical_url") or source.get("url") or "").strip()
+        wayback = bus.wayback_latest_url(url)
+        if wayback:
+            return wayback
+    return f"file://gone/{digest}"
 
 
 def on_session_end(session_id: str = "", **kwargs: Any) -> None:
