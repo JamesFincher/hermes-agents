@@ -1,0 +1,16 @@
+{
+  "workspace": "hermes",
+  "hosts": {
+    "hermes.finance-captain": {
+      "enabled": true,
+      "aiPeer": "finance-captain",
+      "workspace": "hermes",
+      "recallMode": "hybrid",
+      "writeFrequency": "async",
+      "sessionStrategy": "per-directory",
+      "pinUserPeer": true
+    }
+  },
+  "_policy": "Memory holds working context: who the operator is, their reporting cadence, their preferred formats, their standing instructions, which systems are authoritative. Memory NEVER holds figures, balances, or account data — those live in plugin-data/fin/ where they are snapshot-pinned, versioned, and gated. memory.write_approval is true in config.yaml because a remembered wrong number propagates into every future report silently. pinUserPeer is gateway-only and a no-op on the CLI.",
+  "_warning": "Never commit a real honcho.json containing an API key."
+}

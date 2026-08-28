@@ -1,0 +1,44 @@
+{
+  "revenue": [
+    "4000-4999",
+    "Sales",
+    "Revenue",
+    "Subscription Revenue",
+    "Services Revenue"
+  ],
+  "cogs": [
+    "5000-5499",
+    "Cost of Revenue",
+    "Hosting",
+    "Payment Processing",
+    "Support Salaries"
+  ],
+  "opex_sales_marketing": [
+    "6000-6199",
+    "Advertising",
+    "Marketing",
+    "Sales Salaries",
+    "Commissions"
+  ],
+  "opex_rnd": [
+    "6200-6399",
+    "Engineering Salaries",
+    "Software",
+    "Contractors - Product"
+  ],
+  "opex_ga": [
+    "6400-6799",
+    "Rent",
+    "Insurance",
+    "Legal",
+    "Accounting",
+    "Admin Salaries"
+  ],
+  "other_income_expense": [
+    "7000-7999",
+    "Interest Income",
+    "Interest Expense",
+    "FX Gain/Loss"
+  ],
+  "_note": "Map your actual chart of accounts here at onboarding. Metric formulas depend on this mapping; a wrong mapping produces confidently wrong gross margin."
+}

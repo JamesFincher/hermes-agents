@@ -1,0 +1,48 @@
+name: finance-captain
+version: 1.0.0
+description: "Finance operations profile: snapshots, metric registry, figure provenance, tie-out gates, and proposal-only writes to systems of record."
+# Official examples are ">=0.12.0" / ">=0.13.0". 0.14.0 is [UNV]
+# (docs/HERMES-FACTS.md). Feature list below is the capability set, not a
+# version floor.
+hermes_requires: ">=0.13.0"
+# The floor must include: register_system_prompt_section, transform_tool_result,
+# transform_llm_output, compression.proactive_prune_tokens, agent.run_budget_seconds,
+# and pre_tool_call block/modify directives. VERIFY this floor against the release
+# notes before publishing — see docs/HERMES-FACTS.md.
+author: "James Fincher"
+license: "Apache-2.0"
+
+distribution_owned:
+  - SOUL.md
+  - config.yaml
+  - mcp.json
+  - profile.yaml
+  - distribution.yaml
+  - skills
+  - plugins          # NOT in the default owned set; omitting it ships no plugin
+  - evals
+  - honcho.json.example
+  - README.md
+  - HONEST-LIMITS.md
+  - .env.EXAMPLE
+  - .gitignore
+
+env_requires:
+  - name: QUICKBOOKS_TOKEN
+    required: false
+    description: "Accounting system of record. Read scopes are sufficient unless mutation_mode is approved_apply."
+  - name: XERO_TOKEN
+    required: false
+    description: "Alternative accounting system of record."
+  - name: STRIPE_API_KEY
+    required: false
+    description: "Payments and subscriptions. USE A RESTRICTED READ-ONLY KEY."
+  - name: PLAID_TOKEN
+    required: false
+    description: "Banking balances and transactions — the authoritative cash source."
+  - name: RAMP_TOKEN
+    required: false
+    description: "Corporate card and spend data."
+  - name: WAREHOUSE_TOKEN
+    required: false
+    description: "Data warehouse, read-only role."

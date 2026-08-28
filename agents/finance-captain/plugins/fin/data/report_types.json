@@ -1,0 +1,562 @@
+{
+  "ap_run_review": {
+    "hats": [
+      "ar-ap",
+      "controller"
+    ],
+    "metrics": [
+      "dpo"
+    ],
+    "name": "AP payment run review",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Run Summary",
+        "must_tie": true,
+        "purpose": "Total, count, and cash impact",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Duplicate Check",
+        "must_tie": false,
+        "purpose": "Results of the duplicate-payment scan",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Exceptions",
+        "must_tie": false,
+        "purpose": "Anything unusual, held for review",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Approval Requests",
+        "must_tie": false,
+        "purpose": "Each payment as a proposal id",
+        "required": true
+      }
+    ],
+    "tie_out": "AP snapshot"
+  },
+  "ar_aging_collections": {
+    "hats": [
+      "ar-ap"
+    ],
+    "metrics": [
+      "dso"
+    ],
+    "name": "AR aging and collections plan",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Aging Summary",
+        "must_tie": true,
+        "purpose": "Current, 30, 60, 90, 90+",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Top Exposures",
+        "must_tie": false,
+        "purpose": "Largest balances and concentration risk",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Collection Actions",
+        "must_tie": false,
+        "purpose": "Per account, with owner and next step",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "DSO Trend",
+        "must_tie": false,
+        "purpose": "Computed, with the formula",
+        "required": true
+      }
+    ],
+    "tie_out": "AR aging snapshot"
+  },
+  "audit_prep_pack": {
+    "hats": [
+      "controller"
+    ],
+    "metrics": [],
+    "name": "Audit / diligence preparation",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Scope and Period",
+        "must_tie": false,
+        "purpose": "What is covered",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Trial Balance",
+        "must_tie": true,
+        "purpose": "Tied and signed off",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Support Index",
+        "must_tie": false,
+        "purpose": "Every material balance and where its support lives",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Known Issues",
+        "must_tie": false,
+        "purpose": "Disclosed proactively",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Policy Notes",
+        "must_tie": false,
+        "purpose": "Revenue recognition, capitalization, accruals",
+        "required": true
+      }
+    ],
+    "tie_out": "trial balance snapshot"
+  },
+  "board_pack": {
+    "hats": [
+      "investor-reporting",
+      "fpa"
+    ],
+    "metrics": [
+      "arr",
+      "net_revenue_retention",
+      "gross_margin",
+      "net_burn",
+      "runway_months",
+      "cac"
+    ],
+    "name": "Board reporting package",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Executive Summary",
+        "must_tie": false,
+        "purpose": "Three numbers and the one thing that matters",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "KPI Dashboard",
+        "must_tie": false,
+        "purpose": "Registry metrics with versions and trend",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Financial Results",
+        "must_tie": true,
+        "purpose": "Actual vs budget vs prior",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Cash and Runway",
+        "must_tie": false,
+        "purpose": "Position, burn, runway, and the assumptions",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Variance and Drivers",
+        "must_tie": false,
+        "purpose": "Why the numbers are what they are",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Forecast",
+        "must_tie": false,
+        "purpose": "Base and downside, with assumptions stated",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Risks and Asks",
+        "must_tie": false,
+        "purpose": "What could break and what is needed",
+        "required": true
+      }
+    ],
+    "tie_out": "period snapshot"
+  },
+  "budget_vs_actual": {
+    "hats": [
+      "fpa",
+      "controller"
+    ],
+    "metrics": [
+      "variance"
+    ],
+    "name": "Budget vs actual",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Summary",
+        "must_tie": false,
+        "purpose": "Total variance and the top three drivers",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "By Account",
+        "must_tie": true,
+        "purpose": "Every line, budget, actual, variance, percent",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Material Variances",
+        "must_tie": false,
+        "purpose": "Each one with a cause",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Forecast Impact",
+        "must_tie": false,
+        "purpose": "What this means for the rest of the year",
+        "required": true
+      }
+    ],
+    "tie_out": "period actuals snapshot"
+  },
+  "cash_position_daily": {
+    "hats": [
+      "treasury"
+    ],
+    "metrics": [],
+    "name": "Daily cash position",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Balances by Account",
+        "must_tie": true,
+        "purpose": "Per bank account, as of this morning",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Movements Since Yesterday",
+        "must_tie": false,
+        "purpose": "In, out, net",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Upcoming",
+        "must_tie": false,
+        "purpose": "Next 7 days of known in and out",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Flags",
+        "must_tie": false,
+        "purpose": "Anything requiring attention today",
+        "required": true
+      }
+    ],
+    "tie_out": "bank balance snapshot"
+  },
+  "categorization_batch": {
+    "hats": [
+      "bookkeeping"
+    ],
+    "metrics": [],
+    "name": "Transaction categorization batch",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Batch Summary",
+        "must_tie": false,
+        "purpose": "Count and total by proposed account",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "High-Confidence Proposals",
+        "must_tie": false,
+        "purpose": "Rule-matched, listed for bulk approval",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Needs Judgment",
+        "must_tie": false,
+        "purpose": "Ambiguous items with the question for the human",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Unresolved",
+        "must_tie": false,
+        "purpose": "What stays uncategorized and why",
+        "required": true
+      }
+    ],
+    "tie_out": null
+  },
+  "flux_analysis": {
+    "hats": [
+      "controller",
+      "fpa"
+    ],
+    "metrics": [
+      "variance"
+    ],
+    "name": "Flux analysis",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Period Comparison",
+        "must_tie": true,
+        "purpose": "This period vs prior, by account",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Explained Movements",
+        "must_tie": false,
+        "purpose": "Cause per material movement",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Unexplained",
+        "must_tie": false,
+        "purpose": "What still needs research",
+        "required": true
+      }
+    ],
+    "tie_out": "period snapshot"
+  },
+  "investor_update": {
+    "hats": [
+      "investor-reporting"
+    ],
+    "metrics": [
+      "arr",
+      "net_burn",
+      "runway_months"
+    ],
+    "name": "Monthly investor update",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Headline",
+        "must_tie": false,
+        "purpose": "The month in three sentences",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Metrics",
+        "must_tie": false,
+        "purpose": "The same metrics, same definitions, every month",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Cash",
+        "must_tie": false,
+        "purpose": "Balance, burn, runway",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Highlights and Lowlights",
+        "must_tie": false,
+        "purpose": "Both. Lowlights first.",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Asks",
+        "must_tie": false,
+        "purpose": "Specific and actionable",
+        "required": true
+      }
+    ],
+    "tie_out": null
+  },
+  "kpi_dashboard": {
+    "hats": [
+      "fpa",
+      "investor-reporting"
+    ],
+    "metrics": [
+      "arr",
+      "mrr",
+      "gross_margin",
+      "net_revenue_retention",
+      "cac",
+      "ltv_cac",
+      "runway_months"
+    ],
+    "name": "KPI dashboard",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Metrics",
+        "must_tie": false,
+        "purpose": "Each with value, prior, delta, definition version",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Trend",
+        "must_tie": false,
+        "purpose": "Rolling periods",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Definition Notes",
+        "must_tie": false,
+        "purpose": "Any change since last period",
+        "required": true
+      }
+    ],
+    "tie_out": null
+  },
+  "month_end_close_pack": {
+    "hats": [
+      "controller"
+    ],
+    "metrics": [
+      "gross_margin",
+      "operating_income"
+    ],
+    "name": "Month-end close package",
+    "sections": [
+      {
+        "figures": [
+          "revenue",
+          "net_income"
+        ],
+        "heading": "Summary",
+        "must_tie": false,
+        "purpose": "Headline results and anything that moved unexpectedly",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Income Statement",
+        "must_tie": true,
+        "purpose": "Period and YTD, with prior-period comparison",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Balance Sheet",
+        "must_tie": true,
+        "purpose": "As of period end, tied to support",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Cash Flow",
+        "must_tie": true,
+        "purpose": "Operating, investing, financing",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Reconciliations",
+        "must_tie": true,
+        "purpose": "Every bank and card account, tied",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Variance Commentary",
+        "must_tie": false,
+        "purpose": "Material variances with causes",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Exceptions",
+        "must_tie": false,
+        "purpose": "Anomaly scan findings and their disposition",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Open Items",
+        "must_tie": false,
+        "purpose": "What is unresolved and who owns it",
+        "required": true
+      }
+    ],
+    "tie_out": "trial balance snapshot"
+  },
+  "thirteen_week_cash": {
+    "hats": [
+      "treasury"
+    ],
+    "metrics": [
+      "net_burn",
+      "runway_months"
+    ],
+    "name": "13-week cash flow",
+    "sections": [
+      {
+        "figures": [],
+        "heading": "Opening Position",
+        "must_tie": true,
+        "purpose": "Bank balance, tied to the bank not the books",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Receipts",
+        "must_tie": false,
+        "purpose": "By week, from AR aging and contracted revenue",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Disbursements",
+        "must_tie": false,
+        "purpose": "By week: payroll, AP, debt, taxes, other",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Net and Ending Balance",
+        "must_tie": false,
+        "purpose": "Weekly roll-forward",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Minimum Balance and Covenant Headroom",
+        "must_tie": false,
+        "purpose": "Where it gets tight",
+        "required": true
+      },
+      {
+        "figures": [],
+        "heading": "Assumptions",
+        "must_tie": false,
+        "purpose": "Collection timing, payment timing, anything uncertain",
+        "required": true
+      }
+    ],
+    "tie_out": "bank balance snapshot"
+  }
+}
