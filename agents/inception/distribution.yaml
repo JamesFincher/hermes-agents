@@ -1,0 +1,47 @@
+# Manifest keys from official profile-distributions + profile-commands.
+# https://hermes-agent.nousresearch.com/docs/user-guide/profile-distributions
+# hermes_requires: official examples are ">=0.12.0" / ">=0.13.0".
+# Features this floor must cover: native plugin.yaml + register(ctx),
+# ctx.call_mcp, metadata.hermes skill gates, memory.provider honcho,
+# custom_toolsets, plugins.entries.*.mcp_allowlist.
+# 0.14.0 was [UNV] and is not used (docs/HERMES-FACTS.md).
+
+name: inception
+version: 1.0.0
+description: "Authors new isolated Hermes profiles from the playbook. Does not share a runtime."
+hermes_requires: ">=0.13.0"
+author: "James Fincher"
+license: "Apache-2.0"
+
+# Official DEFAULT_DIST_OWNED does not include plugins/. Setting this list
+# replaces the default — keep the defaults we still want plus plugins.
+distribution_owned:
+  - SOUL.md
+  - config.yaml
+  - mcp.json
+  - skills
+  - plugins
+  - distribution.yaml
+  - profile.yaml
+  - honcho.json.example
+  - .env.EXAMPLE
+  - README.md
+  - HONEST-LIMITS.md
+  - .gitignore
+
+env_requires:
+  - name: HONCHO_API_KEY
+    description: "Honcho Cloud API key (app.honcho.dev). Self-hosted Honcho uses honcho.json baseUrl instead."
+    required: false
+  - name: CONTEXT7_API_KEY
+    description: "Context7 API key for the remote MCP server. Interpolated as ${env:CONTEXT7_API_KEY}."
+    required: false
+  - name: SEARXNG_URL
+    description: "Deploy-host URL for web.search_backend: searxng. Self-hosted search. Never commit the value."
+    required: false
+  - name: FIRECRAWL_API_URL
+    description: "Deploy-host URL for web.extract_backend: firecrawl. Self-hosted extract. Key optional when this URL is set. Never commit the value."
+    required: false
+  - name: OPENAI_API_KEY
+    description: "Example model-provider key. This distribution does not pin a model."
+    required: false

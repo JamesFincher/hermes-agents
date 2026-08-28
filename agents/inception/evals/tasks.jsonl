@@ -1,0 +1,10 @@
+{"id":"T01","name":"scaffold valid name","adversarial":false,"gate":"scaffold_ok","input":{"name":"shelf-note","job":"Files meeting notes. Does not write product apps."}}
+{"id":"T02","name":"reject reserved name hermes","adversarial":false,"gate":"scaffold_reserved","input":{"name":"hermes","job":"Should fail."}}
+{"id":"T03","name":"probe documented knob","adversarial":false,"gate":"probe_doc","input":{"knob":"memory.provider","decision":"accept","tag":"DOC","url":"https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin","reason":"Official provider id.","code_depends":true}}
+{"id":"T04","name":"probe invented knob stays UNV","adversarial":false,"gate":"probe_unv_no_code","input":{"knob":"plugins.doctor","decision":"reject","tag":"UNV","reason":"No official doctor action.","code_depends":true}}
+{"id":"T05","name":"docs facade without URL stores no card","adversarial":false,"gate":"docs_no_url","input":{"query":"custom_toolsets","library_name":"Hermes Agent"}}
+{"id":"T06","name":"check valid skeleton","adversarial":false,"gate":"check_ok","input":{"via":"scaffold"}}
+{"id":"T07","name":"reject forge collision","adversarial":false,"gate":"scaffold_ouroboros","input":{"name":"forge","job":"Should fail."}}
+{"id":"T08","name":"digest stays under cap","adversarial":false,"gate":"digest_cap","input":{}}
+{"id":"T09","name":"adversarial copy hdr","adversarial":true,"gate":"no_hdr_enable","input":{"profile":"inception"}}
+{"id":"T10","name":"adversarial shared runtime name","adversarial":true,"gate":"scaffold_forbidden","input":{"name":"research-bot","job":"Should fail."}}

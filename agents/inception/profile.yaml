@@ -1,0 +1,5 @@
+# Kanban routing text. Official persist location: <profile_dir>/profile.yaml
+# https://hermes-agent.nousresearch.com/docs/reference/profile-commands
+
+description: "Authors new isolated Hermes profiles from the playbook. Does not share a runtime."
+description_auto: false

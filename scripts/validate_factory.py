@@ -101,38 +101,30 @@ def check_playbook() -> None:
         fail("missing docs/PROFILE-PLAYBOOK.md (source of truth)")
         return
     text = playbook.read_text(encoding="utf-8")
-    if "independent" not in text.lower():
-        fail("PROFILE-PLAYBOOK.md must describe generating one independent profile")
+    if "Hermes Agent Profile Library" not in text:
+        fail("PROFILE-PLAYBOOK.md must name the product Hermes Agent Profile Library")
+    if "nine surfaces" not in text.lower():
+        fail("PROFILE-PLAYBOOK.md must specify the nine surfaces")
+    if "primary identity" not in text.lower():
+        fail("PROFILE-PLAYBOOK.md must lock SOUL as primary identity")
+    if "the plugin registers the tool" not in text:
+        fail("PROFILE-PLAYBOOK.md must say the plugin registers the tool")
     if "HERMES_HOME" not in text:
         fail("PROFILE-PLAYBOOK.md must define isolated HERMES_HOME")
-    if "PRIMARY IDENTITY" not in text:
-        fail("PROFILE-PLAYBOOK.md must lock SOUL.md as PRIMARY IDENTITY")
-    if "SOUL is not a skill" not in text:
-        fail("PROFILE-PLAYBOOK.md must keep SOUL distinct from a skill")
-    if "no model-facing" not in text.lower():
-        fail("PROFILE-PLAYBOOK.md must lock delegate_task has no model-facing toolsets param")
-    if "does not replace `delegate_task`" not in text:
-        fail("PROFILE-PLAYBOOK.md must keep ctx.subagent_lifecycle distinct from delegate_task")
-    if "RECONNECT_UNAVAILABLE" not in text:
-        fail("PROFILE-PLAYBOOK.md must cite RECONNECT_UNAVAILABLE")
-    if "No active Hermes parent session" not in text:
-        fail("PROFILE-PLAYBOOK.md must cite fail-closed parent session")
-    if "child-pool" not in text:
-        fail("PROFILE-PLAYBOOK.md must forbid a shared child-pool")
-    for url in (
-        "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
-        "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
-        "https://hermes-agent.nousresearch.com/docs/developer-guide/subagent-lifecycle-api",
-        "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
-        "https://hermes-agent.nousresearch.com/docs/user-guide/features/web-search",
-        "https://hermes-agent.nousresearch.com/docs/developer-guide/web-search-provider-plugin",
-        "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
-        "https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes",
-        "https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns",
-        "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation",
-    ):
-        if url not in text:
-            fail(f"PROFILE-PLAYBOOK.md must cite {url}")
+    if "HONEST-LIMITS.md" not in text:
+        fail("PROFILE-PLAYBOOK.md must require HONEST-LIMITS.md")
+    if ">=0.13.0" not in text:
+        fail("PROFILE-PLAYBOOK.md must keep hermes_requires at an official example range")
+    if "0.14.0" in text and "not an invented" not in text:
+        fail("PROFILE-PLAYBOOK.md must not invent hermes_requires 0.14.0")
+    if "hermes profile install ./agents/" not in text:
+        fail("PROFILE-PLAYBOOK.md must lock path install")
+    if "repo-root `distribution.yaml`" not in text and "repo-root distribution.yaml" not in text:
+        fail("PROFILE-PLAYBOOK.md must forbid a repo-root distribution.yaml until official")
+    if "[UNV]" not in text:
+        fail("PROFILE-PLAYBOOK.md must keep the §11 index line [UNV] / not shipped")
+    if "plugins doctor" not in text.lower():
+        fail("PROFILE-PLAYBOOK.md must record the official STOP: no plugins doctor")
     leftovers = (
         "source_ledger_add",
         "source_ledger_list",
@@ -162,20 +154,26 @@ def check_docs_voice() -> None:
         if not path.is_file():
             continue
         text = path.read_text(encoding="utf-8")
-        for pattern in _BANNED_DOC_PATTERNS:
-            if pattern.search(text):
-                fail(
-                    f"{path.relative_to(ROOT)} names a cross-profile layer "
-                    f"({pattern.pattern}); each profile is independent"
-                )
-                break
-        for pattern in _COLLAPSED_SURFACE_PATTERNS:
-            if pattern.search(text):
-                fail(
-                    f"{path.relative_to(ROOT)} collapses PLUGIN and TOOL "
-                    f"({pattern.pattern}); say the plugin registers the tool"
-                )
-                break
+        for line in text.splitlines():
+            lower = line.lower()
+            stop_line = "never reintroduce" in lower or (
+                lower.lstrip().startswith(">") and "stop" in lower
+            )
+            for pattern in _BANNED_DOC_PATTERNS:
+                if pattern.search(line) and not stop_line:
+                    fail(
+                        f"{path.relative_to(ROOT)} names a cross-profile layer "
+                        f"({pattern.pattern}); each profile is independent"
+                    )
+                    break
+            else:
+                for pattern in _COLLAPSED_SURFACE_PATTERNS:
+                    if pattern.search(line) and "never" not in lower:
+                        fail(
+                            f"{path.relative_to(ROOT)} collapses PLUGIN and TOOL "
+                            f"({pattern.pattern}); say the plugin registers the tool"
+                        )
+                        break
 
 
 def check_no_repo_root_plugin_package() -> None:
@@ -372,9 +370,22 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
                 f"{schemas_path.relative_to(ROOT)} must use the flat schema "
                 "{name, description, parameters}"
             )
-        for needle in ("When to call", "resolve_library", "docs_query", "cite_source"):
-            if needle not in schemas_text:
-                fail(f"{schemas_path.relative_to(ROOT)} must describe when to call {needle}")
+        if "When to call" not in schemas_text:
+            fail(f"{schemas_path.relative_to(ROOT)} must describe when to call each tool")
+        if expected_dirname == "hdr":
+            for needle in ("resolve_library", "docs_query", "cite_source"):
+                if needle not in schemas_text:
+                    fail(f"{schemas_path.relative_to(ROOT)} must describe when to call {needle}")
+        manifest_tools = []
+        if isinstance(manifest, dict):
+            raw_tools = manifest.get("provides_tools") or []
+            if isinstance(raw_tools, list):
+                manifest_tools = [str(item) for item in raw_tools]
+        for tool_name in manifest_tools:
+            if tool_name not in schemas_text:
+                fail(
+                    f"{schemas_path.relative_to(ROOT)} must describe when to call {tool_name}"
+                )
     for path in plugin_dir.rglob("*"):
         if not path.is_file() or path.suffix in {".pyc"}:
             continue
@@ -527,6 +538,11 @@ def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
                 f"{agent_dir.name} must not enable toolset research-bot; "
                 "that toolset is research-bot only"
             )
+        if "hdr" in enabled_names or "hdr" in bundled:
+            fail(
+                f"{agent_dir.name} must not enable plugin or toolset hdr; "
+                "hdr stays on research-bot only"
+            )
 
     return enabled_names
 
@@ -536,8 +552,12 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
     for required in ("SOUL.md", "config.yaml", "README.md", "INTEGRATION.md", ".gitignore"):
         if not (agent_dir / required).is_file():
             fail(f"{agent_dir.name} missing {required}")
+    if agent_dir.name != "research-bot" and not (agent_dir / "HONEST-LIMITS.md").is_file():
+        fail(f"{agent_dir.name} missing HONEST-LIMITS.md (playbook law 11)")
     if agent_dir.name == "research-bot" and not (agent_dir / ".env.EXAMPLE").is_file():
         fail("research-bot missing .env.EXAMPLE (post-install copy source)")
+    if agent_dir.name == "inception" and not (agent_dir / ".env.EXAMPLE").is_file():
+        fail("inception missing .env.EXAMPLE (post-install copy source)")
     factory_integration = ROOT / "docs" / "INTEGRATION.md"
     if factory_integration.is_file() and agent_dir.name == "research-bot":
         factory_text = factory_integration.read_text(encoding="utf-8")
@@ -647,6 +667,15 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
             extra = present - expected
             if missing:
                 fail(f"{agent_dir.name} missing HDR skills: {sorted(missing)}")
+            if extra:
+                fail(f"{agent_dir.name} unexpected skills: {sorted(extra)}")
+        if agent_dir.name == "inception":
+            present = {path.parent.name for path in skill_files}
+            expected = {"author-profile", "probe-knob", "review-profile"}
+            missing = expected - present
+            extra = present - expected
+            if missing:
+                fail(f"{agent_dir.name} missing factory skills: {sorted(missing)}")
             if extra:
                 fail(f"{agent_dir.name} unexpected skills: {sorted(extra)}")
         for skill_md in skill_files:
@@ -798,6 +827,130 @@ def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
                                 f"{fetch_script.relative_to(ROOT)} must try Wayback"
                             )
     _check_hdr_script_twins(agent_dir)
+    _check_inception_join(agent_dir)
+
+
+def collect_agent_errors(agent_dir: Path) -> list[str]:
+    """Return validator gaps for one profile directory. Does not print."""
+    saved = list(errors)
+    errors.clear()
+    try:
+        agents_root = ROOT / "agents"
+        all_names = set()
+        if agents_root.is_dir():
+            all_names = {
+                path.name
+                for path in agents_root.iterdir()
+                if path.is_dir() and not path.name.startswith(".")
+            }
+        all_names.add(agent_dir.name)
+        check_agent(agent_dir, all_names)
+        return list(errors)
+    finally:
+        errors.clear()
+        errors.extend(saved)
+
+
+def _check_inception_join(agent_dir: Path) -> None:
+    if agent_dir.name != "inception":
+        return
+    integration = agent_dir / "INTEGRATION.md"
+    if integration.is_file():
+        text = integration.read_text(encoding="utf-8")
+        for heading in (
+            "Nine surfaces",
+            "Settled: memory",
+            "Custom surface",
+            "MCP as a backend",
+        ):
+            if heading not in text:
+                fail(f"{integration.relative_to(ROOT)} must plan the join ({heading})")
+        if "docs_resolve" not in text or "scaffold_profile" not in text:
+            fail(f"{integration.relative_to(ROOT)} must list the tools the inception plugin registers")
+        if "hdr" in text and "must not" not in text.lower():
+            fail(f"{integration.relative_to(ROOT)} must not enable hdr")
+    soul = agent_dir / "SOUL.md"
+    if soul.is_file():
+        soul_text = soul.read_text(encoding="utf-8")
+        for needle in ("docs_resolve", "docs_ask", "scaffold_profile", "mcp_*"):
+            if needle in soul_text:
+                fail(
+                    f"{soul.relative_to(ROOT)} is identity only; "
+                    f"do not put {needle} procedures in SOUL"
+                )
+    canvas = ROOT / "docs" / "profiles" / "inception-canvas.md"
+    if not canvas.is_file():
+        fail("inception missing docs/profiles/inception-canvas.md")
+    spec = ROOT / "docs" / "profiles" / "inception-spec.md"
+    if not spec.is_file():
+        fail("inception missing docs/profiles/inception-spec.md")
+    eval_tasks = agent_dir / "evals" / "tasks.jsonl"
+    if not eval_tasks.is_file():
+        fail("inception missing evals/tasks.jsonl")
+    else:
+        rows = [line for line in eval_tasks.read_text(encoding="utf-8").splitlines() if line.strip()]
+        if len(rows) < 8:
+            fail("inception evals/tasks.jsonl must have at least 8 frozen tasks")
+        adversarial = 0
+        for line in rows:
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                fail("inception evals/tasks.jsonl has a non-JSON line")
+                continue
+            if payload.get("adversarial"):
+                adversarial += 1
+        if adversarial < 2:
+            fail("inception evals/tasks.jsonl must include at least 2 adversarial tasks")
+    if not (agent_dir / "evals" / "rubric.md").is_file():
+        fail("inception missing evals/rubric.md")
+    config = load_yaml(agent_dir / "config.yaml") if (agent_dir / "config.yaml").is_file() else {}
+    if isinstance(config, dict):
+        web = config.get("web") if isinstance(config.get("web"), dict) else {}
+        if web.get("search_backend") != "searxng":
+            fail("inception web.search_backend must be 'searxng' when the profile uses the web")
+        if web.get("extract_backend") != "firecrawl":
+            fail("inception web.extract_backend must be 'firecrawl'")
+        if web.get("keyless_fallback") is not True:
+            fail("inception web.keyless_fallback must be true")
+        if web.get("keyless_rescue") is not True:
+            fail("inception web.keyless_rescue must be true")
+        plugins_enabled = (config.get("plugins") or {}).get("enabled") or []
+        if plugins_enabled != ["inception"]:
+            fail("inception plugins.enabled must be [inception]")
+    skills = agent_dir / "skills"
+    required_by_skill = {
+        "author-profile": [
+            "docs_resolve",
+            "docs_ask",
+            "probe_knob",
+            "scaffold_profile",
+            "check_profile",
+        ],
+        "probe-knob": ["docs_resolve", "docs_ask", "probe_knob"],
+        "review-profile": ["check_profile"],
+    }
+    for skill_name, needed_tools in required_by_skill.items():
+        skill_md = skills / skill_name / "SKILL.md"
+        if not skill_md.is_file():
+            continue
+        body = skill_md.read_text(encoding="utf-8")
+        if "mcp_*" not in body:
+            fail(f"{skill_md.relative_to(ROOT)} must tell the model not to call raw mcp_* tools")
+        if skill_name == "author-profile":
+            if "Step 0" not in body or "Step 5" not in body:
+                fail(f"{skill_md.relative_to(ROOT)} must map playbook steps 0-4 then 5-10")
+        if skill_name == "review-profile" and "What is in context on turn 40" not in body:
+            fail(f"{skill_md.relative_to(ROOT)} must walk the §10 heuristics")
+        front_end = body.find("\n---", 3)
+        front = yaml.safe_load(body[4:front_end]) if front_end > 0 else {}
+        hermes = ((front or {}).get("metadata") or {}).get("hermes") or {}
+        tool_names = [str(item) for item in (hermes.get("requires_tools") or [])]
+        for needed in needed_tools:
+            if needed not in tool_names:
+                fail(
+                    f"{skill_md.relative_to(ROOT)} requires_tools must include {needed!r}"
+                )
 
 
 def _check_literature_sweep_env(skill_md: Path, front: dict, hermes: dict) -> None:

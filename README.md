@@ -32,6 +32,7 @@ From a clone of this repo, on a machine with stock Hermes (`~/.hermes`, not Geng
 
 ```bash
 hermes profile install ./agents/research-bot --alias
+hermes profile install ./agents/inception --alias
 ```
 
 Then fill env keys from the installer's `.env.EXAMPLE`, merge `agents/research-bot/honcho.json.example` into local Honcho config (no secrets in git), and run `hermes memory setup` if Honcho is not already the active provider.
@@ -44,9 +45,10 @@ hermes profile update research-bot
 
 ## Profiles
 
-| Profile | Path | Role |
-| --- | --- | --- |
-| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships **its own** `hdr` plugin and toolset at `plugins/hdr/`. |
+| Profile | Path | Job | Scarce resource | Headline custom surface |
+| --- | --- | --- | --- | --- |
+| `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships **its own** `hdr` plugin and toolset at `plugins/hdr/`. | Evidence tokens | Evidence Bus + Citation Gate + governor |
+| `inception` | `agents/inception/` | Authors new isolated Hermes profiles from the playbook. Does not share a runtime. Ships **its own** `inception` plugin and toolset at `plugins/inception/`. | Context tokens | Isolation fence + docs distill + probe ledger |
 
 ## Add the next profile
 

@@ -1,11 +1,6 @@
 # Credentials & secrets — NEVER commit
 auth.json
 .env
-.env.*
-!.env.example
-!.env.EXAMPLE
-**/.env
-**/auth.json
 
 # Runtime databases & state
 state.db
@@ -38,24 +33,12 @@ browser_screenshots/
 cache/
 mcp-tokens/
 
-# Installer-generated empty shells stay ignored. Authored profile templates
-# are tracked (see agents/research-bot/.env.EXAMPLE).
-.env.EXAMPLE
-!agents/research-bot/.env.EXAMPLE
-!agents/inception/.env.EXAMPLE
-
-# Infrastructure (safe to exclude if they appear)
+# Infrastructure
 hermes-agent/
 .worktrees/
+profiles/
 bin/
 node_modules/
-__pycache__/
-*.pyc
-.venv/
-venv/
-
-# Plugin runtime state (official: <HERMES_HOME>/plugin-data/<name>/)
-plugin-data/
 
 # User customization namespace
 local/
@@ -69,7 +52,8 @@ backups/
 errors.log
 .hermes_history
 
-# Editor / OS
-.DS_Store
-*.swp
-.idea/
+# Operator-local Honcho config (example stays tracked)
+honcho.json
+
+# Plugin runtime state — never the install tree
+plugin-data/
