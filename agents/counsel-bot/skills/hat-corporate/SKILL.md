@@ -1,6 +1,6 @@
 ---
 name: hat-corporate
-description: Corporate hat: formation, governance, and equity documents anchored to the state entity statute.
+description: "Corporate hat: formation, governance, and equity documents anchored to the state entity statute."
 version: 1.0.0
 metadata:
   hermes:
@@ -14,6 +14,12 @@ metadata:
 
 ## When to Use
 `set_hat hat=corporate`. Formation, governance, equity, and entity maintenance.
+
+## Quick Reference
+`set_hat hat=corporate`, then `draft_scaffold doc_type=?`. Documents:
+`operating_agreement`, `bylaws`, `board_consent`, `nda`, `msa`,
+`employment_agreement`, `legal_memo`. Anchor each statutory floor to the
+formation-state entity code.
 
 ## What controls
 The state entity statute first: it supplies defaults, mandatory rules, and which
@@ -46,3 +52,7 @@ operating agreement, then board and shareholder action.
 - Indemnification broader than the statute permits.
 - Written consent used where the statute requires unanimity.
 - Cap-table math done in prose. Use `execute_code`.
+
+## Verification
+Hat is `corporate`. Entity type and formation state are recorded. Statutory
+floors cite the code. `draft_check` is clean before write.

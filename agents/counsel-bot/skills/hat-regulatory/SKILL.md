@@ -1,6 +1,6 @@
 ---
 name: hat-regulatory
-description: Regulatory hat: compliance and agency work with as-of dating and a hard line between law and guidance.
+description: "Regulatory hat: compliance and agency work with as-of dating and a hard line between law and guidance."
 version: 1.0.0
 metadata:
   hermes:
@@ -15,6 +15,11 @@ metadata:
 ## When to Use
 `set_hat hat=regulatory`. Compliance analysis, agency filings, rulemaking
 comments, and policy documents.
+
+## Quick Reference
+`set_hat hat=regulatory`, then `draft_scaffold doc_type=?`. Documents:
+`compliance_memo`, `agency_comment`, `privacy_policy`, `legal_memo`. Cite the
+CFR with an as-of date. Label guidance as not binding.
 
 ## What controls
 Statute, then implementing regulation as of a date, then agency guidance —
@@ -47,3 +52,7 @@ which is not law and is labeled as such.
 - Treating an agency FAQ as the rule.
 - Missing a state analogue because the federal rule was found first.
 - Stating a penalty amount without retrieving the current adjusted figure.
+
+## Verification
+Hat is `regulatory`. Each regulation has an as-of date. Guidance is labeled.
+`draft_check` is clean before write.

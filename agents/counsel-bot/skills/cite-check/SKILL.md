@@ -17,6 +17,11 @@ Before delivering anything. Also on demand for a document someone else wrote —
 including one produced by another AI system, which is the common case and the
 reason this skill exists.
 
+## Quick Reference
+`cite_check text=<document>`. Treat `not_found` / `unresolved` as fabricated
+until proven otherwise. Confirm support with `authority_read`. Check currency
+with `authority_status`.
+
 ## Procedure
 1. `cite_check text=<document>`. Every citation is extracted and resolved.
 2. Triage the results:

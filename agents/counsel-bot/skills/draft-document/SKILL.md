@@ -17,6 +17,11 @@ The matter is open, the hat is set, and the authority for any legal assertion in
 the document has been retrieved. If any of those is untrue, you are drafting too
 early.
 
+## Quick Reference
+`draft_scaffold` → draft with `[[FACT:...]]` blanks → `cite_format` →
+`draft_check` until clean → write under `drafts/`. Never fill a placeholder
+with a plausible value.
+
 ## Procedure
 1. `draft_scaffold doc_type=?` to see what this hat allows. Then
    `draft_scaffold doc_type=<key>` for the required-elements contract.

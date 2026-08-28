@@ -1,6 +1,6 @@
 ---
 name: hat-litigation
-description: Litigation hat: pleadings, motions, discovery, and demand letters, with forum rules retrieved first.
+description: "Litigation hat: pleadings, motions, discovery, and demand letters, with forum rules retrieved first."
 version: 1.0.0
 metadata:
   hermes:
@@ -15,6 +15,12 @@ metadata:
 ## When to Use
 `set_hat hat=litigation` was called, or the matter involves a pending or
 contemplated case before a court or arbitrator.
+
+## Quick Reference
+`set_hat hat=litigation`, then `draft_scaffold doc_type=?`. Documents:
+`complaint`, `answer`, `motion_to_dismiss`, `discovery_requests`,
+`demand_letter`, `settlement_agreement`, `legal_memo`. Deadlines go through
+`deadline_compute` with a retrieved rule.
 
 ## What controls, in order
 1. The forum's **local rules** and the judge's **standing order**. These beat
@@ -54,3 +60,7 @@ contemplated case before a court or arbitrator.
 - Copying a caption format from a different court.
 - Treating a case's summary as its holding.
 - Computing "30 days" without checking whether the rule counts court days.
+
+## Verification
+Hat is `litigation`. Local rules or a standing order were retrieved. Each
+count lists retrieved elements. `draft_check` is clean before write.

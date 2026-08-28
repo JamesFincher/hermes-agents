@@ -1,6 +1,6 @@
 ---
 name: hat-employment
-description: Employment hat: federal floor and state ceiling checked separately, with jurisdiction-fatal clauses flagged.
+description: "Employment hat: federal floor and state ceiling checked separately, with jurisdiction-fatal clauses flagged."
 version: 1.0.0
 metadata:
   hermes:
@@ -15,6 +15,12 @@ metadata:
 ## When to Use
 `set_hat hat=employment`. Offer letters, employment and contractor agreements,
 policies, separation agreements, and workplace claims.
+
+## Quick Reference
+`set_hat hat=employment`, then `draft_scaffold doc_type=?`. Documents:
+`employment_agreement`, `offer_letter`, `nda`, `settlement_agreement`,
+`demand_letter`, `compliance_memo`, `legal_memo`. Check federal floor and
+state ceiling for every statutory clause.
 
 ## What controls
 A federal floor and a state (often city) ceiling. Both must be checked, and the
@@ -48,3 +54,7 @@ answer must say which one controls the point.
 - A confidentiality clause that reads as barring protected disclosures.
 - Assuming at-will language cures a fixed-term promise elsewhere in the document.
 - A separation agreement missing a required consideration or revocation period.
+
+## Verification
+Hat is `employment`. Work location is recorded. Each statutory clause names
+the controlling federal or state source. `draft_check` is clean before write.

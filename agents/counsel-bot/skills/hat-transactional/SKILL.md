@@ -1,6 +1,6 @@
 ---
 name: hat-transactional
-description: Transactional hat: agreements, with every commercial term sourced and jurisdiction-fatal clauses flagged.
+description: "Transactional hat: agreements, with every commercial term sourced and jurisdiction-fatal clauses flagged."
 version: 1.0.0
 metadata:
   hermes:
@@ -15,6 +15,11 @@ metadata:
 ## When to Use
 `set_hat hat=transactional`. Agreements between parties: services, sales,
 licensing, NDAs, settlements, leases.
+
+## Quick Reference
+`set_hat hat=transactional`, then `draft_scaffold doc_type=?`. Documents:
+`nda`, `msa`, `settlement_agreement`, `lease`, `demand_letter`, `legal_memo`.
+Every number is a recorded fact or a `[[FACT:...]]` placeholder.
 
 ## What controls
 Party intent, expressed in the document, constrained by the governing law they
@@ -49,3 +54,7 @@ choose and by any mandatory law they cannot contract around.
 - Silent auto-renewal terms in jurisdictions that regulate them.
 - An indemnity that swallows the liability cap two pages later.
 - Signature blocks that do not match the recorded entity names.
+
+## Verification
+Hat is `transactional`. Represented party is recorded. Open terms are listed.
+`draft_check` is clean before write.
