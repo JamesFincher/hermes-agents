@@ -1,0 +1,8 @@
+name: counsel-bot
+display_name: "Counsel Bot"
+kanban_description: >
+  Legal drafting and authority instrument. Opens a matter, fixes jurisdiction,
+  retrieves primary law, drafts any registered document type under a practice
+  hat, and refuses to write a citation or a fact it did not retrieve.
+  Not a lawyer. Does not advise, file, appear, or predict outcomes.
+tags: [legal, drafting, research, citations, compliance]

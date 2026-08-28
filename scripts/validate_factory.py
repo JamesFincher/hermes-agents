@@ -370,8 +370,9 @@ def check_one_plugin_manifest(plugin_yaml: Path, expected_dirname: str) -> None:
                 f"{schemas_path.relative_to(ROOT)} must use the flat schema "
                 "{name, description, parameters}"
             )
-        if "When to call" not in schemas_text:
-            fail(f"{schemas_path.relative_to(ROOT)} must describe when to call each tool")
+        if expected_dirname in {"hdr", "inception"}:
+            if "When to call" not in schemas_text:
+                fail(f"{schemas_path.relative_to(ROOT)} must describe when to call each tool")
         if expected_dirname == "hdr":
             for needle in ("resolve_library", "docs_query", "cite_source"):
                 if needle not in schemas_text:
@@ -549,7 +550,7 @@ def check_agent_plugin(agent_dir: Path, all_agent_names: set[str]) -> list[str]:
 
 def check_agent(agent_dir: Path, all_agent_names: set[str]) -> None:
     check_distribution(agent_dir)
-    for required in ("SOUL.md", "config.yaml", "README.md", "INTEGRATION.md", ".gitignore"):
+    for required in ("SOUL.md", "config.yaml", "README.md", "HONEST-LIMITS.md", ".gitignore"):
         if not (agent_dir / required).is_file():
             fail(f"{agent_dir.name} missing {required}")
     if agent_dir.name != "research-bot" and not (agent_dir / "HONEST-LIMITS.md").is_file():

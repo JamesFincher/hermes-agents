@@ -1,0 +1,19 @@
+{
+  "mcp_servers": {
+    "courtlistener": {
+      "url": "https://mcp.courtlistener.com/mcp",
+      "headers": { "Authorization": "Bearer ${env:COURTLISTENER_TOKEN}" },
+      "tools": { "resources": true, "prompts": true },
+      "_note": "Free Law Project ships an MCP server for CourtListener. Verify the endpoint and auth header against their current docs at install time; the plugin degrades to plugins/lex/scripts/fetch_authority.py if the server is unreachable."
+    },
+    "govinfo": {
+      "url": "https://mcp.example-govinfo/mcp",
+      "headers": { "X-Api-Key": "${env:GOVINFO_API_KEY}" },
+      "_note": "UNVERIFIED endpoint. If no govinfo MCP server exists in your environment, delete this block; authority_search falls back to web_search + web_extract over govinfo.gov and the plugin marks the source accordingly."
+    },
+    "ecfr": {
+      "url": "https://mcp.example-ecfr/mcp",
+      "_note": "UNVERIFIED endpoint. eCFR publishes a documented public REST API with no key; plugins/lex/scripts/fetch_authority.py --ecfr uses it directly and is the supported path."
+    }
+  }
+}

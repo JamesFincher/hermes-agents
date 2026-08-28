@@ -1,0 +1,111 @@
+{
+  "litigation": {
+    "focus": "Disputes before a court or arbitrator.",
+    "authority_priority": ["court_rule", "case", "statute", "regulation"],
+    "primary_sources": ["CourtListener", "forum local rules", "standing orders", "state codes"],
+    "hard_rules": [
+      "Local rules and standing orders control over general practice. Retrieve them.",
+      "Never compute a filing deadline without the rule text.",
+      "Caption and formatting are forum-specific; retrieve the forum's requirements.",
+      "Every factual allegation traces to a recorded fact or is a placeholder."
+    ]
+  },
+  "transactional": {
+    "focus": "Agreements between parties.",
+    "authority_priority": ["statute", "case", "regulation"],
+    "primary_sources": ["state commercial codes", "UCC as adopted", "case law on enforceability"],
+    "hard_rules": [
+      "Governing law and venue clauses must match a recorded party decision, not a default.",
+      "Every dollar amount, date, term length, and notice period is a fact or a placeholder.",
+      "Flag any clause whose enforceability is jurisdiction-dependent with the authority."
+    ]
+  },
+  "corporate": {
+    "focus": "Entity formation, governance, and equity.",
+    "authority_priority": ["statute", "regulation", "case"],
+    "primary_sources": ["state corporation/LLC codes", "SEC rules", "state filing portals"],
+    "hard_rules": [
+      "Entity-type consequences are statutory: cite the code section, do not summarize from memory.",
+      "Securities implications are flagged, never resolved.",
+      "Never state a filing fee or processing time without a retrieved source."
+    ]
+  },
+  "employment": {
+    "focus": "Workplace agreements, policies, and claims.",
+    "authority_priority": ["statute", "regulation", "case", "court_rule"],
+    "primary_sources": ["FLSA/Title VII/ADA", "state labor codes", "DOL and EEOC regs and guidance"],
+    "hard_rules": [
+      "Federal floor, state ceiling: check both, and say which controls.",
+      "Restrictive covenants are jurisdiction-fatal; never carry a clause across states.",
+      "Classification and wage questions require the specific regulation, not a general rule."
+    ]
+  },
+  "ip": {
+    "focus": "Patents, trademarks, copyright, trade secrets.",
+    "authority_priority": ["statute", "regulation", "case"],
+    "primary_sources": ["Title 35", "Title 17", "Lanham Act", "USPTO/Copyright Office rules", "TMEP/MPEP"],
+    "hard_rules": [
+      "Registration procedure is regulatory; retrieve the current rule.",
+      "Never opine on patentability, infringement, or validity. Describe standards only."
+    ]
+  },
+  "real-estate": {
+    "focus": "Property transfer, leasing, and land use.",
+    "authority_priority": ["statute", "regulation", "case"],
+    "primary_sources": ["state property codes", "recording statutes", "local zoning codes"],
+    "hard_rules": [
+      "Recording and notice requirements are county-level. Retrieve the county, not the state, rule.",
+      "Legal descriptions are copied from a source document, never composed."
+    ]
+  },
+  "family": {
+    "focus": "Domestic relations documents.",
+    "authority_priority": ["statute", "court_rule", "case"],
+    "primary_sources": ["state family codes", "local family court rules", "judicial council forms"],
+    "hard_rules": [
+      "Most family filings use mandatory state forms. Find the form; do not invent a document.",
+      "Support and custody calculations are statutory formulas. Do not estimate.",
+      "This is a domain where an error is measured in people. Bias hard toward referral."
+    ]
+  },
+  "immigration": {
+    "focus": "Petitions, applications, and supporting documentation.",
+    "authority_priority": ["statute", "regulation", "case"],
+    "primary_sources": ["INA", "8 C.F.R.", "USCIS Policy Manual", "current form editions"],
+    "hard_rules": [
+      "Form edition dates and fees change constantly. Retrieve current editions or refuse.",
+      "Never state a processing time or priority date from memory.",
+      "Consequences of error are severe and personal. Bias hard toward referral."
+    ]
+  },
+  "estates": {
+    "focus": "Wills, trusts, powers, and probate documents.",
+    "authority_priority": ["statute", "court_rule", "case"],
+    "primary_sources": ["state probate codes", "execution formality statutes", "local probate rules"],
+    "hard_rules": [
+      "Execution formalities are the whole ballgame and are state-specific. Cite the statute.",
+      "Never draft around a formality requirement you did not retrieve."
+    ]
+  },
+  "regulatory": {
+    "focus": "Compliance, agency filings, and comments.",
+    "authority_priority": ["statute", "regulation", "case"],
+    "primary_sources": ["eCFR", "Federal Register", "agency guidance", "state administrative codes"],
+    "hard_rules": [
+      "Cite the CFR section as of a date, and say the date.",
+      "Guidance is not law. Label it.",
+      "Comment deadlines come from the Federal Register document, never from inference."
+    ]
+  },
+  "pro-se": {
+    "focus": "Helping a self-represented person produce their own document.",
+    "authority_priority": ["court_rule", "statute", "case"],
+    "primary_sources": ["court self-help centers", "judicial council forms", "local rules"],
+    "hard_rules": [
+      "Prefer the court's own mandatory form over any drafted document.",
+      "Explain what a term means; never tell the person what to do.",
+      "Surface the deadline and the referral route in every output.",
+      "State plainly and early that this is not legal advice and that free legal aid exists."
+    ]
+  }
+}

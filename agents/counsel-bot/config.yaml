@@ -1,0 +1,149 @@
+# counsel-bot — Hermes profile config
+# Knob sweep per docs/PROFILE-PLAYBOOK.md §5. Every line here is a recorded
+# decision; deliberate defaults are commented rather than omitted.
+
+# ─── models: frontier drafter, cheap retrievers ──────────────────────────────
+model:
+  default: "<frontier-model>"        # drafting and analysis stay on the best model
+
+delegation:
+  model: "<fast-cheap-model>"        # authority-retrieval children; they filter, not reason
+  provider: "<provider>"
+  max_concurrent_children: 4         # one per issue in the issue list
+  max_iterations: 25
+  max_spawn_depth: 1                 # flat. Legal fan-out is per-issue, not recursive.
+  orchestrator_enabled: false        # explicit: no nested delegation in this profile
+  child_timeout_seconds: 600
+  worktree_isolation: false
+  surface_child_process_notifications: false
+
+auxiliary:
+  compression:
+    model: "<fast-cheap-model>"
+    reasoning_effort: "low"
+    max_concurrency: 2
+  vision:
+    model: "<vision-model>"          # scanned exhibits, stamped filings, signature pages
+    reasoning_effort: "none"
+  review:
+    model: "<frontier-model>"        # /review = the adversarial reader on a draft
+  title_generation:
+    enabled: false                   # matter names come from matter.json, not a model
+
+# ─── context economics (mandatory block) ─────────────────────────────────────
+# Legal sources are enormous: a single opinion or reg part can be 200k chars.
+# Nothing raw is allowed to ride the window twice.
+compression:
+  enabled: true
+  threshold: 0.55
+  threshold_tokens: 220000
+  tail_mode: lean
+  protect_last_n: 12
+  protect_first_n: 3                 # the matter framing must survive every compaction
+  in_place: true
+  idle_compact_after_seconds: 1800
+  proactive_prune_tokens: 48000      # old authority payloads stop being re-sent
+  proactive_prune_min_result_chars: 4000
+  proactive_prune_min_reclaim_tokens: 8192
+  context_timeout_seconds: 180
+
+tool_output:
+  max_bytes: 40000
+  max_lines: 1500
+  max_line_length: 1200
+
+tool_budget:
+  mcp_result_size_chars: 30000
+
+file_read_max_chars: 200000          # opinions are read in slices via authority_read
+context_file_max_chars: 20000
+
+prompt_caching:
+  cache_ttl: "1h"
+
+agent:
+  max_turns: none
+  run_budget_seconds: 2700           # 45 min; wrap-up notice fires at 80%
+  api_max_retries: 2
+  session_stall_timeout: 300
+  verify_on_stop: false              # code-only gate; ours is the Citation/Fact gate
+  verify_guidance: false
+  coding_instructions: ""
+
+# ─── execution surface ───────────────────────────────────────────────────────
+# This profile reads untrusted PDFs and web pages and holds matter facts.
+# Container backend is the boundary that matters.
+terminal:
+  backend: docker
+  docker_image: "nikolaik/python-nodejs:python3.11-nodejs20"
+  docker_network: true
+  docker_mount_cwd_to_workspace: false
+  container_persistent: true
+  container_memory: 4096
+  timeout: 180
+  env_passthrough: []                # skills declare their own keys
+
+# ─── retrieval ───────────────────────────────────────────────────────────────
+web:
+  search_backend: "searxng"
+  extract_backend: "firecrawl"
+  keyless_fallback: true             # a dead primary path degrades, never fails the matter
+  keyless_rescue: true
+
+skills:
+  inline_shell: false                # SKILL.md snippets execute on the host — stay off
+  write_approval: false
+  guard_agent_created: true
+  config:
+    lex:
+      draft_root: "drafts"
+      default_citation_format: "bluebook"
+
+memory:
+  provider: honcho
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 1400            # matter facts live in matter.json, never in memory
+  user_char_limit: 900
+  write_approval: true               # a matter fact must never be silently remembered wrong
+
+# ─── capability surface ──────────────────────────────────────────────────────
+custom_toolsets:
+  counsel:
+    - web
+    - browser          # PACER-adjacent portals, state legislature sites, JS-only dockets
+    - vision           # scanned exhibits and stamped filings
+    - file
+    - terminal
+    - code_execution   # deterministic date math, table building, redlines
+    - skills
+    - memory
+    - session_search   # prior matters are precedent for your own work product
+    - todo
+    - clarify          # one jurisdiction/scope question, then proceed
+    - delegation       # per-issue authority retrieval
+    - moa              # cross-model check on the load-bearing legal conclusion
+    - cronjob          # docket and reg watches
+    - lex              # this plugin
+
+toolsets:
+  - counsel
+
+plugins:
+  enabled:
+    - lex
+  stream_reasoning_deltas: false
+  entries:
+    lex:
+      mcp_allowlist: [courtlistener, govinfo, ecfr]
+      settings:
+        citation_format: bluebook          # bluebook | alwd | plain
+        authority_staleness_days: 30       # statutes/regs re-checked past this age
+        require_treatment_check: true      # cases need a citing-treatment attempt
+        fact_fence: strict                 # strict | warn  (strict blocks the write)
+        citation_gate: strict              # strict | warn
+        allow_deadline_without_rule: false # never true. Kept as a knob so it is auditable.
+        draft_root: "drafts"
+        disclaimer_footer: true
+        corpus_retention_days: 90
+        default_jurisdiction: ""           # e.g. "US-CA" — blank forces intake

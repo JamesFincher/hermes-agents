@@ -1,0 +1,39 @@
+name: counsel-bot
+version: 1.0.0
+description: "Legal drafting and authority instrument with enforced citation, fact, jurisdiction, and currency gates. Not legal advice."
+# Official examples are ">=0.12.0" / ">=0.13.0". 0.14.0 is [UNV]
+# (docs/HERMES-FACTS.md). Feature list below is the capability set, not a
+# version floor.
+hermes_requires: ">=0.13.0"
+# The floor must include: register_system_prompt_section, transform_tool_result,
+# transform_llm_output, compression.proactive_prune_tokens, agent.run_budget_seconds,
+# and pre_tool_call block/modify directives. VERIFY this floor against the release
+# notes before publishing — see docs/HERMES-FACTS.md.
+author: "James Fincher"
+license: "Apache-2.0"
+
+distribution_owned:
+  - SOUL.md
+  - config.yaml
+  - mcp.json
+  - profile.yaml
+  - distribution.yaml
+  - skills
+  - plugins          # NOT in the default owned set; omitting it ships no plugin
+  - evals
+  - honcho.json.example
+  - README.md
+  - HONEST-LIMITS.md
+  - .env.EXAMPLE
+  - .gitignore
+
+env_requires:
+  - name: COURTLISTENER_TOKEN
+    required: false
+    description: "CourtListener API v4. Powers case retrieval and the citation-lookup verification endpoint. Without it, citations cannot be externally verified and every citation is reported unverified."
+  - name: GOVINFO_API_KEY
+    required: false
+    description: "govinfo API for federal statutes and the Federal Register."
+  - name: COURTLISTENER_MCP_URL
+    required: false
+    description: "Override if you self-host or the endpoint moves."

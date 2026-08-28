@@ -1,0 +1,9 @@
+.env
+honcho.json
+plugin-data/
+drafts/
+research/
+memos/
+exhibits/
+__pycache__/
+*.pyc

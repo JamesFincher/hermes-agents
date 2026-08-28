@@ -1,0 +1,1611 @@
+{
+  "agency_comment": {
+    "authority_needed": [
+      "the Federal Register notice itself",
+      "comment deadline from the notice",
+      "statutory authority cited by the agency"
+    ],
+    "formatting": {},
+    "hats": [
+      "regulatory"
+    ],
+    "name": "Comment on a proposed rule",
+    "sections": [
+      {
+        "authority_required": true,
+        "heading": "Docket Identification",
+        "purpose": "Agency, docket number, RIN",
+        "required": true,
+        "slots": [
+          "docket_number"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Commenter Identity and Interest",
+        "purpose": "Who is commenting and why",
+        "required": true,
+        "slots": [
+          "commenter_name"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Summary of Position",
+        "purpose": "The ask, up front",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Specific Comments",
+        "purpose": "By section of the proposed rule",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Supporting Data",
+        "purpose": "Evidence offered",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Conclusion",
+        "purpose": "The requested change",
+        "required": true,
+        "slots": []
+      }
+    ]
+  },
+  "answer": {
+    "authority_needed": [
+      "affirmative defense elements",
+      "response deadline rule"
+    ],
+    "formatting": {},
+    "hats": [
+      "litigation",
+      "pro-se"
+    ],
+    "name": "Answer to complaint",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Caption",
+        "purpose": "Matching the complaint",
+        "required": true,
+        "slots": [
+          "court_name",
+          "case_number"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Responses",
+        "purpose": "Admit / deny / lack knowledge, paragraph by paragraph",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Affirmative Defenses",
+        "purpose": "Each defense with its elements",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Prayer",
+        "purpose": "Relief requested by defendant",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Signature Block",
+        "purpose": "Signer and date",
+        "required": true,
+        "slots": [
+          "signer_name"
+        ]
+      }
+    ]
+  },
+  "board_consent": {
+    "authority_needed": [
+      "statutory written-consent authority",
+      "unanimity requirement"
+    ],
+    "formatting": {},
+    "hats": [
+      "corporate"
+    ],
+    "name": "Written consent of the board",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Caption",
+        "purpose": "Entity and date",
+        "required": true,
+        "slots": [
+          "entity_name",
+          "consent_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Recitals",
+        "purpose": "Why the action is taken",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Resolutions",
+        "purpose": "RESOLVED clauses, one per action",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Signatures",
+        "purpose": "Each director",
+        "required": true,
+        "slots": [
+          "director_names"
+        ]
+      }
+    ]
+  },
+  "bylaws": {
+    "authority_needed": [
+      "state corporation code notice and quorum minimums",
+      "indemnification limits"
+    ],
+    "formatting": {},
+    "hats": [
+      "corporate"
+    ],
+    "name": "Corporate bylaws",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Offices",
+        "purpose": "Principal office",
+        "required": true,
+        "slots": [
+          "entity_name",
+          "principal_office"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Shareholders",
+        "purpose": "Meetings, notice, quorum, voting",
+        "required": true,
+        "slots": [
+          "notice_period"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Board of Directors",
+        "purpose": "Number, election, terms, removal",
+        "required": true,
+        "slots": [
+          "board_size"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Officers",
+        "purpose": "Roles and authority",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Indemnification",
+        "purpose": "Scope permitted by statute",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Stock",
+        "purpose": "Certificates and transfer",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Amendments",
+        "purpose": "How bylaws change",
+        "required": true,
+        "slots": []
+      }
+    ]
+  },
+  "cease_and_desist": {
+    "authority_needed": [
+      "basis of the asserted right",
+      "remedies available"
+    ],
+    "formatting": {},
+    "hats": [
+      "ip",
+      "litigation",
+      "employment"
+    ],
+    "name": "Cease and desist letter",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Header",
+        "purpose": "Sender, recipient, date",
+        "required": true,
+        "slots": [
+          "sender_name",
+          "recipient_name",
+          "letter_date"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Rights Asserted",
+        "purpose": "The right and its source",
+        "required": true,
+        "slots": [
+          "registration_number"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Conduct at Issue",
+        "purpose": "Specific acts, with dates",
+        "required": true,
+        "slots": [
+          "conduct_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Demand",
+        "purpose": "What must stop, by when",
+        "required": true,
+        "slots": [
+          "response_deadline"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Reservation of Rights",
+        "purpose": "Preserving remedies",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Signature",
+        "purpose": "Signer",
+        "required": true,
+        "slots": [
+          "sender_name"
+        ]
+      }
+    ]
+  },
+  "complaint": {
+    "authority_needed": [
+      "cause-of-action elements",
+      "jurisdictional statute",
+      "pleading standard",
+      "venue statute"
+    ],
+    "formatting": {
+      "line_numbering": "forum-dependent \u2014 retrieve local rule",
+      "numbered_paragraphs": true
+    },
+    "hats": [
+      "litigation",
+      "pro-se"
+    ],
+    "name": "Civil complaint",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Caption",
+        "purpose": "Court, parties, case number, document title",
+        "required": true,
+        "slots": [
+          "court_name",
+          "plaintiff_name",
+          "defendant_name",
+          "case_number"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Jurisdiction and Venue",
+        "purpose": "Statutory basis for this court hearing this case",
+        "required": true,
+        "slots": [
+          "jurisdiction_basis"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Parties",
+        "purpose": "Identity, residence, and capacity of each party",
+        "required": true,
+        "slots": [
+          "plaintiff_name",
+          "plaintiff_residence",
+          "defendant_name",
+          "defendant_residence"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Factual Allegations",
+        "purpose": "Numbered, particular facts. Every one traceable.",
+        "required": true,
+        "slots": [
+          "incident_date",
+          "incident_location"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Causes of Action",
+        "purpose": "One count per claim, elements pleaded",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Prayer for Relief",
+        "purpose": "Specific relief requested",
+        "required": true,
+        "slots": [
+          "damages_amount"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Jury Demand",
+        "purpose": "If demanded",
+        "required": false,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Signature Block",
+        "purpose": "Signer, bar number, address, date",
+        "required": true,
+        "slots": [
+          "signer_name",
+          "signer_address"
+        ]
+      }
+    ]
+  },
+  "compliance_memo": {
+    "authority_needed": [
+      "controlling statute",
+      "implementing regulation",
+      "agency guidance (labeled as guidance)"
+    ],
+    "formatting": {},
+    "hats": [
+      "regulatory",
+      "corporate",
+      "employment"
+    ],
+    "name": "Regulatory compliance memorandum",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Question Presented",
+        "purpose": "The precise question",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Short Answer",
+        "purpose": "The answer, with confidence and caveats",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Facts Assumed",
+        "purpose": "Every fact relied on, sourced",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Applicable Law",
+        "purpose": "Statutes and regulations as of a date",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Analysis",
+        "purpose": "Application to the assumed facts",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Open Questions and Risks",
+        "purpose": "What is unresolved",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Sources",
+        "purpose": "Table of authorities",
+        "required": true,
+        "slots": []
+      }
+    ]
+  },
+  "demand_letter": {
+    "authority_needed": [
+      "underlying obligation",
+      "statute of limitations",
+      "any pre-suit notice requirement"
+    ],
+    "formatting": {},
+    "hats": [
+      "litigation",
+      "transactional",
+      "employment",
+      "pro-se",
+      "real-estate"
+    ],
+    "name": "Demand letter",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Header",
+        "purpose": "Sender, recipient, date, subject",
+        "required": true,
+        "slots": [
+          "sender_name",
+          "recipient_name",
+          "letter_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Background",
+        "purpose": "What happened, in facts",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Legal Basis",
+        "purpose": "The obligation and its source",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Demand",
+        "purpose": "Exactly what is demanded, by when",
+        "required": true,
+        "slots": [
+          "demand_amount",
+          "response_deadline"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Consequences",
+        "purpose": "What follows if not met \u2014 no threats beyond lawful remedies",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Signature",
+        "purpose": "Signer and contact",
+        "required": true,
+        "slots": [
+          "sender_name"
+        ]
+      }
+    ]
+  },
+  "discovery_requests": {
+    "authority_needed": [
+      "numerical limits rule",
+      "response deadline rule",
+      "scope of discovery rule"
+    ],
+    "formatting": {},
+    "hats": [
+      "litigation"
+    ],
+    "name": "Interrogatories / RFPs / RFAs",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Caption",
+        "purpose": "Court and case",
+        "required": true,
+        "slots": [
+          "court_name",
+          "case_number"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Definitions and Instructions",
+        "purpose": "Terms used in the requests",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Requests",
+        "purpose": "Numbered, within the numerical limit",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Signature Block",
+        "purpose": "Signer and date",
+        "required": true,
+        "slots": [
+          "signer_name"
+        ]
+      }
+    ]
+  },
+  "employment_agreement": {
+    "authority_needed": [
+      "exemption test",
+      "state IP-assignment carve-out statute",
+      "noncompete enforceability",
+      "final-pay rule"
+    ],
+    "formatting": {},
+    "hats": [
+      "employment",
+      "corporate"
+    ],
+    "name": "Employment agreement",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Parties and Position",
+        "purpose": "Employer, employee, role",
+        "required": true,
+        "slots": [
+          "employer",
+          "employee_name",
+          "job_title",
+          "start_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Compensation",
+        "purpose": "Salary, bonus, equity",
+        "required": true,
+        "slots": [
+          "salary_amount",
+          "pay_frequency"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Classification",
+        "purpose": "Exempt or non-exempt, with basis",
+        "required": true,
+        "slots": [
+          "classification"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Benefits",
+        "purpose": "Reference to plan documents",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "At-Will Status or Term",
+        "purpose": "Employment duration",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Confidentiality and IP Assignment",
+        "purpose": "Scope, with statutory carve-outs",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Restrictive Covenants",
+        "purpose": "Only if enforceable in this jurisdiction",
+        "required": true,
+        "slots": [
+          "restriction_scope"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Termination",
+        "purpose": "Grounds, notice, severance",
+        "required": true,
+        "slots": [
+          "notice_period"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Governing Law and Venue",
+        "purpose": "Law and forum",
+        "required": true,
+        "slots": [
+          "governing_law",
+          "venue"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Signatures",
+        "purpose": "Execution",
+        "required": true,
+        "slots": [
+          "employer_signatory",
+          "employee_name"
+        ]
+      }
+    ]
+  },
+  "lease": {
+    "authority_needed": [
+      "deposit statute",
+      "habitability",
+      "entry-notice statute",
+      "late-fee limits",
+      "mandatory disclosures"
+    ],
+    "formatting": {},
+    "hats": [
+      "real-estate",
+      "transactional"
+    ],
+    "name": "Lease agreement",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Parties and Premises",
+        "purpose": "Landlord, tenant, property",
+        "required": true,
+        "slots": [
+          "landlord",
+          "tenant",
+          "property_address"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Term",
+        "purpose": "Start, end, renewal",
+        "required": true,
+        "slots": [
+          "lease_start_date",
+          "lease_end_date"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Rent",
+        "purpose": "Amount, due date, late fees",
+        "required": true,
+        "slots": [
+          "rent_amount",
+          "rent_due_day"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Security Deposit",
+        "purpose": "Amount and statutory handling",
+        "required": true,
+        "slots": [
+          "deposit_amount"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Use and Occupancy",
+        "purpose": "Permitted use",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Maintenance and Repairs",
+        "purpose": "Allocation of duties",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Entry",
+        "purpose": "Notice required before entry",
+        "required": true,
+        "slots": [
+          "entry_notice_period"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Default and Remedies",
+        "purpose": "Cure periods and remedies",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Required Disclosures",
+        "purpose": "Statutory disclosures for this jurisdiction",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Signatures",
+        "purpose": "Execution",
+        "required": true,
+        "slots": [
+          "landlord",
+          "tenant"
+        ]
+      }
+    ]
+  },
+  "legal_memo": {
+    "authority_needed": [
+      "controlling authority",
+      "contrary authority"
+    ],
+    "formatting": {},
+    "hats": [
+      "litigation",
+      "transactional",
+      "corporate",
+      "employment",
+      "ip",
+      "regulatory",
+      "estates",
+      "real-estate",
+      "family",
+      "immigration"
+    ],
+    "name": "Internal legal memorandum",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Question Presented",
+        "purpose": "The precise question",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Brief Answer",
+        "purpose": "Answer with confidence level",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Facts",
+        "purpose": "Facts relied on, each sourced",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Discussion",
+        "purpose": "Rule, application, counterargument",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Conclusion",
+        "purpose": "What follows",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Table of Authorities",
+        "purpose": "Everything cited",
+        "required": true,
+        "slots": []
+      }
+    ]
+  },
+  "motion_to_dismiss": {
+    "authority_needed": [
+      "dismissal standard",
+      "procedural rule",
+      "controlling case law"
+    ],
+    "formatting": {
+      "page_limit": "forum-dependent \u2014 retrieve local rule"
+    },
+    "hats": [
+      "litigation"
+    ],
+    "name": "Motion to dismiss",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Caption",
+        "purpose": "Court and case",
+        "required": true,
+        "slots": [
+          "court_name",
+          "case_number"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Notice of Motion",
+        "purpose": "Hearing date, time, department",
+        "required": false,
+        "slots": [
+          "hearing_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Statement of Issues",
+        "purpose": "What the court is asked to decide",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Statement of Facts",
+        "purpose": "Facts as pleaded, with record citations",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Legal Standard",
+        "purpose": "The governing standard with authority",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Argument",
+        "purpose": "Applied to the pleaded facts",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Conclusion",
+        "purpose": "Precise relief requested",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Certificate of Service",
+        "purpose": "How and when served",
+        "required": true,
+        "slots": [
+          "service_date"
+        ]
+      }
+    ]
+  },
+  "msa": {
+    "authority_needed": [
+      "limitation-of-liability enforceability",
+      "indemnity limits",
+      "chosen-law enforceability"
+    ],
+    "formatting": {},
+    "hats": [
+      "transactional",
+      "corporate"
+    ],
+    "name": "Master services agreement",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Parties and Recitals",
+        "purpose": "Who and why",
+        "required": true,
+        "slots": [
+          "party_a",
+          "party_b",
+          "effective_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Services and SOWs",
+        "purpose": "How work is ordered",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Fees and Payment",
+        "purpose": "Amounts, invoicing, late terms",
+        "required": true,
+        "slots": [
+          "fee_amount",
+          "payment_terms"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Term and Termination",
+        "purpose": "Duration and exit",
+        "required": true,
+        "slots": [
+          "term_length",
+          "notice_period"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Intellectual Property",
+        "purpose": "Ownership and licenses",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Confidentiality",
+        "purpose": "Or incorporation of an NDA",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Representations and Warranties",
+        "purpose": "What each side promises",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Indemnification",
+        "purpose": "Who covers what",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Limitation of Liability",
+        "purpose": "Caps and exclusions",
+        "required": true,
+        "slots": [
+          "liability_cap"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Insurance",
+        "purpose": "Required coverage",
+        "required": false,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Governing Law, Venue, Dispute Resolution",
+        "purpose": "Law, forum, and process",
+        "required": true,
+        "slots": [
+          "governing_law",
+          "venue"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "General Provisions",
+        "purpose": "Assignment, notices, entire agreement, severability",
+        "required": true,
+        "slots": [
+          "notice_address_a",
+          "notice_address_b"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Signatures",
+        "purpose": "Execution blocks",
+        "required": true,
+        "slots": [
+          "party_a_signatory",
+          "party_b_signatory"
+        ]
+      }
+    ]
+  },
+  "nda": {
+    "authority_needed": [
+      "trade secret statute as adopted",
+      "enforceability of the chosen law clause"
+    ],
+    "formatting": {},
+    "hats": [
+      "transactional",
+      "corporate",
+      "employment"
+    ],
+    "name": "Nondisclosure agreement",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Parties and Date",
+        "purpose": "Who and when",
+        "required": true,
+        "slots": [
+          "party_a",
+          "party_b",
+          "effective_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Definition of Confidential Information",
+        "purpose": "Scope and exclusions",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Obligations",
+        "purpose": "Use and disclosure restrictions",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Term and Survival",
+        "purpose": "Duration of obligations",
+        "required": true,
+        "slots": [
+          "term_length"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Return or Destruction",
+        "purpose": "End-of-term handling",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Remedies",
+        "purpose": "Including equitable relief",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Governing Law and Venue",
+        "purpose": "Chosen law and forum",
+        "required": true,
+        "slots": [
+          "governing_law",
+          "venue"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Signatures",
+        "purpose": "Execution blocks",
+        "required": true,
+        "slots": [
+          "party_a_signatory",
+          "party_b_signatory"
+        ]
+      }
+    ]
+  },
+  "offer_letter": {
+    "authority_needed": [
+      "wage-notice statute",
+      "exemption test"
+    ],
+    "formatting": {},
+    "hats": [
+      "employment"
+    ],
+    "name": "Employment offer letter",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Header",
+        "purpose": "Employer, candidate, date",
+        "required": true,
+        "slots": [
+          "employer",
+          "candidate_name",
+          "letter_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Position and Start Date",
+        "purpose": "Role and start",
+        "required": true,
+        "slots": [
+          "job_title",
+          "start_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Compensation",
+        "purpose": "Pay and frequency",
+        "required": true,
+        "slots": [
+          "salary_amount",
+          "pay_frequency"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Classification and Benefits",
+        "purpose": "Exempt status, benefit eligibility",
+        "required": true,
+        "slots": [
+          "classification"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Contingencies",
+        "purpose": "Background check, I-9, references",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "At-Will Statement",
+        "purpose": "Where applicable",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Acceptance",
+        "purpose": "Signature and deadline",
+        "required": true,
+        "slots": [
+          "offer_expiration"
+        ]
+      }
+    ]
+  },
+  "operating_agreement": {
+    "authority_needed": [
+      "state LLC act default rules",
+      "which defaults may be waived"
+    ],
+    "formatting": {},
+    "hats": [
+      "corporate",
+      "transactional"
+    ],
+    "name": "LLC operating agreement",
+    "sections": [
+      {
+        "authority_required": true,
+        "heading": "Formation",
+        "purpose": "Entity, state, date, purpose",
+        "required": true,
+        "slots": [
+          "entity_name",
+          "formation_state",
+          "formation_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Members and Capital",
+        "purpose": "Members, contributions, units",
+        "required": true,
+        "slots": [
+          "member_names",
+          "capital_contributions"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Allocations and Distributions",
+        "purpose": "Profit, loss, cash",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Management",
+        "purpose": "Member- or manager-managed",
+        "required": true,
+        "slots": [
+          "management_type"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Voting",
+        "purpose": "Thresholds and procedures",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Transfer Restrictions",
+        "purpose": "ROFR, drag, tag",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Dissolution",
+        "purpose": "Triggers and winding up",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Indemnification",
+        "purpose": "Of members and managers",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "General",
+        "purpose": "Amendment, notices, governing law",
+        "required": true,
+        "slots": [
+          "governing_law"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Signatures",
+        "purpose": "Execution by members",
+        "required": true,
+        "slots": [
+          "member_names"
+        ]
+      }
+    ]
+  },
+  "power_of_attorney": {
+    "authority_needed": [
+      "statutory form requirement",
+      "notarization and witness requirements"
+    ],
+    "formatting": {},
+    "hats": [
+      "estates",
+      "pro-se"
+    ],
+    "name": "Power of attorney",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Principal and Agent",
+        "purpose": "Who grants, who receives",
+        "required": true,
+        "slots": [
+          "principal_name",
+          "agent_name"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Powers Granted",
+        "purpose": "Enumerated, statutory form where required",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Effective Date and Durability",
+        "purpose": "When it starts and survives incapacity",
+        "required": true,
+        "slots": [
+          "effective_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Third-Party Reliance",
+        "purpose": "Acceptance provisions",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Execution",
+        "purpose": "Notarization and witnesses per statute",
+        "required": true,
+        "slots": [
+          "execution_date"
+        ]
+      }
+    ]
+  },
+  "privacy_policy": {
+    "authority_needed": [
+      "applicable state privacy statutes",
+      "sector regulations",
+      "required disclosure elements"
+    ],
+    "formatting": {},
+    "hats": [
+      "regulatory",
+      "corporate"
+    ],
+    "name": "Privacy policy",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Scope",
+        "purpose": "Who and what it covers",
+        "required": true,
+        "slots": [
+          "entity_name",
+          "effective_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Information Collected",
+        "purpose": "Categories and sources",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Use and Sharing",
+        "purpose": "Purposes and recipients",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Rights and Requests",
+        "purpose": "Access, deletion, opt-out mechanics",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Retention",
+        "purpose": "How long and why",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Security",
+        "purpose": "Safeguards described accurately",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Contact",
+        "purpose": "How to reach the entity",
+        "required": true,
+        "slots": [
+          "contact_email"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Changes",
+        "purpose": "How updates are notified",
+        "required": true,
+        "slots": []
+      }
+    ]
+  },
+  "settlement_agreement": {
+    "authority_needed": [
+      "release-scope statute (e.g. general release waivers)",
+      "age-discrimination waiver requirements",
+      "confidentiality restrictions on certain claims"
+    ],
+    "formatting": {},
+    "hats": [
+      "litigation",
+      "employment",
+      "transactional"
+    ],
+    "name": "Settlement and release",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Parties and Recitals",
+        "purpose": "Who and the dispute",
+        "required": true,
+        "slots": [
+          "party_a",
+          "party_b",
+          "effective_date"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Consideration",
+        "purpose": "What is exchanged",
+        "required": true,
+        "slots": [
+          "settlement_amount",
+          "payment_deadline"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Release",
+        "purpose": "Scope, including statutory carve-outs",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Dismissal",
+        "purpose": "Procedural steps if a case is pending",
+        "required": false,
+        "slots": [
+          "case_number"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Confidentiality and Non-Disparagement",
+        "purpose": "If agreed and enforceable",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "No Admission",
+        "purpose": "Standard clause",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Governing Law",
+        "purpose": "Chosen law",
+        "required": true,
+        "slots": [
+          "governing_law"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Signatures",
+        "purpose": "Execution",
+        "required": true,
+        "slots": [
+          "party_a_signatory",
+          "party_b_signatory"
+        ]
+      }
+    ]
+  },
+  "will": {
+    "authority_needed": [
+      "execution formality statute",
+      "witness requirements",
+      "self-proving affidavit statute"
+    ],
+    "formatting": {},
+    "hats": [
+      "estates"
+    ],
+    "name": "Last will and testament",
+    "sections": [
+      {
+        "authority_required": false,
+        "heading": "Declaration",
+        "purpose": "Testator, capacity, revocation of prior wills",
+        "required": true,
+        "slots": [
+          "testator_name",
+          "testator_residence"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Family",
+        "purpose": "Spouse and children identified",
+        "required": true,
+        "slots": [
+          "family_members"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Specific Bequests",
+        "purpose": "Named gifts",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": false,
+        "heading": "Residuary",
+        "purpose": "Everything else",
+        "required": true,
+        "slots": [
+          "residuary_beneficiary"
+        ]
+      },
+      {
+        "authority_required": false,
+        "heading": "Fiduciaries",
+        "purpose": "Executor, guardian, successors",
+        "required": true,
+        "slots": [
+          "executor_name"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Powers",
+        "purpose": "Fiduciary powers",
+        "required": true,
+        "slots": []
+      },
+      {
+        "authority_required": true,
+        "heading": "Execution and Attestation",
+        "purpose": "Statutory formalities exactly",
+        "required": true,
+        "slots": [
+          "execution_date"
+        ]
+      },
+      {
+        "authority_required": true,
+        "heading": "Self-Proving Affidavit",
+        "purpose": "Where available",
+        "required": false,
+        "slots": []
+      }
+    ]
+  }
+}
