@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..runtime import TIER_BUDGET, TIERS, dump, error
+from ..runtime import SATURATION_YIELD_LIMIT, TIER_BUDGET, TIERS, dump, error
 from ..store import claims as claim_store
 from ..store import ledger, run
 from ..store import support as support_mod
@@ -38,15 +38,25 @@ def research_plan(args: dict[str, Any], **kwargs: Any) -> str:
         action = str(payload.get("action") or "create").lower()
         if action not in _ACTIONS:
             return error("action must be create, update, or status")
+        current = run.load_run()
+        if current:
+            current = run.refresh_governor(current)
+        governor = (current or {}).get("governor") or "GREEN"
+        if governor in {"RED", "HARD"} and action != "status":
+            if not current:
+                return error("no active run")
+            envelope = _plan_envelope(current)
+            envelope["governor"] = current.get("governor")
+            envelope["note"] = f"governor {governor}: status only"
+            return dump(envelope)
         if action == "status":
-            current = run.load_run()
             if not current:
                 return error("no active run")
             return dump(_plan_envelope(current))
         if payload.get("tier") not in (None, "") and payload.get("tier") not in TIERS:
             return error("tier must be quick, standard, deep, or exhaustive")
         if action == "update":
-            current = run.load_run() or run.empty_run()
+            current = current or run.empty_run()
         elif payload.get("tier"):
             current = run.empty_run(
                 question=str(payload.get("question") or ""),
@@ -56,7 +66,7 @@ def research_plan(args: dict[str, Any], **kwargs: Any) -> str:
             current = run.empty_run(question=str(payload.get("question") or ""))
         if payload.get("question"):
             current["question"] = str(payload["question"])
-        if payload.get("tier") in TIERS:
+        if payload.get("tier") in TIERS and governor not in {"RED", "HARD"}:
             current["tier"] = payload["tier"]
             current["budget"] = dict(TIER_BUDGET[str(payload["tier"])])
         if isinstance(payload.get("open_questions"), list):
@@ -65,8 +75,7 @@ def research_plan(args: dict[str, Any], **kwargs: Any) -> str:
             current["falsifiers"] = [str(item) for item in payload["falsifiers"]]
         if isinstance(payload.get("constraints"), dict):
             current["constraints"] = payload["constraints"]
-        current["governor"] = run.governor_state(current)
-        saved = run.save_run(current)
+        saved = run.refresh_governor(current)
         envelope = _plan_envelope(saved)
         envelope["governor"] = saved.get("governor")
         return dump(envelope)
@@ -74,14 +83,21 @@ def research_plan(args: dict[str, Any], **kwargs: Any) -> str:
         return error(str(exc))
 
 
-def _recommend(governor: str | None, unanswered: list[str], yield_ratio: float) -> str:
+def _recommend(
+    governor: str | None,
+    unanswered: list[str],
+    yield_ratio: float,
+    saturated: bool,
+) -> str:
     if governor == "HARD":
         return "stop"
     if governor in {"AMBER", "RED"}:
         return "synthesize"
     if unanswered and governor in {None, "GREEN"}:
         return "depth"
-    if yield_ratio < 0.20 and not unanswered:
+    if saturated:
+        return "synthesize"
+    if yield_ratio < SATURATION_YIELD_LIMIT and not unanswered:
         return "synthesize"
     if not unanswered:
         return "synthesize"
@@ -96,6 +112,8 @@ def gap_scan(args: dict[str, Any], **kwargs: Any) -> str:
         if detail not in _DETAILS:
             return error("detail must be summary or full")
         current = run.load_run()
+        if current:
+            current = run.refresh_governor(current)
         sources = ledger.list_sources(run_id=(current or {}).get("run_id") or "")
         if not sources:
             sources = ledger.list_sources()
@@ -104,12 +122,15 @@ def gap_scan(args: dict[str, Any], **kwargs: Any) -> str:
         unanswered: list[str] = []
         thin: list[dict[str, Any]] = []
         last_ids = [str(item) for item in ((current or {}).get("last_batch_ids") or [])]
+        last_sources = []
         new_ab = 0
         for sid in last_ids:
             src = ledger.get_source(sid)
+            if src:
+                last_sources.append(src)
             if src and str(src.get("tier") or "") in {"A", "B"}:
                 new_ab += 1
-        yield_ratio = new_ab / max(1, len(last_ids))
+        yield_ratio = new_ab / len(last_sources) if last_sources else 0.0
         for question in open_qs:
             coverage = support_mod.question_coverage(question, sources, graph)
             if coverage["support"] < 2:
@@ -147,11 +168,21 @@ def gap_scan(args: dict[str, Any], **kwargs: Any) -> str:
         ]
         conflicts = claim_store.conflicts()
         governor = (current or {}).get("governor")
-        recommend = _recommend(str(governor) if governor is not None else None, unanswered, yield_ratio)
-        saturation = yield_ratio
+        yield_low = yield_ratio < SATURATION_YIELD_LIMIT
+        covered = not unanswered
+        saturated = bool(
+            governor in {"AMBER", "RED", "HARD"} or (yield_low and covered and last_sources)
+        )
+        recommend = _recommend(
+            str(governor) if governor is not None else None,
+            unanswered,
+            yield_ratio,
+            saturated,
+        )
         if current:
-            current["saturation"] = saturation
+            current["saturation"] = yield_ratio
             current["new_source_yield"] = yield_ratio
+            current["saturated"] = saturated
             current["named_gaps"] = unanswered
             current["phase"] = "gap"
             run.save_run(current)
@@ -159,7 +190,7 @@ def gap_scan(args: dict[str, Any], **kwargs: Any) -> str:
         return dump(
             {
                 "ok": True,
-                "saturation": saturation,
+                "saturation": yield_ratio,
                 "unanswered": unanswered,
                 "thin": thin[:cap],
                 "conflicts": conflicts,
@@ -167,6 +198,7 @@ def gap_scan(args: dict[str, Any], **kwargs: Any) -> str:
                 "backfill": backfill,
                 "recommend": recommend,
                 "new_source_yield": yield_ratio,
+                "saturated": saturated,
                 "sources": len(sources),
             }
         )

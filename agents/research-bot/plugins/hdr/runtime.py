@@ -73,6 +73,9 @@ TIER_BUDGET = {
     "exhaustive": {"tokens": 3_000_000, "fetches": 250, "seconds": 3600, "workers": 10},
 }
 
+# Spec §3.6: stop breadth when last-batch A/B yield is below this share.
+SATURATION_YIELD_LIMIT = 0.20
+
 _ctx: Any = None
 
 

@@ -52,20 +52,15 @@ def worker_brief(args: dict[str, Any], **kwargs: Any) -> str:
         question = str((args or {}).get("open_question") or "").strip()
         if not question:
             return error("open_question is required")
+        if current:
+            current = run.refresh_governor(current)
         governor = (current or {}).get("governor")
         if governor in {"RED", "HARD"}:
             return error(
                 f"governor {governor}: refuse new worker brief. Synthesize from the ledger."
             )
         if governor == "AMBER":
-            named = list((current or {}).get("named_gaps") or []) or list(
-                (current or {}).get("open_questions") or []
-            )
-            allowed = any(
-                question == str(item) or question[:40] in str(item) or str(item)[:40] in question
-                for item in named
-            )
-            if not allowed:
+            if not run.matches_named_gap(question, run.named_gaps(current)):
                 return error(
                     "governor AMBER: refuse new batch briefs. Depth on a named gap only."
                 )

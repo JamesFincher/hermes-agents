@@ -264,11 +264,13 @@ def transform_tool_result(
         stored: dict[str, Any] = {}
         selected: list[dict[str, Any]] = []
         useful = bool(text.strip()) and fetch_status != "empty"
+        created_corpus = False
         if useful:
             stored = bus.write_corpus(
                 text,
                 {"url": url, "canonical": bus.canonicalize(url), "title": meta.get("title") or ""},
             )
+            created_corpus = bool(stored.get("created"))
             selected = spans.select_spans(text, (current or {}).get("question") or "")
         added = ledger.add_source(
             {
@@ -295,8 +297,24 @@ def transform_tool_result(
             }
         )
         source = added.get("source") or {}
+        nbytes = int(stored.get("bytes") or source.get("bytes") or 0)
+        run.note_retrieval(
+            created_corpus=created_corpus,
+            new_row=not bool(added.get("updated")),
+            nbytes=nbytes,
+            filled_bytes=bool(added.get("updated") and created_corpus),
+            reason="intake_corpus",
+        )
         card = _card_for_source(source, str(stored.get("path") or ""), int(stored.get("chars") or 0))
         payload = _fit_card(card)
+        bus.append_audit(
+            (current or {}).get("run_id") or "",
+            {
+                "event": "card_economics",
+                "page_chars": int(stored.get("chars") or 0),
+                "card_tokens": estimate_tokens(payload),
+            },
+        )
         _note_batch(current, [source.get("id")])
         if url:
             host = (urlparse(url).hostname or "").lower()

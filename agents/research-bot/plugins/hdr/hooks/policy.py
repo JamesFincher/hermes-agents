@@ -45,6 +45,11 @@ _NET_CALL = re.compile(
     r"""(?:requests\.(?:get|post|put|delete|head|patch)|urllib\.request\.(?:urlopen|Request))\s*\(""",
     re.I,
 )
+_EGRESS = re.compile(
+    r"\b(curl|wget|httpx?|requests\.|urllib|aiohttp|web_search|ftp\b|ncat|\bnc\b|ssh\b)\b"
+    r"|https?://",
+    re.I,
+)
 _QUERY_WINDOW_S = 15 * 60
 _FAIL_CLOSED = WRITE_TOOLS | NETWORK_TOOLS | TERMINAL_TOOLS | {"delegate_task"}
 
@@ -89,8 +94,6 @@ def post_tool_call(
             (current or {}).get("run_id") or "",
             {"tool": tool_name, "duration_ms": duration_ms},
         )
-        if tool_name in NETWORK_TOOLS:
-            run.add_spend(fetches=1)
     except Exception:
         return
 
@@ -105,6 +108,8 @@ def _evaluate(name: str, payload: dict[str, Any]) -> dict[str, Any] | None:
             )
         return None
     current = run.load_run()
+    if current:
+        current = run.refresh_governor(current)
     governor = (current or {}).get("governor") or "GREEN"
     if (current or {}).get("phase") == "synthesis" and name in NETWORK_TOOLS:
         return {
@@ -116,7 +121,7 @@ def _evaluate(name: str, payload: dict[str, Any]) -> dict[str, Any] | None:
         blocked = _delegate_fence(payload, current, governor)
         if blocked:
             return {**blocked, "reason": "delegate-fence"}
-    blocked = _budget_fence(name, governor)
+    blocked = _budget_fence(name, payload, governor, current)
     if blocked:
         return {**blocked, "reason": "budget-fence"}
     blocked = _dedupe_fence(name, payload)
@@ -165,28 +170,9 @@ def _log_policy(
     )
 
 
-def _named_gaps(current: dict[str, Any] | None) -> list[str]:
-    if not current:
-        return []
-    gaps = list(current.get("named_gaps") or [])
-    if not gaps:
-        gaps = list(current.get("open_questions") or [])
-    return [str(item) for item in gaps if str(item).strip()]
-
-
-def _matches_named_gap(text: str, gaps: list[str]) -> bool:
-    blob = (text or "").lower()
-    if not blob or not gaps:
-        return False
-    for gap in gaps:
-        needle = gap.strip().lower()
-        if not needle:
-            continue
-        if needle in blob or blob[:80] in needle:
-            return True
-        if len(needle) >= 12 and needle[:40] in blob:
-            return True
-    return False
+def _block(run_id: str, message: str, **extra: Any) -> dict[str, Any]:
+    bus.append_audit(run_id, {"event": "block", "message": message, **extra})
+    return {"action": "block", "message": message}
 
 
 def _delegate_fence(
@@ -194,13 +180,22 @@ def _delegate_fence(
     current: dict[str, Any] | None,
     governor: str,
 ) -> dict[str, Any] | None:
+    run_id = (current or {}).get("run_id") or ""
+    cap = run.worker_cap(current)
+    if run.active_worker_count(current) >= cap:
+        return _block(
+            str(run_id),
+            f"Governor: worker cap is {cap}. No new delegate_task.",
+            tool="delegate_task",
+        )
     if governor == "GREEN":
         return None
     if governor in {"RED", "HARD"}:
-        return {
-            "action": "block",
-            "message": f"Governor {governor}: no new delegate_task. Synthesize from the ledger.",
-        }
+        return _block(
+            str(run_id),
+            f"Governor {governor}: no new delegate_task. Synthesize from the ledger.",
+            tool="delegate_task",
+        )
     goal = str(
         args.get("goal")
         or args.get("prompt")
@@ -208,30 +203,48 @@ def _delegate_fence(
         or args.get("instruction")
         or ""
     )
-    if _matches_named_gap(goal, _named_gaps(current)):
+    if run.matches_named_gap(goal, run.named_gaps(current)):
         return None
-    return {
-        "action": "block",
-        "message": (
-            "Governor AMBER: no new delegate_task batches. "
-            "Depth on a named gap only."
-        ),
-    }
+    return _block(
+        str(run_id),
+        "Governor AMBER: no new delegate_task batches. Depth on a named gap only.",
+        tool="delegate_task",
+    )
 
 
-def _budget_fence(tool_name: str, governor: str) -> dict[str, Any] | None:
+def _budget_fence(
+    tool_name: str,
+    args: dict[str, Any],
+    governor: str,
+    current: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    run_id = (current or {}).get("run_id") or ""
     if governor == "GREEN":
         return None
+    if governor == "AMBER":
+        return None
     if governor == "RED" and tool_name in RED_EGRESS_TOOLS:
-        return {
-            "action": "block",
-            "message": "Governor RED: block network tools. Synthesize now from the ledger.",
-        }
+        return _block(
+            str(run_id),
+            "Governor RED: block network tools. Synthesize now from the ledger.",
+            tool=tool_name,
+        )
+    if governor in {"RED", "HARD"} and tool_name in TERMINAL_TOOLS:
+        command = str(
+            args.get("command") or args.get("cmd") or args.get("code") or args.get("script") or ""
+        )
+        if _EGRESS.search(command) or not command.strip():
+            return _block(
+                str(run_id),
+                f"Governor {governor}: block terminal egress. Synthesize from the ledger.",
+                tool=tool_name,
+            )
     if governor == "HARD" and tool_name not in READ_ONLY_WHEN_HARD:
-        return {
-            "action": "block",
-            "message": "Governor HARD: only ledger tools and brief-path writes remain.",
-        }
+        return _block(
+            str(run_id),
+            "Governor HARD: only ledger tools and brief-path writes remain.",
+            tool=tool_name,
+        )
     return None
 
 

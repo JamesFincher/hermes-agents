@@ -2,10 +2,36 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from ..runtime import estimate_tokens
 from ..store import claims, ledger, run
+
+
+def _delegation_model_is_set() -> bool:
+    """Read this profile's config.yaml. Empty delegation.model inherits the parent."""
+    path = Path(__file__).resolve().parents[3] / "config.yaml"
+    if not path.is_file():
+        return False
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    in_delegation = False
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0]
+        if not line.strip():
+            continue
+        if line.startswith("delegation:"):
+            in_delegation = True
+            continue
+        if in_delegation and line.startswith(" ") and line.strip().startswith("model:"):
+            value = line.split(":", 1)[1].strip().strip("\"'")
+            return bool(value)
+        if in_delegation and not raw.startswith((" ", "\t")):
+            break
+    return False
 
 METHOD = (
     "HDR method. Six phases. Compute, do not guess.\n"
@@ -63,6 +89,8 @@ def register_sections(ctx: Any) -> None:
 
 def digest_text() -> str:
     current = run.load_run()
+    if current:
+        current = run.refresh_governor(current)
     sources = ledger.list_sources(run_id=(current or {}).get("run_id") or "")
     if not sources:
         sources = ledger.list_sources()
@@ -75,10 +103,7 @@ def digest_text() -> str:
     primary = sum(1 for src in last_rows if src.get("kind") == "primary")
     secondary = sum(1 for src in last_rows if src.get("kind") == "secondary")
     open_qs = current.get("open_questions") or []
-    spend = current.get("spend") or {}
-    budget = current.get("budget") or {}
-    tokens = float(budget.get("tokens") or 1)
-    pct = int(100 * float(spend.get("tokens") or 0) / tokens)
+    pct = int(100 * run.spend_ratio(current))
     lines = [
         f"[HDR] run {current.get('run_id')} · phase {str(current.get('phase') or 'plan').upper()} "
         f"· tier {current.get('tier')} · budget {pct}% · saturation {current.get('saturation')}",
@@ -91,6 +116,8 @@ def digest_text() -> str:
         lines.append("AMBER: no new worker batches. Depth on named gaps only.")
     if current.get("governor") in {"RED", "HARD"}:
         lines.append("synthesize now from the ledger. No new fetches.")
+    if not _delegation_model_is_set():
+        lines.append("workers inherit parent — cost warning")
     text = "\n".join(lines)
     if len(text) > 1200:
         text = text[:1190] + "\n"

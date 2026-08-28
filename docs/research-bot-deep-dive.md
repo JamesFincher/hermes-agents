@@ -92,7 +92,7 @@ Write allowlist: `notes/ research/ briefs/ findings/ citations/ sources/ data/`.
 
 Citation Gate: `[S#]` must resolve. A statistic, date, quantity, or quote needs a marker.
 
-Governor: GREEN / AMBER / RED / HARD from token, fetch, and wall ratios. Pair with `agent.run_budget_seconds`. AMBER blocks new `delegate_task` batches. RED blocks network tools. HARD leaves ledger tools and brief writes.
+Governor: GREEN / AMBER / RED / HARD from token, fetch, and wall ratios. Wall time is `now - started_at` against the tier envelope. `agent.run_budget_seconds: 1800` is a separate Hermes backstop that resets per user message. AMBER blocks new `delegate_task` batches. RED blocks network tools and terminal egress. HARD leaves ledger tools and writes under the seven-dir allowlist. Crossing HARD writes `plugin-data/hdr/briefs/<run_id>-partial.md` from the ledger. Fetch spend increments when a corpus file or a ledger row with bytes is new, not on `web_search` alone.
 
 ---
 

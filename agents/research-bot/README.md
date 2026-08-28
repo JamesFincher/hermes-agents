@@ -108,6 +108,7 @@ These limits are also in [`docs/HONEST-LIMITS.md`](../../docs/HONEST-LIMITS.md).
 - Prompt-injection handling is defence in depth, not a proof. The Docker backend is the boundary that matters. The sanitizer only reduces frequency.
 - Children write to the shared profile-home ledger. Official pages document `plugin-data/` under `HERMES_HOME` and live transcripts under `<hermes_home>/cache/delegation/live/…`. The transcript-grep backstop stays.
 - Budget numbers in the spec are starting points. P10 fixtures track tokens per tier-A/B source. They are not yet field measurements.
+- Two clocks: Hermes `agent.run_budget_seconds: 1800` (per user message, wrap-up at 80%) and the HDR tier envelope on `started_at`. HARD writes a ledger-only brief under `plugin-data/hdr/briefs/`.
 - Cross-model MoA verification is only as good as the second model's independence. Official MoA is a **provider**, not a toolset. This profile does not invent a `moa` toolset.
 - Official GitHub-URL install copies the repo root as one payload. Path install is the supported path.
 - Structure-only CI has no Hermes CLI. Live `hermes profile install` on Hermes 0.19.0 is recorded in [`evals/smoke/P1-LIVE.md`](../../evals/smoke/P1-LIVE.md). Offline tests cover the plugin, store, gates, and the 12-question fixture loop.
