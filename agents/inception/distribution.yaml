@@ -7,8 +7,8 @@
 # 0.14.0 was [UNV] and is not used (docs/HERMES-FACTS.md).
 
 name: inception
-version: 1.0.0
-description: "Authors new isolated Hermes profiles from the playbook. Does not share a runtime."
+version: 1.1.0
+description: "Plans then authors isolated Hermes profiles. Scaffold is not the product."
 hermes_requires: ">=0.13.0"
 author: "James Fincher"
 license: "Apache-2.0"

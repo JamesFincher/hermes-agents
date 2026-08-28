@@ -97,6 +97,19 @@ def first_openable_url(blob: str) -> str:
     return ""
 
 
+def agent_name_from_path(path: str) -> str | None:
+    if not path:
+        return None
+    parts = Path(str(path)).as_posix().split("/")
+    if "agents" not in parts:
+        return None
+    index = parts.index("agents")
+    if index + 1 >= len(parts):
+        return None
+    name = parts[index + 1].strip().lower()
+    return name or None
+
+
 def find_repo_root(start: Path | None = None) -> Path | None:
     override = os.environ.get("INCEPTION_LIBRARY_ROOT")
     if override:

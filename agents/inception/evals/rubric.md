@@ -4,7 +4,7 @@ Hand-run once from the shipped files. No live Hermes.
 
 | Task | Gate | Result | Notes |
 | --- | --- | --- | --- |
-| T01 | scaffold_ok | pass | Unit test writes `shelf-note` and validator accepts it |
+| T01 | scaffold_ok | pass | Plan completes first, then `shelf-note` validates |
 | T02 | scaffold_reserved | pass | `hermes` returns `{"error":…}` |
 | T03 | probe_doc | pass | `[DOC]` row stored |
 | T04 | probe_unv_no_code | pass | `code_depends` on `[UNV]` errors |
@@ -14,5 +14,8 @@ Hand-run once from the shipped files. No live Hermes.
 | T08 | digest_cap | pass | Digest ≤800 |
 | T09 | no_hdr_enable | pass | inception `config.yaml` enables `[inception]` only |
 | T10 | scaffold_forbidden | pass | `research-bot` name rejected |
+| T11 | scaffold_without_plan | pass | Job line alone cannot scaffold |
+| T12 | spec_missing_surfaces | pass | Stub spec without plugin/tool/skill/MCP is refused |
+| T13 | counsel_shaped_plan_ok | pass | Fixture plan returns `check_plan` ok |
 
-Score: 10 / 10 gates green in `tests/test_inception_plugin.py`.
+Score: 13 / 13 gates green in `tests/test_inception_plugin.py`.

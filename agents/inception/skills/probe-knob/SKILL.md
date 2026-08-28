@@ -7,7 +7,7 @@ metadata:
     tags: [Factory, Docs, Knob]
     requires_toolsets: [inception]
     requires_tools: [docs_resolve, docs_ask, probe_knob]
-    related_skills: [author-profile, review-profile]
+    related_skills: [plan-profile, author-profile, review-profile]
 ---
 
 # Probe one knob

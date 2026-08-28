@@ -12,13 +12,13 @@ This file is the **execution join** for this profile only. Official pages — no
 | config.yaml | Cited knobs. Sweep in the spec. Bundle `factory`. |
 | MCP | Server `context7` only. Connected so `ctx.call_mcp` works. |
 | Plugin | `plugins/inception/`. Host package. Not a tool. |
-| Tools | The inception plugin registers `docs_resolve`, `docs_ask`, `probe_knob`, `scaffold_profile`, `check_profile`. |
-| Skills | `author-profile`, `probe-knob`, `review-profile`. |
+| Tools | The inception plugin registers `docs_resolve`, `docs_ask`, `probe_knob`, `plan_start`, `investigate_surface`, `write_canvas`, `write_spec`, `check_plan`, `scaffold_profile`, `check_profile`. |
+| Skills | `plan-profile` (steps 0–4), `author-profile` (steps 5–10 after the gate), `probe-knob`, `review-profile`. |
 | Delegation | Rejected. Not in the bundle. |
 | Memory | `memory.provider: honcho`. See the settled paragraph. |
 | Distribution + eval | Path install. `evals/tasks.jsonl`. CI unit tests. |
 
-Say: "the inception plugin registers the `scaffold_profile` tool." Never collapse PLUGIN and TOOL into one noun.
+Say: "the inception plugin registers the `check_plan` tool." Never collapse PLUGIN and TOOL into one noun. Scaffold is blocked until that tool returns ok.
 
 | Official page | URL |
 | --- | --- |
@@ -46,9 +46,9 @@ Context7 this pass: `/nousresearch/hermes-agent`. Honcho only for the settled me
 Five §4 patterns ship:
 
 1. **Intercept-and-distil** — `transform_tool_result` bounds `docs_resolve` / `docs_ask`.
-2. **Fence** — `pre_tool_call` blocks reserved names, secret files, and HARD governor writes. Policy. Fail closed with a reason.
+2. **Fence** — `pre_tool_call` blocks reserved names, secret files, HARD governor writes, and any write under `agents/<name>/` until `check_plan` is ok. Policy. Fail closed with a reason.
 3. **Free output** — `transform_llm_output` appends a factory footer.
-4. **Ledger** — `plugin-data/inception/factory.json`, `version: 1`.
+4. **Ledger** — `plugin-data/inception/factory.json`, `version: 2`. One plan record per target name.
 5. **Governor** — `pre_api_request` counts requests and input tokens.
 
 Static contract is a prompt section (`after_memory`). Volatile digest is `pre_llm_call`, capped at 800 characters by the plugin.

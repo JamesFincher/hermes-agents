@@ -1,0 +1,43 @@
+{
+  "job": "Drafts US legal documents from retrieved authorities and refuses any citation it did not fetch. It does not advise, file, appear, or predict outcomes.",
+  "incumbent": "General-purpose chat used for legal drafting, plus current AI legal assistants",
+  "axis": "fabrication rate",
+  "investigations": [
+    {
+      "kind": "tool",
+      "question": "Does citation write need a structured gate the model cannot skip?",
+      "evidence": "Playbook law 2: determinism beats prompting. Official adding-tools: handlers return json.dumps and never raise.",
+      "tag": "DOC",
+      "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools",
+      "mapping": "TOOL registered by this profile's plugin. Skill plus write_file cannot prove a cite exists.",
+      "q1": "No. A skill plus write_file cannot prove a citation exists.",
+      "q2": "Yes. Every draft turn may write.",
+      "q3": "Yes. A fabricated cite is undetectable in prose. Return structured evidence."
+    },
+    {
+      "kind": "skill",
+      "question": "Where does the intake-to-draft procedure live?",
+      "evidence": "Official creating-skills: SKILL.md is a recipe. Index line always. Body on skill_view. metadata.hermes gates.",
+      "tag": "DOC",
+      "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
+      "mapping": "SKILL. Fixed procedure. Disjoint trigger. No Python in the body."
+    },
+    {
+      "kind": "mcp",
+      "question": "Is there a first-party Hermes law MCP to connect?",
+      "evidence": "Official MCP config lists connected servers. OpenAlex, PubMed, and Wayback are not first-party. A law corpus is not a Hermes builtin.",
+      "tag": "INF",
+      "mapping": "MCP rejected for a first-party law server. Use a thin facade TOOL over a public REST API or none.",
+      "decision": "reject",
+      "reason": "No first-party Hermes law MCP. Do not invent one. Facade over public HTTP if needed."
+    },
+    {
+      "kind": "plugin",
+      "question": "Does this job need a host package that registers tools and a policy fence?",
+      "evidence": "Official plugins page: plugin.yaml plus register(ctx). The plugin registers tools. It is not a tool. pre_tool_call may fail closed for policy.",
+      "tag": "DOC",
+      "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/plugins",
+      "mapping": "PLUGIN. This profile owns plugins/<id>/. Do not copy lex or hdr."
+    }
+  ]
+}
