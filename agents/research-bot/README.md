@@ -33,10 +33,13 @@ Reserved names: `hermes`, `test`, `tmp`, `root`, `sudo`.
 ## After install
 
 1. Copy env keys from `.env.EXAMPLE` into the profile `.env`. See **env_requires**.
-2. Copy `honcho.json.example` to `honcho.json` (or merge the `hermes.research-bot` host). Never commit `honcho.json`. `pinUserPeer: true` is gateway-only.
+2. Copy `honcho.json.example` to `honcho.json` (or merge the `hermes.research-bot` host). Never commit `honcho.json`. `honcho.json.example` is JSON, so it cannot hold a comment. `pinUserPeer: true` is official and gateway-only. The CLI ignores it. Do not add a `_comment` key.
 3. `hermes memory setup` if needed. `hermes memory status` should show the provider active.
 4. Confirm `plugins.enabled: [hdr]`. On Hermes 0.19.0, `hermes plugins` has no `doctor` action (choices: install, update, remove, list, enable, disable). Use `hermes -p research-bot plugins list` and `hermes -p research-bot tools list`.
 5. `hermes -p research-bot tools list` (CLI form of `/tools list`) should show `web`, `browser`, `vision`, `file`, `terminal`, `code_execution`, `skills`, `memory`, `session_search`, `todo`, `clarify`, `delegation`, `cronjob`, `hdr`. There is **no `moa` toolset**. MoA is a provider.
+6. Pin `/review` on the host with `auxiliary.review.model`. This profile does not invent a model id.
+
+`mcp.json` and `config.yaml` `mcp_servers` must stay twins. Do not delete either file.
 
 ## Update
 
@@ -60,7 +63,7 @@ Host env only. Never commit values.
 | `UNPAYWALL_EMAIL` | no | Literature HTTP fallback. Auto-passed into Docker by skill env. |
 | `CROSSREF_MAILTO` | no | Crossref polite pool. |
 | `SEMANTIC_SCHOLAR_API_KEY` | no | Optional scholar HTTP. |
-| Model provider key | deploy host | This profile does not pin `model.default`. Set the frontier planner and cheap worker on the host. |
+| Model provider key | deploy host | This profile does not pin `model.default`. Set the frontier planner and cheap worker on the host. Pin `/review` with `auxiliary.review.model` on the host. |
 
 `web.keyless_fallback` and `web.keyless_rescue` are **true**. A dead primary path must degrade.
 

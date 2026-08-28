@@ -58,6 +58,21 @@ config_schema:
     default: 30
     description: "Days to keep corpus files."
     required: false
+  untrusted_content_wrapping:
+    type: bool
+    default: true
+    description: "Wrap retrieved page text as untrusted data. Matches plugins.entries.hdr.settings."
+    required: false
+  domain_denylist:
+    type: list
+    default: []
+    description: "Domains the policy hook excludes. Matches plugins.entries.hdr.settings."
+    required: false
+  domain_tier_overrides:
+    type: dict
+    default: {}
+    description: "Per-domain source-tier overrides. Matches plugins.entries.hdr.settings."
+    required: false
   max_card_spans:
     type: int
     default: 3
