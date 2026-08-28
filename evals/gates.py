@@ -14,6 +14,22 @@ _STAT = re.compile(
 _SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
+def _calibration_line(sentence: str) -> bool:
+    text = re.sub(r"^[\-\*]\s+", "", sentence.strip())
+    return text.startswith(("I did not find", "Not found", "archived", "paywall"))
+
+
+def _cited_sentences(text: str) -> list[str]:
+    body = re.sub(r"([.!?])(\s*)((?:\[S\d+\]\s*)+)", r" \3\1", text or "")
+    out: list[str] = []
+    for line in body.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        out.extend(part.strip() for part in _SPLIT.split(line) if part.strip())
+    return out
+
+
 def check_run(run_dir: Path) -> list[str]:
     errors: list[str] = []
     brief = (run_dir / "brief.md").read_text(encoding="utf-8")
@@ -24,8 +40,10 @@ def check_run(run_dir: Path) -> list[str]:
         sid = f"S{match.group(1)}"
         if sid not in sources:
             errors.append(f"unresolvable {sid}")
-    for sentence in _SPLIT.split(brief):
-        if _STAT.search(sentence) and not _SID.search(sentence):
+    for sentence in _cited_sentences(brief):
+        if _SID.search(sentence):
+            continue
+        if _STAT.search(sentence) and not _calibration_line(sentence):
             errors.append(f"stat without marker: {sentence.strip()[:80]}")
     corpus_dir = run_dir / "corpus"
     corpus_files = {path.name for path in corpus_dir.glob("*.txt")} if corpus_dir.is_dir() else set()
@@ -69,13 +87,17 @@ def _unsupported_claims(
     run_dir: Path,
     sources: dict[str, Any],
 ) -> list[str]:
+    from test_hdr_plugin import _load_plugin_package
+
+    span_mod = _load_plugin_package().store.spans
     errors: list[str] = []
-    for sentence in _SPLIT.split(brief):
+    for sentence in _cited_sentences(brief):
         markers = [f"S{m.group(1)}" for m in _SID.finditer(sentence)]
         if not markers:
             continue
-        claim = _SID.sub("", sentence).strip()
-        words = [w for w in re.findall(r"[A-Za-z0-9%]{4,}", claim)]
+        claim = span_mod.cited_claim_text(sentence)
+        if len(claim) < 12:
+            continue
         supported = False
         for sid in markers:
             src = sources.get(sid) or {}
@@ -83,9 +105,39 @@ def _unsupported_claims(
             if not corpus:
                 continue
             text = (run_dir / str(corpus)).read_text(encoding="utf-8")
-            if any(word.lower() in text.lower() for word in words[:6]):
+            quotes = " ".join(
+                str(item.get("q") or "")
+                for item in (src.get("spans") or [])
+                if isinstance(item, dict)
+            )
+            check = span_mod.verify_claim(claim, text, quote_text=quotes)
+            if check.get("exact"):
                 supported = True
         if not supported:
+            errors.append(f"unsupported cited sentence: {sentence.strip()[:80]}")
+    return errors
+
+
+def check_brief_against_plugin(brief: str, pkg: Any) -> list[str]:
+    errors: list[str] = []
+    sources = {str(src.get("id")): src for src in pkg.store.ledger.list_sources()}
+    for match in _SID.finditer(brief):
+        sid = f"S{match.group(1)}"
+        if sid not in sources:
+            errors.append(f"unresolvable {sid}")
+    span_mod = pkg.store.spans
+    for sentence in span_mod.split_cited_sentences(brief):
+        markers = span_mod.claim_markers(sentence)
+        if not markers:
+            if _STAT.search(sentence) and not _calibration_line(sentence):
+                errors.append(f"stat without marker: {sentence.strip()[:80]}")
+            continue
+        claim = span_mod.cited_claim_text(sentence)
+        if len(claim) < 12:
+            continue
+        raw = pkg.tools.claim_verify({"claim": claim, "candidate_sources": markers})
+        payload = json.loads(raw)
+        if payload.get("status") == "unsupported":
             errors.append(f"unsupported cited sentence: {sentence.strip()[:80]}")
     return errors
 

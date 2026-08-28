@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
+from evals.gates import check_brief_against_plugin  # noqa: E402
 from test_hdr_plugin import FakeCtx, _load_plugin_package  # noqa: E402
 
 
@@ -50,7 +51,9 @@ def run_question(qid: str, prompt: str, pages: list[dict[str, Any]], kind: str) 
         scan = json.loads(pkg.tools.gap_scan({"detail": "summary"}))
         draft = pkg.store.draft.draft_brief()
         brief = str(draft.get("brief") or "")
-        verify = json.loads(pkg.tools.claim_verify({"claim": brief.split(".", 1)[0]}))
+        first = brief.split("\n", 1)[0]
+        verify = json.loads(pkg.tools.claim_verify({"claim": first}))
+        gate_errors = check_brief_against_plugin(brief, pkg)
         return {
             "id": qid,
             "ok": bool(brief.strip()),
@@ -59,6 +62,7 @@ def run_question(qid: str, prompt: str, pages: list[dict[str, Any]], kind: str) 
             "saturation": scan.get("saturation"),
             "verify": verify.get("status"),
             "sources": draft.get("sources"),
+            "gate_errors": gate_errors,
         }
     finally:
         tmp.cleanup()

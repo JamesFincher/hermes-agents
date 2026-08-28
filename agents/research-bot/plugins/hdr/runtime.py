@@ -56,6 +56,7 @@ READ_ONLY_WHEN_HARD = frozenset(
         "gap_scan",
         "claim_verify",
         "conflict_report",
+        "citation_pass",
         "cite_source",
         "research_plan",
         "worker_harvest",

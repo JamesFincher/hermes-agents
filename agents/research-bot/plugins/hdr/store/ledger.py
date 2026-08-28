@@ -82,6 +82,7 @@ def migrate_v1(data: dict[str, Any]) -> dict[str, Any]:
                 "title": raw.get("title") or "",
                 "authors": raw.get("authors") if isinstance(raw.get("authors"), list) else [],
                 "publisher": raw.get("publisher") or "",
+                "container": raw.get("container") or "",
                 "published": raw.get("published"),
                 "retrieved": raw.get("retrieved") or _now_iso(),
                 "doi": raw.get("doi"),
@@ -154,6 +155,7 @@ def _merge_existing(existing: dict[str, Any], entry: dict[str, Any]) -> None:
         "title",
         "quote",
         "publisher",
+        "container",
         "published",
         "doi",
         "arxiv",
@@ -242,6 +244,7 @@ def _new_record(sid: str, url: str, canonical: str, entry: dict[str, Any]) -> di
         "title": entry.get("title") or "",
         "authors": entry.get("authors") if isinstance(entry.get("authors"), list) else [],
         "publisher": entry.get("publisher") or "",
+        "container": entry.get("container") or "",
         "published": entry.get("published"),
         "retrieved": entry.get("retrieved") or _now_iso(),
         "doi": entry.get("doi"),
@@ -302,4 +305,18 @@ def mark_corpus_gone(sha256: str, archived_url: str | None = None) -> None:
                 source["corpus"] = None
                 if archived_url:
                     source["archived_url"] = archived_url
+        save_ledger(data)
+
+
+def link_claim(src_id: str, cid: str) -> None:
+    if not src_id or not cid:
+        return
+    with bus.lock():
+        data = _load_unlocked()
+        for source in data.get("sources", []):
+            if not isinstance(source, dict) or source.get("id") != src_id:
+                continue
+            linked = source.setdefault("claims", [])
+            if isinstance(linked, list) and cid not in linked:
+                linked.append(cid)
         save_ledger(data)

@@ -1,3 +1,4 @@
-The official Mixture of Agents page says there is no moa toolset [S1].
-A second outlet still said enable the moa toolset [S2].
-The toolsets reference lists no army-runtime toolset [S3].
+MoA is no longer listed under hermes tools; there is no moa toolset to enable [S1].
+Enable the moa toolset and run mixture_of_agents [S2].
+Sources disagree. Do not average.
+No army-runtime toolset is listed [S3].

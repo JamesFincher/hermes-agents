@@ -136,6 +136,10 @@ CLAIM_VERIFY = {
                 "type": "array",
                 "items": {"type": "string"},
             },
+            "stance": {
+                "type": "string",
+                "description": "supports, contradicts, qualifies, or silent",
+            },
         },
         "required": ["claim"],
     },
@@ -148,6 +152,23 @@ CONFLICT_REPORT = {
         "Do not average."
     ),
     "parameters": {"type": "object", "properties": {}, "required": []},
+}
+
+CITATION_PASS = {
+    "name": "citation_pass",
+    "description": (
+        "When to call: after a draft exists. Maps claims, then runs "
+        "claim_verify. Uses official ctx.llm when the host exposes it. "
+        "Falls back to a deterministic sweep. Not a moa toolset."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "draft": {"type": "string", "description": "Draft brief text"},
+            "text": {"type": "string"},
+        },
+        "required": [],
+    },
 }
 
 CITE_SOURCE = {
@@ -285,6 +306,7 @@ ALL = [
     EVIDENCE_STATS,
     CLAIM_VERIFY,
     CONFLICT_REPORT,
+    CITATION_PASS,
     CITE_SOURCE,
     WORKER_BRIEF,
     WORKER_HARVEST,

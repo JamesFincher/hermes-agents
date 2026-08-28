@@ -137,21 +137,33 @@ def write_corpus(text: str, meta: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _utf8_floor(data: bytes, index: int) -> int:
+    i = max(0, min(index, len(data)))
+    while i > 0 and i < len(data) and (data[i] & 0xC0) == 0x80:
+        i -= 1
+    return i
+
+
 def read_corpus(sha256: str, offset: int = 0, limit: int = 4000) -> dict[str, Any]:
+    """Read a corpus slice. offset and limit are UTF-8 byte positions."""
     digest = sha256.replace("sha256:", "").strip()
     path = corpus_dir() / f"{digest}.txt"
     if not path.is_file():
         return {"error": f"corpus file missing: {digest}"}
-    text = path.read_text(encoding="utf-8")
-    start = max(0, int(offset))
-    end = start + max(0, int(limit))
+    raw = path.read_bytes()
+    start = _utf8_floor(raw, max(0, int(offset)))
+    end = _utf8_floor(raw, start + max(0, int(limit)))
+    if end < start:
+        end = start
+    chunk = raw[start:end]
     return {
         "ok": True,
         "sha256": digest,
         "offset": start,
         "limit": limit,
-        "total": len(text),
-        "text": text[start:end],
+        "total": len(raw),
+        "unit": "utf-8-bytes",
+        "text": chunk.decode("utf-8", errors="replace"),
     }
 
 

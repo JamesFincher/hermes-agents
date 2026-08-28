@@ -46,6 +46,7 @@ def evidence_add(args: dict[str, Any], **kwargs: Any) -> str:
                 "title": meta.get("title") or (args or {}).get("title") or "",
                 "authors": meta.get("authors") or [],
                 "publisher": meta.get("publisher") or "",
+                "container": meta.get("container") or "",
                 "published": meta.get("published"),
                 "doi": meta.get("doi"),
                 "arxiv": meta.get("arxiv"),

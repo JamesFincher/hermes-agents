@@ -15,6 +15,7 @@ from typing import Any
 from . import hooks, runtime, schemas
 from .tools import (
     archive_lookup,
+    citation_pass,
     claim_verify,
     cite_source,
     conflict_report,
@@ -40,6 +41,7 @@ _HANDLERS = {
     "evidence_stats": evidence_stats,
     "claim_verify": claim_verify,
     "conflict_report": conflict_report,
+    "citation_pass": citation_pass,
     "cite_source": cite_source,
     "worker_brief": worker_brief,
     "worker_harvest": worker_harvest,

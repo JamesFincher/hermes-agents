@@ -27,7 +27,7 @@ Do not use this for a draft already written (use claim-audit).
 2. For each open question, call `worker_brief`, then `delegate_task`.
 3. Call `worker_harvest` when a child finishes. Expect ids and counts only.
 4. Call `gap_scan`. Trust the saturation number. Do not guess it.
-5. Synthesize from the ledger only. Then `claim_verify` and `cite_source`.
+5. Synthesize from the ledger only. Then `citation_pass` (or `claim_verify`) and `cite_source`.
 6. Write the brief under `briefs/` or `research/`.
 
 ## Procedure
@@ -44,7 +44,7 @@ After each batch, `gap_scan`. If it recommends depth, spawn targeted workers on 
 
 Synthesis reads cards via `evidence_search` and slices via `evidence_read`. No `web_extract` in phase 5.
 
-Verify with `claim_verify` and `conflict_report`. Then `cite_source`. Write the brief. The Citation Gate blocks unresolvable `[S#]` markers and unmarked statistics.
+Verify with `citation_pass` or `claim_verify`, then `conflict_report`. Then `cite_source`. Write the brief. The Citation Gate blocks unresolvable `[S#]` markers, unmarked statistics, and unsupported cited claims.
 
 At `deep` or `exhaustive`, ask the operator for a MoA second opinion on the top three load-bearing claims. Official MoA is provider `moa` (`/moa` or `/model … --provider moa`). There is no `moa` toolset and no `mixture_of_agents` tool.
 
@@ -57,7 +57,8 @@ Do not start fifty workers for a one-fact question.
 
 ## Verification
 
-`gap_scan` returned a saturation number.
-Every `[S#]` in the brief resolves.
-`claim_verify` has no unsupported load-bearing claim.
-The governor state is visible in the digest.
+- [ ] `gap_scan` returned a saturation number.
+- [ ] Every `[S#]` in the brief resolves.
+- [ ] `claim_verify` has no unsupported load-bearing claim.
+- [ ] The governor state is visible in the digest.
+- [ ] At `deep` or `exhaustive`: operator ran `/moa` or `/model … --provider moa` on the top three load-bearing claims. Leave unchecked until that happens.

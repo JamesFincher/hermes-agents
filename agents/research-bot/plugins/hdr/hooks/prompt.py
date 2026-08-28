@@ -40,7 +40,7 @@ METHOD = (
     "3 GAP: gap_scan returns saturation. The model does not estimate it.\n"
     "4 DEPTH: targeted workers on named gaps only.\n"
     "5 SYNTHESIS: read only the Evidence Bus. No network in this phase.\n"
-    "6 VERIFY: claim_verify, conflict_report, cite_source. Do not average.\n"
+    "6 VERIFY: citation_pass or claim_verify, conflict_report, cite_source. Do not average.\n"
     "Cards are the model-visible source. Full text stays in the corpus.\n"
     "Stop when gap_scan says synthesize or stop.\n"
 )

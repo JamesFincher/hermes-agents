@@ -19,6 +19,7 @@ provides_tools:
   - evidence_stats
   - claim_verify
   - conflict_report
+  - citation_pass
   - cite_source
   - worker_brief
   - worker_harvest

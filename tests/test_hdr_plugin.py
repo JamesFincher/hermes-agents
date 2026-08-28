@@ -340,6 +340,9 @@ class HdrTest(unittest.TestCase):
         verify = json.loads(self.pkg.tools.claim_verify({"claim": claim}))
         self.assertEqual(verify["status"], "supported")
         self.assertTrue(all(row.get("exact") for row in verify.get("evidence") or []))
+        self.assertEqual(verify["unsupported_parts"], [])
+        source = self.pkg.store.ledger.get_source("S1")
+        self.assertIn(verify["claim_ids"][0], source.get("claims") or [])
         graph = self.pkg.store.claims.load_claims()
         self.assertTrue(graph)
         stances = {
@@ -350,14 +353,38 @@ class HdrTest(unittest.TestCase):
             if isinstance(edge, dict)
         }
         self.assertIn("supports", stances)
-        self.assertIn("contradicts", stances)
+        self.pkg.store.ledger.add_source(
+            {
+                "url": "https://example.com/contra-nist",
+                "title": "Contra",
+                "tier": "A",
+                "kind": "primary",
+                "authors": ["Ada Lovelace"],
+                "published": "2024",
+                "container": "IEEE Transactions",
+                "publisher": "IEEE",
+            }
+        )
+        self.pkg.store.claims.upsert_claim(
+            "efficiency", src="S1", stance="supports", conf=0.9
+        )
+        self.pkg.store.claims.upsert_claim(
+            "efficiency", src="S2", stance="contradicts", conf=0.8
+        )
         report = json.loads(self.pkg.tools.conflict_report({}))
         self.assertGreaterEqual(report["count"], 1)
         self.assertIn("src", report["conflicts"][0]["support"][0])
         self.assertIn("stance", report["conflicts"][0]["support"][0])
         self.assertIn("tier", report["conflicts"][0]["support"][0])
-        cite = json.loads(self.pkg.tools.cite_source({}))
+        ieee_id = next(
+            str(src["id"])
+            for src in self.pkg.store.ledger.list_sources()
+            if src.get("container") == "IEEE Transactions"
+        )
+        cite = json.loads(self.pkg.tools.cite_source({"style": "ieee", "ids": [ieee_id]}))
         self.assertGreaterEqual(cite["count"], 1)
+        self.assertIn("IEEE Transactions", cite["citations"][0]["text"])
+        self.assertEqual(cite["citations"][0]["container"], "IEEE Transactions")
         out = self.pkg.hooks.transform_llm_output(
             response_text="The device reached 12% efficiency [S1].",
             session_id="",
@@ -366,6 +393,87 @@ class HdrTest(unittest.TestCase):
         )
         self.assertIsNotNone(out)
         self.assertIn("## Sources", out or "")
+
+    def test_claim_verify_strict_rules(self) -> None:
+        text = "The device reached 12% efficiency in 2024 at NIST."
+        self.pkg.hooks.transform_tool_result(
+            "web_extract",
+            {"url": "https://www.nist.gov/strict", "text": text},
+            {"url": "https://www.nist.gov/strict"},
+        )
+        para = json.loads(
+            self.pkg.tools.claim_verify(
+                {"claim": "NIST reported a twelve percent gain later that year."}
+            )
+        )
+        self.assertEqual(para["status"], "unsupported")
+        fabricated = json.loads(
+            self.pkg.tools.claim_verify(
+                {
+                    "claim": (
+                        "The device reached 12% efficiency in 2024 at NIST "
+                        "and also cured cancer overnight."
+                    )
+                }
+            )
+        )
+        self.assertEqual(fabricated["status"], "unsupported")
+        filtered = json.loads(
+            self.pkg.tools.claim_verify({"claim": text, "candidate_sources": ["S99"]})
+        )
+        self.assertEqual(filtered["status"], "unsupported")
+        exact = json.loads(self.pkg.tools.claim_verify({"claim": text}))
+        self.assertEqual(exact["status"], "supported")
+        self.assertEqual(exact["evidence"][0]["off"], 0)
+        self.assertEqual(exact["evidence"][0]["len"], len(text.encode("utf-8")))
+        cafe = "café " + text
+        check = self.pkg.store.spans.verify_claim(text, cafe)
+        self.assertTrue(check["exact"])
+        self.assertEqual(check["off"], len("café ".encode("utf-8")))
+        self.assertNotEqual(check["off"], cafe.find(text))
+        numeric = self.pkg.store.spans.verify_claim(
+            text, text, quote_text="The device reached efficiency at NIST."
+        )
+        self.assertTrue(numeric["exact"])
+        self.assertFalse(numeric["numeric_match"])
+        self.assertIn("missing_digit:12", numeric["unsupported_parts"])
+        entity = self.pkg.store.spans.verify_claim(
+            text, text, quote_text="The device reached 12% efficiency in 2024."
+        )
+        self.assertTrue(entity["exact"])
+        self.assertFalse(entity["entity_match"])
+        self.assertIn("missing_entity:nist", entity["unsupported_parts"])
+        data = self.pkg.store.ledger.load_ledger()
+        data["sources"][0]["spans"] = [
+            {"q": "The device reached efficiency at NIST.", "off": 0, "len": 8}
+        ]
+        self.pkg.store.ledger.save_ledger(data)
+        partial = json.loads(self.pkg.tools.claim_verify({"claim": text}))
+        self.assertEqual(partial["status"], "partial")
+        self.assertTrue(partial["unsupported_parts"])
+
+    def test_citation_gate_rejects_unsupported_cited_claim(self) -> None:
+        self.pkg.hooks.transform_tool_result(
+            "web_extract",
+            {"url": "https://example.com/growth", "text": "Growth was 14% in 2024."},
+            {"url": "https://example.com/growth"},
+        )
+        refused = self.pkg.hooks.pre_tool_call(
+            "write_file",
+            {"path": "briefs/out.md", "content": "Growth was 12% in 2024. [S1]"},
+        )
+        self.assertEqual((refused or {}).get("action"), "block")
+        self.assertIn("unsupported", (refused or {}).get("message", ""))
+        allowed = self.pkg.hooks.pre_tool_call(
+            "write_file",
+            {"path": "briefs/out.md", "content": "Growth was 14% in 2024. [S1]"},
+        )
+        self.assertIsNone(allowed)
+        names = {name for name, _toolset in self.ctx.tools}
+        self.assertNotIn("source_ledger_check", names)
+        sweep = json.loads(self.pkg.tools.citation_pass({"draft": "Growth was 14% in 2024. [S1]"}))
+        self.assertTrue(sweep.get("ok"))
+        self.assertEqual(sweep.get("llm"), False)
 
     def test_governor_forced_overspend(self) -> None:
         created = json.loads(
@@ -622,9 +730,9 @@ class HdrTest(unittest.TestCase):
             {"url": "https://example.com/partial"},
         )
         verify = json.loads(self.pkg.tools.claim_verify({"claim": claim}))
-        self.assertNotEqual(verify["status"], "supported")
+        self.assertEqual(verify["status"], "unsupported")
         self.assertEqual(verify["evidence"], [])
-        self.assertTrue(verify.get("partial_spans"))
+        self.assertFalse(verify.get("partial_spans"))
 
     def test_worker_brief_interpolates_must_find_and_since(self) -> None:
         self.pkg.tools.research_plan(
