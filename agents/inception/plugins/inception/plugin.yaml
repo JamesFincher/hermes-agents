@@ -1,0 +1,42 @@
+# Native general plugin (plugin.yaml + register(ctx)). Not portable plugin.json.
+# Not a memory-provider (kind: exclusive / memory.provider).
+# https://hermes-agent.nousresearch.com/docs/developer-guide/plugins
+
+name: inception
+version: 1.0.0
+manifest_version: 2
+api_version: 1
+description: "Host package that registers factory tools and playbook hooks (toolset inception)."
+author: James Fincher
+license: Apache-2.0
+tags: [factory, profiles, playbook, docs]
+provides_tools:
+  - docs_resolve
+  - docs_ask
+  - probe_knob
+  - scaffold_profile
+  - check_profile
+provides_hooks:
+  - on_session_start
+  - pre_llm_call
+  - pre_tool_call
+  - transform_tool_result
+  - transform_llm_output
+  - pre_api_request
+  - post_api_request
+config_schema:
+  digest_max_chars:
+    type: int
+    default: 800
+    description: "Hard cap for the pre_llm_call volatile digest. Plugin-owned, not the platform 10k spill cap."
+    required: false
+  governor_max_requests:
+    type: int
+    default: 80
+    description: "Per-run API request fence. HARD blocks further factory writes."
+    required: false
+  governor_max_input_tokens:
+    type: int
+    default: 250000
+    description: "Per-run approx_input_tokens fence."
+    required: false

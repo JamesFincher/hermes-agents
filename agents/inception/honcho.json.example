@@ -1,0 +1,14 @@
+{
+  "workspace": "hermes",
+  "hosts": {
+    "hermes.inception": {
+      "enabled": true,
+      "aiPeer": "hermes.inception",
+      "workspace": "hermes",
+      "recallMode": "hybrid",
+      "writeFrequency": "async",
+      "sessionStrategy": "per-directory",
+      "pinUserPeer": true
+    }
+  }
+}
