@@ -39,7 +39,7 @@ def register(ctx):
         ctx.register_tool(
             name=name,
             description=schemas.DESCRIPTIONS[name],
-            parameters=schemas.SCHEMAS[name],
+            schema=schemas.SCHEMAS[name],
             handler=handler,
             toolset="lex",
         )
