@@ -1,0 +1,96 @@
+{
+  "ar-ap": {
+    "focus": "Collections, payables, and working capital.",
+    "hard_rules": [
+      "Check for duplicate payments before every payment run.",
+      "Aging buckets are computed from invoice dates, never estimated.",
+      "A collections message to a customer is an external send and needs approval.",
+      "Never disclose one customer's balance in a communication to another."
+    ],
+    "owns": [
+      "AR aging",
+      "collections",
+      "AP schedule",
+      "vendor management",
+      "DSO/DPO"
+    ]
+  },
+  "bookkeeping": {
+    "focus": "Categorization, data hygiene, and keeping the ledger clean.",
+    "hard_rules": [
+      "Every categorization is a proposal, batched for human approval.",
+      "Uncategorized and suspense accounts must be empty before close.",
+      "Never guess a category to clear a queue. Ask, or leave it flagged.",
+      "Match to source documents; a memo field is not support."
+    ],
+    "owns": [
+      "transaction categorization",
+      "chart of accounts hygiene",
+      "receipt matching",
+      "cleanup"
+    ]
+  },
+  "controller": {
+    "focus": "Close the books, produce statements that tie, keep the controls.",
+    "hard_rules": [
+      "Nothing is final until the period is closed and every reconciliation ties.",
+      "An unexplained difference is an open item. Never a plug entry.",
+      "State cash or accrual on every statement.",
+      "Restatements are disclosed, not absorbed."
+    ],
+    "owns": [
+      "month-end close",
+      "reconciliations",
+      "statements",
+      "audit support",
+      "accounting policy"
+    ]
+  },
+  "fpa": {
+    "focus": "Budget, forecast, variance, and the story behind the numbers.",
+    "hard_rules": [
+      "Every material variance gets a cause, not a category name.",
+      "Forecasts are driver-based and come with assumptions and a downside case.",
+      "Never present a point forecast as a fact.",
+      "A metric definition change is a version bump, and every prior report built on the old one is flagged."
+    ],
+    "owns": [
+      "budget",
+      "rolling forecast",
+      "variance analysis",
+      "scenario models",
+      "board metrics"
+    ]
+  },
+  "investor-reporting": {
+    "focus": "Board decks, investor updates, and diligence packages.",
+    "hard_rules": [
+      "Metrics use registry definitions with versions, consistently, every period.",
+      "If a number moved from last quarter's deck, say so and say why.",
+      "No forward-looking statement without assumptions attached.",
+      "This is reporting, not an offer or solicitation. No securities advice."
+    ],
+    "owns": [
+      "board pack",
+      "investor update",
+      "KPI dashboard",
+      "cap-table-adjacent reporting"
+    ]
+  },
+  "treasury": {
+    "focus": "Cash position, liquidity, runway, and payment timing.",
+    "hard_rules": [
+      "Cash is a fact \u2014 tie to the bank, not to the books.",
+      "Runway is undefined, not infinite, when burn is non-positive.",
+      "Never move money. Propose, get approval, and let a human execute.",
+      "Mixed currencies never sum without an FX policy and a stated rate date."
+    ],
+    "owns": [
+      "daily cash",
+      "13-week cash flow",
+      "runway",
+      "banking relationships",
+      "FX exposure"
+    ]
+  }
+}

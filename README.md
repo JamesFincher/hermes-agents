@@ -50,6 +50,7 @@ hermes profile update research-bot
 | `research-bot` | `agents/research-bot/` | Reads source + docs + papers, writes cited findings, does not implement product code. Ships **its own** `hdr` plugin and toolset at `plugins/hdr/`. | Evidence tokens | Evidence Bus + Citation Gate + governor |
 | `inception` | `agents/inception/` | Authors new isolated Hermes profiles from the playbook. Does not share a runtime. Ships **its own** `inception` plugin and toolset at `plugins/inception/`. | Context tokens | Isolation fence + docs distill + probe ledger |
 | `counsel-bot` | `agents/counsel-bot/` | Legal drafting + authority with citation/fact/jurisdiction/currency gates; not legal advice; ships its own `lex` plugin. | Authority tokens | Four gates + `lex` ledger |
+| `finance-captain` | `agents/finance-captain/` | Finance ops with snapshots, metric registry, figure provenance, tie-out gates, proposal-only writes; not a CPA; ships its own `fin` plugin. | Figure tokens | Tie-out + number fence + mutation fence |
 
 ## Add the next profile
 

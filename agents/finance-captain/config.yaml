@@ -1,0 +1,146 @@
+# finance-captain — Hermes profile config
+# Knob sweep per docs/PROFILE-PLAYBOOK.md §5. Recorded decisions, not defaults.
+
+model:
+  default: "<frontier-model>"        # analysis, explanation, report narrative
+
+delegation:
+  model: "<fast-cheap-model>"        # per-source pullers; they fetch, they do not judge
+  provider: "<provider>"
+  max_concurrent_children: 4         # one per system of record
+  max_iterations: 20
+  max_spawn_depth: 1
+  orchestrator_enabled: false
+  child_timeout_seconds: 600
+  worktree_isolation: false
+  surface_child_process_notifications: false
+
+auxiliary:
+  compression:
+    model: "<fast-cheap-model>"
+    reasoning_effort: "low"
+    max_concurrency: 2
+  vision:
+    model: "<vision-model>"          # scanned invoices, receipts, bank PDFs
+    reasoning_effort: "none"
+  review:
+    model: "<frontier-model>"        # /review on a close pack before it goes out
+  title_generation:
+    enabled: false
+
+# ─── context economics (mandatory block) ─────────────────────────────────────
+# Transaction exports are enormous and almost entirely irrelevant per turn.
+# Raw rows never enter the window; they go to the snapshot store and are queried.
+compression:
+  enabled: true
+  threshold: 0.55
+  threshold_tokens: 200000
+  tail_mode: lean
+  protect_last_n: 12
+  protect_first_n: 3                 # the entity/period framing survives compaction
+  in_place: true
+  idle_compact_after_seconds: 1800
+  proactive_prune_tokens: 40000      # old query payloads stop being re-sent
+  proactive_prune_min_result_chars: 3000
+  proactive_prune_min_reclaim_tokens: 8192
+  context_timeout_seconds: 180
+
+tool_output:
+  max_bytes: 30000                   # a CSV dump must never fill the window
+  max_lines: 800
+  max_line_length: 800
+
+tool_budget:
+  mcp_result_size_chars: 20000       # accounting APIs return huge un-paginated pages
+
+file_read_max_chars: 120000
+context_file_max_chars: 20000
+
+prompt_caching:
+  cache_ttl: "1h"
+
+agent:
+  max_turns: none
+  run_budget_seconds: 2400
+  api_max_retries: 2
+  session_stall_timeout: 300
+  verify_on_stop: false              # ours is the tie-out gate, not the code gate
+  verify_guidance: false
+
+# ─── execution surface ───────────────────────────────────────────────────────
+# Holds bank and payroll data and can write to systems of record. Container.
+terminal:
+  backend: docker
+  docker_image: "nikolaik/python-nodejs:python3.11-nodejs20"
+  docker_network: true
+  docker_mount_cwd_to_workspace: false
+  container_persistent: true
+  container_memory: 4096
+  timeout: 240                       # xlsx builds and large recons
+  env_passthrough: []
+
+web:
+  search_backend: "searxng"
+  extract_backend: "firecrawl"
+  keyless_fallback: true
+  keyless_rescue: true
+
+skills:
+  inline_shell: false
+  write_approval: false
+  guard_agent_created: true
+  config:
+    fin:
+      report_root: "reports"
+      fiscal_year_end: "12-31"
+      home_currency: "USD"
+
+memory:
+  provider: honcho
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 1400            # figures live in the figure store, never memory
+  user_char_limit: 900
+  write_approval: true               # a remembered wrong number is worse than none
+
+# ─── capability surface ──────────────────────────────────────────────────────
+custom_toolsets:
+  finance:
+    - web
+    - browser          # bank/vendor portals with no API
+    - vision           # scanned invoices, receipts, statement PDFs
+    - file
+    - terminal
+    - code_execution   # ALL arithmetic happens here or in fin tools. Never in prose.
+    - skills
+    - memory
+    - session_search   # last quarter's close is context for this one
+    - todo
+    - clarify
+    - delegation       # one puller per system of record
+    # Official: no moa toolset. MoA is a provider (/moa, moa.presets).
+    - cronjob          # daily cash position, month-end close kickoff
+    - fin
+
+toolsets:
+  - finance
+
+plugins:
+  enabled:
+    - fin
+  stream_reasoning_deltas: false
+  entries:
+    fin:
+      mcp_allowlist: [quickbooks, xero, stripe, plaid, ramp, gsheets, warehouse, fred, edgar]
+      settings:
+        home_currency: "USD"
+        number_fence: strict          # strict | warn — strict blocks the report write
+        tieout_tolerance_cents: 100    # $1.00 rounding tolerance on a tie-out
+        snapshot_staleness_hours: 24
+        mutation_mode: propose_only    # propose_only | approved_apply. Never auto.
+        mutation_max_cents: 0          # 0 = every write needs explicit approval
+        require_period_close_for_final: true
+        materiality_cents: 100000      # $1,000 — variance explanation threshold
+        anomaly_z: 2.5
+        report_root: "reports"
+        redact_account_numbers: true

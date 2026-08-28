@@ -1,0 +1,10 @@
+.env
+honcho.json
+plugin-data/
+reports/
+analysis/
+exports/
+working/
+__pycache__/
+*.pyc
+*.xlsx

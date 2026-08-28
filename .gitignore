@@ -44,6 +44,7 @@ mcp-tokens/
 !agents/research-bot/.env.EXAMPLE
 !agents/inception/.env.EXAMPLE
 !agents/counsel-bot/.env.EXAMPLE
+!agents/finance-captain/.env.EXAMPLE
 
 # Infrastructure (safe to exclude if they appear)
 hermes-agent/

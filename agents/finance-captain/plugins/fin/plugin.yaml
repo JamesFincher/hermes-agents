@@ -1,0 +1,41 @@
+name: fin
+version: 1.0.0
+description: >
+  Snapshot store, metric registry, figure provenance, tie-out and mutation
+  gates for the finance-captain profile. Registers the `fin` toolset.
+author: "James Fincher"
+license: "Apache-2.0"
+
+provides_tools:
+  - entity_open
+  - period_manage
+  - snapshot_pull
+  - snapshot_diff
+  - ledger_query
+  - metric_registry
+  - metric_compute
+  - budget_manage
+  - variance_report
+  - cash_forecast
+  - anomaly_scan
+  - recon_tieout
+  - figure_check
+  - report_scaffold
+  - report_check
+  - mutation_propose
+  - mutation_apply
+  - audit_trail
+
+provides_hooks:
+  - on_session_start
+  - on_session_end
+  - pre_llm_call
+  - pre_tool_call
+  - post_tool_call
+  - transform_tool_result
+  - transform_terminal_output
+  - transform_llm_output
+  - pre_api_request
+  - post_api_request
+  - subagent_start
+  - subagent_stop

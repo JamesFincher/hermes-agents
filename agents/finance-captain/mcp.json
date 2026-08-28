@@ -1,0 +1,47 @@
+{
+  "mcp_servers": {
+    "quickbooks": {
+      "url": "${env:QUICKBOOKS_MCP_URL}",
+      "headers": { "Authorization": "Bearer ${env:QUICKBOOKS_TOKEN}" },
+      "_note": "Accounting system of record. UNVERIFIED endpoint — Intuit's own MCP offering and the community servers move; confirm at install. Fallback: export CSV and load with plugins/fin/scripts/load_csv.py. Read scopes are sufficient unless mutation_mode is approved_apply."
+    },
+    "xero": {
+      "url": "${env:XERO_MCP_URL}",
+      "headers": { "Authorization": "Bearer ${env:XERO_TOKEN}" },
+      "_note": "Alternative accounting system of record. Xero publishes an official MCP server; verify the endpoint. Use one of quickbooks/xero, not both, unless you are consolidating."
+    },
+    "stripe": {
+      "url": "https://mcp.stripe.com",
+      "headers": { "Authorization": "Bearer ${env:STRIPE_API_KEY}" },
+      "_note": "Payments and subscription data — the source for MRR/ARR inputs. Stripe ships an official MCP server. USE A RESTRICTED, READ-ONLY KEY. A full-access Stripe key in an agent is a refund button."
+    },
+    "plaid": {
+      "url": "${env:PLAID_MCP_URL}",
+      "headers": { "Authorization": "Bearer ${env:PLAID_TOKEN}" },
+      "_note": "Banking: balances and transactions. This is the authoritative source for cash. UNVERIFIED endpoint."
+    },
+    "ramp": {
+      "url": "${env:RAMP_MCP_URL}",
+      "headers": { "Authorization": "Bearer ${env:RAMP_TOKEN}" },
+      "_note": "Corporate card and spend. Swap for Brex/Expensify/Bill.com equivalently. UNVERIFIED endpoint."
+    },
+    "gsheets": {
+      "url": "${env:GSHEETS_MCP_URL}",
+      "_note": "Manual schedules, the budget if it lives in a sheet, and CSV ingestion. Also the fallback path when a system has no API."
+    },
+    "warehouse": {
+      "url": "${env:WAREHOUSE_MCP_URL}",
+      "headers": { "Authorization": "Bearer ${env:WAREHOUSE_TOKEN}" },
+      "_note": "Postgres/Snowflake/BigQuery for product and revenue data that never reaches the GL. READ-ONLY ROLE ONLY."
+    },
+    "fred": {
+      "url": "${env:FRED_MCP_URL}",
+      "_note": "Federal Reserve economic data for rate and macro context. Public, no key on the API itself."
+    },
+    "edgar": {
+      "url": "${env:EDGAR_MCP_URL}",
+      "_note": "SEC EDGAR for public-company benchmarking. Public data; requires a declared user agent."
+    }
+  },
+  "_install_note": "Every endpoint marked UNVERIFIED must be confirmed or deleted at install. A missing server is not fatal: snapshot_pull returns a fallback instruction and the CSV path still works. What IS fatal is a write-scoped credential — grant read-only everywhere unless you have deliberately enabled approved_apply and understand the blast radius."
+}
