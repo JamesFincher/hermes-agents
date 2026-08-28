@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..runtime import estimate_tokens
-from ..store import ledger, run
+from ..store import claims, ledger, run
 
 METHOD = (
     "HDR method. Six phases. Compute, do not guess.\n"
@@ -69,9 +69,12 @@ def digest_text() -> str:
     if not current:
         text = "[HDR] no active run. Call research_plan first."
         return text[:1200]
-    last = current.get("last_batch_ids") or []
+    last_ids = [str(item) for item in (current.get("last_batch_ids") or [])][:8]
+    by_id = {str(src.get("id")): src for src in sources}
+    last_rows = [by_id[sid] for sid in last_ids if sid in by_id]
+    primary = sum(1 for src in last_rows if src.get("kind") == "primary")
+    secondary = sum(1 for src in last_rows if src.get("kind") == "secondary")
     open_qs = current.get("open_questions") or []
-    thin = [s.get("id") for s in sources if s.get("tier") in {"C", "D"}][:4]
     spend = current.get("spend") or {}
     budget = current.get("budget") or {}
     tokens = float(budget.get("tokens") or 1)
@@ -81,8 +84,8 @@ def digest_text() -> str:
         f"· tier {current.get('tier')} · budget {pct}% · saturation {current.get('saturation')}",
         f"governor: {current.get('governor')}",
         f"open: ({len(open_qs)}) " + "; ".join(str(q)[:40] for q in open_qs[:3]),
-        f"thin: {', '.join(str(x) for x in thin) or 'none'}",
-        f"last: {' '.join(str(x) for x in last[:8]) or 'none'} ({len(sources)} sources)",
+        f"thin: {_thin_line(sources)}",
+        f"last: {' '.join(last_ids) or 'none'} ({primary} primary, {secondary} secondary)",
     ]
     if current.get("governor") == "AMBER":
         lines.append("AMBER: no new worker batches. Depth on named gaps only.")
@@ -92,6 +95,30 @@ def digest_text() -> str:
     if len(text) > 1200:
         text = text[:1190] + "\n"
     return text
+
+
+def _thin_line(sources: list[dict[str, Any]]) -> str:
+    try:
+        graph = claims.load_claims()
+    except Exception:
+        graph = {}
+    thin_claims: list[str] = []
+    if isinstance(graph, dict):
+        for cid, node in graph.items():
+            if not isinstance(node, dict):
+                continue
+            support = node.get("support") if isinstance(node.get("support"), list) else []
+            if node.get("status") in {"unsupported", "thin"} or len(support) <= 1:
+                thin_claims.append(f"{cid} relies on one tier-C source")
+            if len(thin_claims) >= 2:
+                break
+    if thin_claims:
+        return "; ".join(thin_claims)
+    thin_sources = [src for src in sources if src.get("tier") in {"C", "D"}]
+    if not thin_sources:
+        return "none"
+    first = thin_sources[0]
+    return f"{first.get('id')} relies on one tier-{first.get('tier')} source"
 
 
 def pre_llm_call(

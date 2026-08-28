@@ -60,6 +60,7 @@ def on_session_finalize(session_id: str = "", **kwargs: Any) -> None:
 def on_session_reset(session_id: str = "", **kwargs: Any) -> None:
     on_session_end(session_id, **kwargs)
     try:
+        run.clear_run()
         ledger.init_ledger()
     except Exception:
         return
@@ -68,9 +69,34 @@ def on_session_reset(session_id: str = "", **kwargs: Any) -> None:
 def api_request_error(error: str = "", **kwargs: Any) -> None:
     try:
         current = run.load_run()
+        kind = _classify_api_error(error, kwargs)
         bus.append_audit(
             (current or {}).get("run_id") or "",
-            {"event": "api_request_error", "error": str(error), "detail": str(kwargs)[:400]},
+            {
+                "event": "api_request_error",
+                "class": kind,
+                "error": str(error),
+                "detail": str(kwargs)[:400],
+            },
         )
     except Exception:
         return
+
+
+def _classify_api_error(error: str, extra: dict[str, Any]) -> str:
+    blob = f"{error} {extra}".lower()
+    if any(token in blob for token in ("429", "rate limit", "rate_limit", "too many requests")):
+        return "rate_limit"
+    if any(
+        token in blob
+        for token in ("401", "403", "unauthorized", "forbidden", "invalid api key", "auth")
+    ):
+        return "auth"
+    if any(token in blob for token in ("timeout", "timed out", "deadline exceeded")):
+        return "timeout"
+    if any(
+        token in blob
+        for token in ("context length", "context_length", "too many tokens", "maximum context")
+    ):
+        return "context"
+    return "other"

@@ -213,12 +213,19 @@ def transform_tool_result(
                 if not hit_url:
                     continue
                 canonical = bus.canonicalize(hit_url)
+                snippet = str(hit.get("snippet") or hit.get("content") or "")[:400]
+                cleaned = sanitize.strip_injections(snippet)
+                if cleaned.get("suppressed"):
+                    bus.append_audit(
+                        (current or {}).get("run_id") or "",
+                        {"suppressed": cleaned["suppressed"], "url": hit_url},
+                    )
                 added = ledger.add_source(
                     {
                         "url": hit_url,
                         "canonical_url": canonical,
                         "title": hit.get("title") or hit_url,
-                        "quote": str(hit.get("snippet") or hit.get("content") or "")[:400],
+                        "quote": str(cleaned.get("text") or "")[:400],
                         "origin": tool_name,
                         "run_id": (current or {}).get("run_id") or "",
                         "needs_backfill": True,
@@ -226,6 +233,9 @@ def transform_tool_result(
                 )
                 source = added.get("source") or {}
                 cards.append(_card_for_source(source, "", 0))
+                host = (urlparse(hit_url).hostname or "").lower()
+                if host:
+                    run.bump_domain(host)
             payload = _fit_cards(cards)
             _note_batch(current, [c.get("card") for c in cards if c.get("card")])
             _audit(
@@ -288,12 +298,10 @@ def transform_tool_result(
         card = _card_for_source(source, str(stored.get("path") or ""), int(stored.get("chars") or 0))
         payload = _fit_card(card)
         _note_batch(current, [source.get("id")])
-        if current and url:
-            counts = current.setdefault("domain_counts", {})
+        if url:
             host = (urlparse(url).hostname or "").lower()
             if host:
-                counts[host] = int(counts.get(host) or 0) + 1
-                run.save_run(current)
+                run.bump_domain(host)
         _audit(
             current,
             tool=tool_name,
@@ -325,6 +333,7 @@ def transform_terminal_output(output: str, **kwargs: Any) -> str | None:
 
 
 def _note_batch(current: dict[str, Any] | None, ids: list[Any]) -> None:
+    run.append_last_batch(ids)
     if not current:
         return
     batch = list(current.get("last_batch_ids") or [])
@@ -332,4 +341,5 @@ def _note_batch(current: dict[str, Any] | None, ids: list[Any]) -> None:
         if item and str(item) not in batch:
             batch.append(str(item))
     current["last_batch_ids"] = batch
-    run.save_run(current)
+
+
