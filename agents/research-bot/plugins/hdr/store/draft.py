@@ -28,7 +28,7 @@ def _cited_line(text: str, sid: str) -> str:
         return body
     if body[-1:] in ".!?":
         return f"{body[:-1].rstrip()} {marker}{body[-1]}"
-    return f"{body} {marker}."
+    return f"{body} {marker}"
 
 
 def _lead_line(lead: dict[str, Any], question: str) -> str:

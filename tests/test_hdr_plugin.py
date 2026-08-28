@@ -376,7 +376,12 @@ class HdrTest(unittest.TestCase):
         self.assertIn("src", report["conflicts"][0]["support"][0])
         self.assertIn("stance", report["conflicts"][0]["support"][0])
         self.assertIn("tier", report["conflicts"][0]["support"][0])
-        cite = json.loads(self.pkg.tools.cite_source({"style": "ieee", "ids": ["S2"]}))
+        ieee_id = next(
+            str(src["id"])
+            for src in self.pkg.store.ledger.list_sources()
+            if src.get("container") == "IEEE Transactions"
+        )
+        cite = json.loads(self.pkg.tools.cite_source({"style": "ieee", "ids": [ieee_id]}))
         self.assertGreaterEqual(cite["count"], 1)
         self.assertIn("IEEE Transactions", cite["citations"][0]["text"])
         self.assertEqual(cite["citations"][0]["container"], "IEEE Transactions")
